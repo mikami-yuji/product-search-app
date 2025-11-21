@@ -12,9 +12,6 @@ const ProductImage = ({ dirHandle, filename, productCode, webImages, className, 
     let objectUrl = null;
 
     const loadImage = async () => {
-      // Debug logging
-      // console.log(`Checking image for ${filename} (Code: ${productCode})`);
-
       // 1. Try Local Image (if folder connected)
       if (dirHandle && filename) {
         try {
@@ -40,25 +37,46 @@ const ProductImage = ({ dirHandle, filename, productCode, webImages, className, 
             objectUrl = URL.createObjectURL(file);
             setImageUrl(objectUrl);
             setError(false);
-            return; // Found local image
+            return;
           }
         } catch (err) {
           console.error("Error loading local image:", err);
         }
       }
 
-      // 2. Try Web Image (if product code exists in map)
+      // 2. Try GitHub hosted images
+      if (filename) {
+        const extensions = ['.jpg', '.jpeg', '.png'];
+        const suffixes = ['', 'A'];
+
+        for (const suffix of suffixes) {
+          for (const ext of extensions) {
+            try {
+              const githubImageUrl = `/images/${filename}${suffix}${ext}`;
+              const response = await fetch(githubImageUrl, { method: 'HEAD' });
+              if (response.ok) {
+                setImageUrl(githubImageUrl);
+                setError(false);
+                return;
+              }
+            } catch (e) {
+              // Image doesn't exist, continue
+            }
+          }
+        }
+      }
+
+      // 3. Try Web Image (if product code exists in map)
       if (webImages && productCode) {
         const codeStr = String(productCode);
         if (webImages[codeStr]) {
-          console.log(`Found web image for ${codeStr}: ${webImages[codeStr]}`);
           setImageUrl(webImages[codeStr]);
           setError(false);
           return;
         }
       }
 
-      // 3. No image found
+      // 4. No image found
       setError(true);
     };
 
@@ -85,8 +103,8 @@ const ProductImage = ({ dirHandle, filename, productCode, webImages, className, 
         className="product-thumbnail"
         onError={(e) => {
           console.error(`Failed to load image: ${imageUrl}`);
-          e.target.style.display = 'none'; // Hide broken image
-          setError(true); // Switch to placeholder
+          e.target.style.display = 'none';
+          setError(true);
         }}
       />
     </div>
@@ -255,6 +273,27 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
             } catch (e) {
               // File doesn't exist, continue
             }
+          }
+        }
+      }
+
+      // Check GitHub hosted images
+      const githubExtensions = ['.jpg', '.jpeg', '.png'];
+      for (const suffix of suffixes) {
+        for (const ext of githubExtensions) {
+          try {
+            const githubImageUrl = `/images/${product['受注№']}${suffix}${ext}`;
+            const response = await fetch(githubImageUrl, { method: 'HEAD' });
+            if (response.ok) {
+              // Check if not already added from local
+              const alreadyExists = images.some(img => img.suffix === suffix);
+              if (!alreadyExists) {
+                images.push({ url: githubImageUrl, suffix: suffix || 'メイン', source: 'github' });
+              }
+              break;
+            }
+          } catch (e) {
+            // Image doesn't exist, continue
           }
         }
       }
