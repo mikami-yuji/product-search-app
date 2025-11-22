@@ -128,52 +128,32 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
               ];
             } else if (isNobori) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods5/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`
               ];
             } else if (isDassanso) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods6/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods6/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods6/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods6/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods6/${codePart}.jpg`
               ];
             } else if (isCase) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods1/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods1/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods1/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods1/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods1/${codePart}.jpg`
               ];
             } else if (isPanelBoard) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods3/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`
               ];
             } else if (isCross) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods4/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods4/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods4/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods4/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods4/${codePart}.jpg`
               ];
             } else if (isOtherPromo) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods9/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`
               ];
             } else {
               candidates = [
                 `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`
               ];
             }
           }
@@ -488,52 +468,32 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
               ];
             } else if (isNobori) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods5/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`
               ];
             } else if (isDassanso) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods6/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods6/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods6/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods6/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods6/${codePart}.jpg`
               ];
             } else if (isCase) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods1/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods1/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods1/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods1/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods1/${codePart}.jpg`
               ];
             } else if (isPanelBoard) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods3/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`
               ];
             } else if (isCross) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods4/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods4/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods4/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods4/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods4/${codePart}.jpg`
               ];
             } else if (isOtherPromo) {
               candidates = [
-                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods9/${codePart}.png`,
-                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.png`
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`
               ];
             } else {
               candidates = [
                 `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`
               ];
             }
           }
