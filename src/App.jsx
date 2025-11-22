@@ -110,11 +110,12 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
           let candidates = [];
 
           if (productType === '既製品') {
-            // Check if material name contains 'シール', 'のぼり', '脱酸素剤', or 'ケース'
+            // Check if material name contains 'シール', 'のぼり', '脱酸素剤', 'ケース', or 'パネルボード'
             const isSeal = materialName && String(materialName).includes('シール');
             const isNobori = materialName && String(materialName).includes('のぼり');
             const isDassanso = materialName && String(materialName).includes('脱酸素剤');
             const isCase = materialName && String(materialName).includes('ケース');
+            const isPanelBoard = materialName && String(materialName).includes('パネルボード');
 
             if (isSeal) {
               candidates = [
@@ -143,6 +144,13 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
                 `https://www.asahipac.co.jp/product/goods1/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods1/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods1/images/${codePart}.png`
+              ];
+            } else if (isPanelBoard) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.png`
               ];
             } else {
               candidates = [
@@ -454,11 +462,12 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           let candidates = [];
 
           if (productType === '既製品') {
-            // Check if material name contains 'シール', 'のぼり', '脱酸素剤', or 'ケース'
+            // Check if material name contains 'シール', 'のぼり', '脱酸素剤', 'ケース', or 'パネルボード'
             const isSeal = materialName && String(materialName).includes('シール');
             const isNobori = materialName && String(materialName).includes('のぼり');
             const isDassanso = materialName && String(materialName).includes('脱酸素剤');
             const isCase = materialName && String(materialName).includes('ケース');
+            const isPanelBoard = materialName && String(materialName).includes('パネルボード');
 
             if (isSeal) {
               candidates = [
@@ -487,6 +496,13 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
                 `https://www.asahipac.co.jp/product/goods1/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods1/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods1/images/${codePart}.png`
+              ];
+            } else if (isPanelBoard) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods3/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods3/images/${codePart}.png`
               ];
             } else {
               candidates = [
