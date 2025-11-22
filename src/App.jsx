@@ -4,7 +4,7 @@ import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIco
 import { get, set } from 'idb-keyval';
 import './index.css';
 
-const imageCache = {}; // Global cache for image existence
+const imageCache = {}; // Global memory cache for current session
 
 const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
   const [imageUrl, setImageUrl] = useState(null);
@@ -126,17 +126,32 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
           }
 
           try {
-            const checkImage = (url) => {
-              if (imageCache[url] !== undefined) return Promise.resolve(imageCache[url]);
+            const checkImage = async (url) => {
+              // 1. Check memory cache
+              if (imageCache[url] !== undefined) return imageCache[url];
 
+              // 2. Check persistent cache (IndexedDB)
+              try {
+                const cachedResult = await get(`img_check_${url}`);
+                if (cachedResult !== undefined) {
+                  imageCache[url] = cachedResult;
+                  return cachedResult;
+                }
+              } catch (e) {
+                console.warn("Failed to read from IDB:", e);
+              }
+
+              // 3. Perform network request
               return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
                   imageCache[url] = true;
+                  set(`img_check_${url}`, true).catch(e => console.warn("Failed to save to IDB:", e));
                   resolve(true);
                 };
                 img.onerror = () => {
                   imageCache[url] = false;
+                  set(`img_check_${url}`, false).catch(e => console.warn("Failed to save to IDB:", e));
                   resolve(false);
                 };
                 img.src = url;
@@ -415,17 +430,32 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           }
 
           try {
-            const checkImage = (url) => {
-              if (imageCache[url] !== undefined) return Promise.resolve(imageCache[url]);
+            const checkImage = async (url) => {
+              // 1. Check memory cache
+              if (imageCache[url] !== undefined) return imageCache[url];
 
+              // 2. Check persistent cache (IndexedDB)
+              try {
+                const cachedResult = await get(`img_check_${url}`);
+                if (cachedResult !== undefined) {
+                  imageCache[url] = cachedResult;
+                  return cachedResult;
+                }
+              } catch (e) {
+                console.warn("Failed to read from IDB:", e);
+              }
+
+              // 3. Perform network request
               return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
                   imageCache[url] = true;
+                  set(`img_check_${url}`, true).catch(e => console.warn("Failed to save to IDB:", e));
                   resolve(true);
                 };
                 img.onerror = () => {
                   imageCache[url] = false;
+                  set(`img_check_${url}`, false).catch(e => console.warn("Failed to save to IDB:", e));
                   resolve(false);
                 };
                 img.src = url;
