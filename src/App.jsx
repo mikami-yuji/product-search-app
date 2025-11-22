@@ -117,6 +117,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
             const isCase = materialName && String(materialName).includes('ケース');
             const isPanelBoard = materialName && String(materialName).includes('パネルボード');
             const isCross = materialName && String(materialName).includes('クロス');
+            const isOtherPromo = materialName && String(materialName).includes('その他販促品');
 
             if (isSeal) {
               candidates = [
@@ -159,6 +160,13 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
                 `https://www.asahipac.co.jp/product/goods4/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods4/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods4/images/${codePart}.png`
+              ];
+            } else if (isOtherPromo) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.png`
               ];
             } else {
               candidates = [
@@ -477,6 +485,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
             const isCase = materialName && String(materialName).includes('ケース');
             const isPanelBoard = materialName && String(materialName).includes('パネルボード');
             const isCross = materialName && String(materialName).includes('クロス');
+            const isOtherPromo = materialName && String(materialName).includes('その他販促品');
 
             if (isSeal) {
               candidates = [
@@ -519,6 +528,13 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
                 `https://www.asahipac.co.jp/product/goods4/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods4/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods4/images/${codePart}.png`
+              ];
+            } else if (isOtherPromo) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods9/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods9/images/${codePart}.png`
               ];
             } else {
               candidates = [
