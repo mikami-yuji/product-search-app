@@ -288,7 +288,8 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total }
     emailText += `${'='.repeat(60)}\n\n`;
 
     cart.forEach((item, index) => {
-      emailText += `${index + 1}. ${item['タイトル']}\n`;
+      const displayName = item['種別'] === '既製品' ? item['商品名'] : item['タイトル'];
+      emailText += `${index + 1}. ${displayName}\n`;
       emailText += `   受注№: ${item['受注№']}\n`;
       emailText += `   商品コード: ${item['商品コード']}\n`;
       emailText += `   材質: ${item['材質名称']}\n`;
@@ -352,7 +353,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total }
           {cart.map((item, index) => (
             <div key={index} className="cart-item">
               <div className="cart-item-info">
-                <h3>{item['タイトル']}</h3>
+                <h3>{item['種別'] === '既製品' ? item['商品名'] : item['タイトル']}</h3>
                 <p className="cart-item-meta">#{item['受注№']} | {item['材質名称']}</p>
                 {item['単価'] && (
                   <p className="cart-item-price">¥{parseFloat(item['単価']).toLocaleString()} × {item.quantity}</p>
@@ -649,7 +650,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
             )}
           </div>
           <div className="modal-details">
-            <h2 className="modal-title">{product['タイトル']}</h2>
+            <h2 className="modal-title">{product['種別'] === '既製品' ? product['商品名'] : product['タイトル']}</h2>
 
             {/* 基本情報 */}
             <div className="info-section">
@@ -797,7 +798,7 @@ const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) =>
         />
       </div>
       <div className="amazon-card-content">
-        <h3 className="amazon-card-title" onClick={onClick}>{product['タイトル']}</h3>
+        <h3 className="amazon-card-title" onClick={onClick}>{product['種別'] === '既製品' ? product['商品名'] : product['タイトル']}</h3>
         <div className="amazon-card-meta">
           <span className="amazon-card-id">#{product['受注№']}</span>
         </div>
