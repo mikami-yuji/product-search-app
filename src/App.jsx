@@ -198,6 +198,8 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
                 setError(false);
                 return;
               }
+              // Add small delay to prevent rate limiting
+              await new Promise(resolve => setTimeout(resolve, 100));
             }
           } catch (e) {
             console.error("Error checking dynamic image:", e);
@@ -537,6 +539,8 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
                 images.push({ url, suffix: 'Web', source: 'web-dynamic' });
                 break; // Found one, stop looking
               }
+              // Add small delay to prevent rate limiting
+              await new Promise(resolve => setTimeout(resolve, 100));
             }
           } catch (e) {
             console.error("Error checking dynamic image in modal:", e);
