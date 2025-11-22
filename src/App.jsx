@@ -87,16 +87,27 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
             `${codePart}-f.jpg`,
             `${codePart}-f.png`
           ];
-          for (const file of candidates) {
-            const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
-            try {
-              const resp = await fetch(url, { method: 'HEAD' });
-              if (resp.ok) {
+          try {
+            const checkImage = (url) => {
+              return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = url;
+              });
+            };
+
+            for (const file of candidates) {
+              const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+              const exists = await checkImage(url);
+              if (exists) {
                 setImageUrl(url);
                 setError(false);
                 return;
               }
-            } catch (_) { }
+            }
+          } catch (e) {
+            console.error("Error checking dynamic image:", e);
           }
         }
       }
@@ -339,39 +350,20 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           const codePart = codeStr.slice(2, 5);
           const candidates = [
             `${codePart}.jpg`,
-            `${codePart}.png`,
-            `${codePart}-f.jpg`,
-            `${codePart}-f.png`
-          ];
+            setCurrentImageIndex(0);
+        };
 
-          for (const file of candidates) {
-            const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
-            try {
-              const resp = await fetch(url, { method: 'HEAD' });
-              if (resp.ok) {
-                images.push({ url, suffix: 'Web', source: 'web-dynamic' });
-                break; // Found one, stop looking
-              }
-            } catch (_) { }
-          }
-        }
-      }
+        checkImages();
 
-      setAvailableImages(images);
-      setCurrentImageIndex(0);
-    };
-
-    checkImages();
-
-    return () => {
-      // Cleanup local URLs
-      availableImages.forEach(img => {
-        if (img.source === 'local') {
-          URL.revokeObjectURL(img.url);
-        }
-      });
-    };
-  }, [product, dirHandle, webImages]);
+        return () => {
+          // Cleanup local URLs
+          availableImages.forEach(img => {
+            if (img.source === 'local') {
+              URL.revokeObjectURL(img.url);
+            }
+          });
+        };
+      }, [product, dirHandle, webImages]);
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : availableImages.length - 1));
