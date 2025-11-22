@@ -801,6 +801,9 @@ const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) =>
         <h3 className="amazon-card-title" onClick={onClick}>{product['種別'] === '既製品' ? product['商品名'] : product['タイトル']}</h3>
         <div className="amazon-card-meta">
           <span className="amazon-card-id">#{product['受注№']}</span>
+          {product['商品コード'] && (
+            <span className="amazon-card-id"> | {product['商品コード']}</span>
+          )}
         </div>
         <div className="amazon-card-details">
           <div className="amazon-detail-row">
@@ -1221,6 +1224,8 @@ function App() {
                                     setModalImage(url);
                                   }}
                                 />
+                              ) : col === 'タイトル' ? (
+                                row['種別'] === '既製品' ? row['商品名'] : row['タイトル']
                               ) : (
                                 row[col]
                               )}
