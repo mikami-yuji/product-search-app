@@ -6,7 +6,7 @@ import './index.css';
 
 const imageCache = {}; // Global memory cache for current session
 
-const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, productCode, productType, materialName, webImages, className, onClick }) => {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -110,12 +110,24 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
           let candidates = [];
 
           if (productType === '既製品') {
-            candidates = [
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
-            ];
+            // Check if material name contains 'シール'
+            const isSeal = materialName && String(materialName).includes('シール');
+
+            if (isSeal) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods7/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods7/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods7/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods7/images/${codePart}.png`
+              ];
+            } else {
+              candidates = [
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+              ];
+            }
           } else if (productType === '雑材') {
             candidates = [
               `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
@@ -183,7 +195,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [dirHandle, filename, productCode, productType, webImages, isVisible]);
+  }, [dirHandle, filename, productCode, productType, materialName, webImages, isVisible]);
 
   if (!isVisible) {
     return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;
@@ -410,6 +422,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
 
       // Check dynamic URL for 既製品 / 雑材
       const productType = product['種別'] || product['形状'];
+      const materialName = product['材質名称'];
       if (product['商品コード'] && productType && (productType === '既製品' || productType === '雑材')) {
         const codeStr = String(product['商品コード']);
         if (codeStr.length >= 5) {
@@ -417,12 +430,24 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           let candidates = [];
 
           if (productType === '既製品') {
-            candidates = [
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
-            ];
+            // Check if material name contains 'シール'
+            const isSeal = materialName && String(materialName).includes('シール');
+
+            if (isSeal) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods7/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods7/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods7/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods7/images/${codePart}.png`
+              ];
+            } else {
+              candidates = [
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+                `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+              ];
+            }
           } else if (productType === '雑材') {
             candidates = [
               `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
@@ -687,6 +712,7 @@ const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) =>
           filename={product['受注№']}
           productCode={product['商品コード']}
           productType={product['種別'] || product['形状']}
+          materialName={product['材質名称']}
           webImages={webImages}
           className="card-image"
           onClick={null}
@@ -1110,6 +1136,7 @@ function App() {
                                   filename={row['受注№']}
                                   productCode={row['商品コード']}
                                   productType={row['種別'] || row['形状']}
+                                  materialName={row['材質名称']}
                                   webImages={webImages}
                                   onClick={(url) => {
                                     setModalImage(url);
