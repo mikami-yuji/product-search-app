@@ -3,14 +3,37 @@ import * as XLSX from 'xlsx';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIcon, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { get, set } from 'idb-keyval';
 import './index.css';
-
 const imageCache = {}; // Global cache for image existence
 
 const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const imgRef = React.useRef(null);
 
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: '50px' }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
     let objectUrl = null;
 
     const loadImage = async () => {
@@ -131,7 +154,11 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [dirHandle, filename, productCode, productType, webImages]);
+  }, [dirHandle, filename, productCode, productType, webImages, isVisible]);
+
+  if (!isVisible) {
+    return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;
+  }
 
   if (error || !imageUrl) {
     return <div className={`no-image ${className || ''}`}><ImageIcon size={24} /></div>;
