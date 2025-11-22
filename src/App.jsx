@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIcon, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { get, set } from 'idb-keyval';
 import './index.css';
+
 const imageCache = {}; // Global cache for image existence
 
 const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
@@ -107,11 +108,23 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
         if (codeStr.length >= 5) {
           const codePart = codeStr.slice(2, 5);
           const candidates = [
-            `${codePart}.jpg`,
-            `${codePart}.png`,
-            `${codePart}-f.jpg`,
-            `${codePart}-f.png`
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
           ];
+
+          if (productType === '雑材') {
+            // Add candidates for 雑材 (goods3, machine1)
+            candidates.push(`https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`);
+
+            candidates.push(`https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`);
+          }
+
           try {
             const checkImage = (url) => {
               if (imageCache[url] !== undefined) return Promise.resolve(imageCache[url]);
@@ -130,8 +143,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
               });
             };
 
-            for (const file of candidates) {
-              const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+            for (const url of candidates) {
               const exists = await checkImage(url);
               if (exists) {
                 setImageUrl(url);
@@ -386,11 +398,21 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
         if (codeStr.length >= 5) {
           const codePart = codeStr.slice(2, 5);
           const candidates = [
-            `${codePart}.jpg`,
-            `${codePart}.png`,
-            `${codePart}-f.jpg`,
-            `${codePart}-f.png`
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
           ];
+
+          if (productType === '雑材') {
+            candidates.push(`https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`);
+
+            candidates.push(`https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`);
+            candidates.push(`https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`);
+          }
 
           try {
             const checkImage = (url) => {
@@ -410,8 +432,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
               });
             };
 
-            for (const file of candidates) {
-              const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+            for (const url of candidates) {
               const exists = await checkImage(url);
               if (exists) {
                 images.push({ url, suffix: 'Web', source: 'web-dynamic' });
