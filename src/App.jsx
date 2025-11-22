@@ -4,6 +4,8 @@ import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIco
 import { get, set } from 'idb-keyval';
 import './index.css';
 
+const imageCache = {}; // Global cache for image existence
+
 const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(false);
@@ -89,10 +91,18 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
           ];
           try {
             const checkImage = (url) => {
+              if (imageCache[url] !== undefined) return Promise.resolve(imageCache[url]);
+
               return new Promise((resolve) => {
                 const img = new Image();
-                img.onload = () => resolve(true);
-                img.onerror = () => resolve(false);
+                img.onload = () => {
+                  imageCache[url] = true;
+                  resolve(true);
+                };
+                img.onerror = () => {
+                  imageCache[url] = false;
+                  resolve(false);
+                };
                 img.src = url;
               });
             };
@@ -350,20 +360,58 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           const codePart = codeStr.slice(2, 5);
           const candidates = [
             `${codePart}.jpg`,
-            setCurrentImageIndex(0);
-        };
+            `${codePart}.png`,
+            `${codePart}-f.jpg`,
+            `${codePart}-f.png`
+          ];
 
-        checkImages();
+          try {
+            const checkImage = (url) => {
+              if (imageCache[url] !== undefined) return Promise.resolve(imageCache[url]);
 
-        return () => {
-          // Cleanup local URLs
-          availableImages.forEach(img => {
-            if (img.source === 'local') {
-              URL.revokeObjectURL(img.url);
+              return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  imageCache[url] = true;
+                  resolve(true);
+                };
+                img.onerror = () => {
+                  imageCache[url] = false;
+                  resolve(false);
+                };
+                img.src = url;
+              });
+            };
+
+            for (const file of candidates) {
+              const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+              const exists = await checkImage(url);
+              if (exists) {
+                images.push({ url, suffix: 'Web', source: 'web-dynamic' });
+                break; // Found one, stop looking
+              }
             }
-          });
-        };
-      }, [product, dirHandle, webImages]);
+          } catch (e) {
+            console.error("Error checking dynamic image in modal:", e);
+          }
+        }
+      }
+
+      setAvailableImages(images);
+      setCurrentImageIndex(0);
+    };
+
+    checkImages();
+
+    return () => {
+      // Cleanup local URLs
+      availableImages.forEach(img => {
+        if (img.source === 'local') {
+          URL.revokeObjectURL(img.url);
+        }
+      });
+    };
+  }, [product, dirHandle, webImages]);
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : availableImages.length - 1));
