@@ -110,8 +110,9 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
           let candidates = [];
 
           if (productType === '既製品') {
-            // Check if material name contains 'シール'
+            // Check if material name contains 'シール' or 'のぼり'
             const isSeal = materialName && String(materialName).includes('シール');
+            const isNobori = materialName && String(materialName).includes('のぼり');
 
             if (isSeal) {
               candidates = [
@@ -119,6 +120,13 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
                 `https://www.asahipac.co.jp/product/goods7/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods7/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods7/images/${codePart}.png`
+              ];
+            } else if (isNobori) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.png`
               ];
             } else {
               candidates = [
@@ -430,8 +438,9 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
           let candidates = [];
 
           if (productType === '既製品') {
-            // Check if material name contains 'シール'
+            // Check if material name contains 'シール' or 'のぼり'
             const isSeal = materialName && String(materialName).includes('シール');
+            const isNobori = materialName && String(materialName).includes('のぼり');
 
             if (isSeal) {
               candidates = [
@@ -439,6 +448,13 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
                 `https://www.asahipac.co.jp/product/goods7/${codePart}.png`,
                 `https://www.asahipac.co.jp/product/goods7/images/${codePart}.jpg`,
                 `https://www.asahipac.co.jp/product/goods7/images/${codePart}.png`
+              ];
+            } else if (isNobori) {
+              candidates = [
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods5/${codePart}.png`,
+                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.jpg`,
+                `https://www.asahipac.co.jp/product/goods5/images/${codePart}.png`
               ];
             } else {
               candidates = [
