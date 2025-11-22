@@ -10,7 +10,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BASE_URL = 'https://www.asahipac.co.jp/product/flat1/';
+// 試行するベースURLのリスト
+const BASE_URLS = [
+    'https://www.asahipac.co.jp/product/flat1/',
+    'https://www.asahipac.co.jp/product/craft3/',
+    'https://www.asahipac.co.jp/product/craft2/',
+    'https://www.asahipac.co.jp/product/craft1/',
+    'https://www.asahipac.co.jp/product/flat2/',
+    'https://www.asahipac.co.jp/product/flat3/',
+    'https://www.asahipac.co.jp/product/shigen/',
+    'https://www.asahipac.co.jp/product/kome/',
+];
+
 const OUTPUT_FILE = path.join(__dirname, 'public', 'product_images.json');
 
 async function fetchImageForCode(code) {
@@ -23,44 +34,46 @@ async function fetchImageForCode(code) {
     ];
 
     for (const sub of substrings) {
-        const url = `${BASE_URL}${sub}/`;
-        try {
-            console.log(`Checking URL: ${url}`);
-            const response = await axios.get(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            });
-            const $ = cheerio.load(response.data);
-
-            // Try to find the main image
-            // Based on inspection: .img_box_main img or .img_box img
-            let imgSrc = $('.img_box_main img').attr('src') || $('.img_box img').attr('src');
-
-            // Fallback: Look for any image in wp-content/uploads
-            if (!imgSrc) {
-                $('img').each((i, el) => {
-                    const src = $(el).attr('src');
-                    if (src && src.includes('wp-content/uploads') && !src.includes('logo') && !src.includes('icon')) {
-                        imgSrc = src;
-                        return false; // break
+        for (const baseUrl of BASE_URLS) {
+            const url = `${baseUrl}${sub}/`;
+            try {
+                console.log(`Checking URL: ${url}`);
+                const response = await axios.get(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     }
                 });
-            }
+                const $ = cheerio.load(response.data);
 
-            if (imgSrc) {
-                // Resolve relative URLs
-                if (imgSrc.startsWith('/')) {
-                    imgSrc = `https://www.asahipac.co.jp${imgSrc}`;
-                } else if (!imgSrc.startsWith('http')) {
-                    imgSrc = `https://www.asahipac.co.jp/product/flat1/${sub}/${imgSrc}`;
+                // Try to find the main image
+                // Based on inspection: .img_box_main img or .img_box img
+                let imgSrc = $('.img_box_main img').attr('src') || $('.img_box img').attr('src');
+
+                // Fallback: Look for any image in wp-content/uploads
+                if (!imgSrc) {
+                    $('img').each((i, el) => {
+                        const src = $(el).attr('src');
+                        if (src && src.includes('wp-content/uploads') && !src.includes('logo') && !src.includes('icon')) {
+                            imgSrc = src;
+                            return false; // break
+                        }
+                    });
                 }
-                console.log(`Found image for code ${code} (sub: ${sub}): ${imgSrc}`);
-                return imgSrc;
+
+                if (imgSrc) {
+                    // Resolve relative URLs
+                    if (imgSrc.startsWith('/')) {
+                        imgSrc = `https://www.asahipac.co.jp${imgSrc}`;
+                    } else if (!imgSrc.startsWith('http')) {
+                        imgSrc = `${baseUrl}${sub}/${imgSrc}`;
+                    }
+                    console.log(`Found image for code ${code} (sub: ${sub}) at ${url}: ${imgSrc}`);
+                    return imgSrc;
+                }
+            } catch (error) {
+                // 404 or other error, continue to next url/substring
+                // console.log(`Failed to fetch ${url}: ${error.message}`);
             }
-        } catch (error) {
-            // 404 or other error, continue to next substring
-            // console.log(`Failed to fetch ${url}: ${error.message}`);
         }
     }
 
@@ -83,6 +96,7 @@ async function main() {
             console.log("No Excel files found in directory. Using dummy codes.");
             productCodes.add('001230000');
             productCodes.add('101050000');
+            productCodes.add('005020501'); // User provided example
         } else {
             console.log(`Found Excel files: ${excelFiles.join(', ')}`);
 
@@ -91,20 +105,15 @@ async function main() {
                     const filePath = path.join(__dirname, file);
                     console.log(`Reading file: ${file}`);
 
-                    // Use XLSX.readFile directly if possible, or try to read buffer first
-                    // In some environments XLSX.readFile might not work as expected if fs is not fully polyfilled or consistent
-                    // But here we are in Node.js.
-                    // The error 'XLSX.readFile is not a function' usually means the import is wrong.
-                    // 'import * as XLSX' imports the whole module object.
-                    // If it's a CJS module, default export might be needed.
-
                     const workbook = XLSX.readFile(filePath);
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     const data = XLSX.utils.sheet_to_json(worksheet);
 
                     data.forEach(row => {
-                        if (row['商品コード']) {
+                        // 種別または形状が「既製品」「雑材」の場合のみ対象にする
+                        const type = String(row['種別'] || row['形状'] || '').trim();
+                        if (row['商品コード'] && (type === '既製品' || type === '雑材')) {
                             productCodes.add(String(row['商品コード']));
                         }
                     });

@@ -1,0 +1,210 @@
+/* Mobile Table Improvements */
+
+/* Hide table on mobile and show card layout instead */
+@media (max-width: 768px) {
+    .amazon-table-container {
+        overflow-x: visible;
+    }
+
+    .amazon-table {
+        display: none;
+    }
+
+    /* Mobile Card Layout */
+    .mobile-table-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .mobile-table-card {
+        background-color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--amazon-border);
+        transition: all 0.2s;
+    }
+
+    .mobile-table-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--amazon-border);
+    }
+
+    .mobile-card-title {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--amazon-text);
+        line-height: 1.4;
+        margin-right: 0.5rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .mobile-card-id {
+        font-size: 0.75rem;
+        color: var(--amazon-text-light);
+        background-color: #F0F2F2;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .mobile-card-body {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .mobile-card-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .mobile-card-label {
+        font-size: 0.7rem;
+        color: var(--amazon-text-light);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .mobile-card-value {
+        font-size: 0.85rem;
+        color: var(--amazon-text);
+        font-weight: 500;
+    }
+
+    .mobile-card-price {
+        font-size: 1.1rem;
+        color: #B12704;
+        font-weight: 700;
+    }
+
+    .mobile-card-footer {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--amazon-border);
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .mobile-card-btn {
+        flex: 1;
+        padding: 0.6rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .mobile-card-btn-primary {
+        background-color: var(--amazon-orange);
+        color: var(--amazon-dark);
+    }
+
+    .mobile-card-btn-primary:active {
+        background-color: #F08804;
+    }
+
+    .mobile-card-btn-secondary {
+        background-color: white;
+        color: var(--amazon-blue);
+        border: 1px solid var(--amazon-border);
+    }
+
+    .mobile-card-btn-secondary:active {
+        background-color: var(--amazon-hover);
+    }
+
+    /* Age alert colors for mobile cards */
+    .mobile-table-card.age-alert-yellow {
+        background-color: #FFF9E6;
+        border-color: #FFD700;
+    }
+
+    .mobile-table-card.age-alert-red {
+        background-color: #FFE6E6;
+        border-color: #FF4444;
+    }
+
+    /* Dark mode mobile cards */
+    .dark-mode .mobile-table-card {
+        background-color: #1A1D23;
+        border-color: #3A3F47;
+    }
+
+    .dark-mode .mobile-card-header {
+        border-bottom-color: #3A3F47;
+    }
+
+    .dark-mode .mobile-card-id {
+        background-color: #2C3139;
+        color: #9CA3AF;
+    }
+
+    .dark-mode .mobile-card-footer {
+        border-top-color: #3A3F47;
+    }
+
+    .dark-mode .mobile-card-btn-secondary {
+        background-color: #2C3139;
+        border-color: #3A3F47;
+    }
+
+    .dark-mode .mobile-card-btn-secondary:active {
+        background-color: #3A3F47;
+    }
+}
+
+/* Show table on desktop, hide mobile cards */
+@media (min-width: 769px) {
+    .mobile-table-cards {
+        display: none;
+    }
+}
+
+/* Improved table title wrapping for all screens */
+.amazon-table .amazon-card-title {
+    max-width: 300px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+/* Better table scrolling on tablet */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .amazon-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .amazon-table {
+        min-width: 900px;
+    }
+
+    .amazon-table th,
+    .amazon-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+}

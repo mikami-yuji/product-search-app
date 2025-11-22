@@ -4,7 +4,7 @@ import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIco
 import { get, set } from 'idb-keyval';
 import './index.css';
 
-const ProductImage = ({ dirHandle, filename, productCode, webImages, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, productCode, productType, webImages, className, onClick }) => {
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState(false);
 
@@ -76,7 +76,32 @@ const ProductImage = ({ dirHandle, filename, productCode, webImages, className, 
         }
       }
 
-      // 4. No image found
+      // 4. Dynamic URL for 既製品 / 雑材 (multiple candidates)
+      if (productCode && productType && (productType === '既製品' || productType === '雑材')) {
+        const codeStr = String(productCode);
+        if (codeStr.length >= 5) {
+          const codePart = codeStr.slice(2, 5);
+          const candidates = [
+            `${codePart}.jpg`,
+            `${codePart}.png`,
+            `${codePart}-f.jpg`,
+            `${codePart}-f.png`
+          ];
+          for (const file of candidates) {
+            const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+            try {
+              const resp = await fetch(url, { method: 'HEAD' });
+              if (resp.ok) {
+                setImageUrl(url);
+                setError(false);
+                return;
+              }
+            } catch (_) { }
+          }
+        }
+      }
+
+      // 5. No image found
       setError(true);
     };
 
@@ -85,7 +110,7 @@ const ProductImage = ({ dirHandle, filename, productCode, webImages, className, 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [dirHandle, filename, productCode, webImages]);
+  }, [dirHandle, filename, productCode, productType, webImages]);
 
   if (error || !imageUrl) {
     return <div className={`no-image ${className || ''}`}><ImageIcon size={24} /></div>;
@@ -306,6 +331,32 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
         }
       }
 
+      // Check dynamic URL for 既製品 / 雑材
+      const productType = product['種別'] || product['形状'];
+      if (product['商品コード'] && productType && (productType === '既製品' || productType === '雑材')) {
+        const codeStr = String(product['商品コード']);
+        if (codeStr.length >= 5) {
+          const codePart = codeStr.slice(2, 5);
+          const candidates = [
+            `${codePart}.jpg`,
+            `${codePart}.png`,
+            `${codePart}-f.jpg`,
+            `${codePart}-f.png`
+          ];
+
+          for (const file of candidates) {
+            const url = `https://www.asahipac.co.jp/cms/wp-content/uploads/${file}`;
+            try {
+              const resp = await fetch(url, { method: 'HEAD' });
+              if (resp.ok) {
+                images.push({ url, suffix: 'Web', source: 'web-dynamic' });
+                break; // Found one, stop looking
+              }
+            } catch (_) { }
+          }
+        }
+      }
+
       setAvailableImages(images);
       setCurrentImageIndex(0);
     };
@@ -512,6 +563,7 @@ const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) =>
           dirHandle={dirHandle}
           filename={product['受注№']}
           productCode={product['商品コード']}
+          productType={product['種別'] || product['形状']}
           webImages={webImages}
           className="card-image"
           onClick={null}
@@ -934,6 +986,7 @@ function App() {
                                   dirHandle={dirHandle}
                                   filename={row['受注№']}
                                   productCode={row['商品コード']}
+                                  productType={row['種別'] || row['形状']}
                                   webImages={webImages}
                                   onClick={(url) => {
                                     setModalImage(url);
