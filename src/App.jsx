@@ -107,22 +107,24 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, webImages
         const codeStr = String(productCode);
         if (codeStr.length >= 5) {
           const codePart = codeStr.slice(2, 5);
-          const candidates = [
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
-          ];
+          let candidates = [];
 
-          if (productType === '雑材') {
-            // Add candidates for 雑材 (goods3, machine1)
-            candidates.push(`https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`);
-
-            candidates.push(`https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`);
+          if (productType === '既製品') {
+            candidates = [
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+            ];
+          } else if (productType === '雑材') {
+            candidates = [
+              `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`
+            ];
           }
 
           try {
@@ -412,21 +414,24 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
         const codeStr = String(product['商品コード']);
         if (codeStr.length >= 5) {
           const codePart = codeStr.slice(2, 5);
-          const candidates = [
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
-            `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
-          ];
+          let candidates = [];
 
-          if (productType === '雑材') {
-            candidates.push(`https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`);
-
-            candidates.push(`https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`);
-            candidates.push(`https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`);
+          if (productType === '既製品') {
+            candidates = [
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}.png`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.jpg`,
+              `https://www.asahipac.co.jp/cms/wp-content/uploads/${codePart}-f.png`
+            ];
+          } else if (productType === '雑材') {
+            candidates = [
+              `https://www.asahipac.co.jp/product/goods3/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/goods3/images/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/img/goods3/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/machine1/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/product/machine1/images/${codePart}.jpg`,
+              `https://www.asahipac.co.jp/img/machine1/${codePart}.jpg`
+            ];
           }
 
           try {
