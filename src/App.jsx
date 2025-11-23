@@ -156,14 +156,10 @@ function App() {
   }, [filters, keyword, sortBy]);
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => {
-      const currentValues = prev[key];
-      if (currentValues.includes(value)) {
-        return { ...prev, [key]: currentValues.filter(v => v !== value) };
-      } else {
-        return { ...prev, [key]: [...currentValues, value] };
-      }
-    });
+    setFilters(prev => ({
+      ...prev,
+      [key]: value ? [value] : []
+    }));
   };
 
   const clearFilters = () => {
@@ -285,19 +281,17 @@ function App() {
 
             {Object.keys(filters).map(key => (
               <div key={key} className="amazon-filter-group">
-                <label className="filter-group-label">{key}</label>
-                <div className="filter-checkbox-list">
+                <label>{key}</label>
+                <select
+                  value={filters[key][0] || ''}
+                  onChange={(e) => handleFilterChange(key, e.target.value)}
+                  className="amazon-filter-select"
+                >
+                  <option value="">すべて</option>
                   {uniqueValues[key].map(val => (
-                    <label key={val} className="filter-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={filters[key].includes(val)}
-                        onChange={() => handleFilterChange(key, val)}
-                      />
-                      <span>{val}</span>
-                    </label>
+                    <option key={val} value={val}>{val}</option>
                   ))}
-                </div>
+                </select>
               </div>
             ))}
           </aside>
