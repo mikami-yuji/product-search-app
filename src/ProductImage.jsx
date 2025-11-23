@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
-const ProductImage = ({ dirHandle, filename, productCode, productType, materialName, webImages, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, productCode, productType, materialName, className, onClick }) => {
     const [imageUrl, setImageUrl] = useState(null);
     const [error, setError] = useState(false);
     const [isVisible, setIsVisible] = useState(false);

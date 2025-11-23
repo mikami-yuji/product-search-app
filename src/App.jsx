@@ -20,7 +20,6 @@ function App() {
   const [keyword, setKeyword] = useState('');
   const [dirHandle, setDirHandle] = useState(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
-  const [webImages, setWebImages] = useState({});
   const [modalImage, setModalImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
@@ -350,7 +349,6 @@ function App() {
                     key={index}
                     product={product}
                     dirHandle={dirHandle}
-                    webImages={webImages}
                     onClick={() => setSelectedProduct(product)}
                     onAddToCart={addToCart}
                   />
@@ -393,7 +391,6 @@ function App() {
                                   dirHandle={dirHandle}
                                   filename={row['受注№']}
                                   productCode={row['商品コード']}
-                                  webImages={webImages}
                                   onClick={(url) => {
                                     setModalImage(url);
                                   }}
@@ -473,7 +470,6 @@ function App() {
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         dirHandle={dirHandle}
-        webImages={webImages}
       />
       {showCart && (
         <CartModal

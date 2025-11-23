@@ -2,7 +2,7 @@ import React from 'react';
 import { ShoppingCart } from 'lucide-react';
 import ProductImage from './ProductImage';
 
-const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) => {
+const ProductCard = ({ product, dirHandle, onClick, onAddToCart }) => {
     const getAgeColorClass = (dateStr) => {
         if (!dateStr) return '';
         const orderDate = new Date(dateStr);
@@ -25,7 +25,6 @@ const ProductCard = ({ product, dirHandle, webImages, onClick, onAddToCart }) =>
                     productCode={product['商品コード']}
                     productType={product['種別'] || product['形状']}
                     materialName={product['材質名称']}
-                    webImages={webImages}
                     className="card-image"
                     onClick={null}
                 />

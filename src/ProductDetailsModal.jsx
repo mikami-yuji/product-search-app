@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
-const ProductDetailsModal = ({ product, onClose, dirHandle, webImages }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
 
