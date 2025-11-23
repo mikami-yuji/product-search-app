@@ -8,7 +8,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
     const componentRef = useRef();
 
     const handlePrint = useReactToPrint({
-        content: () => componentRef.current,
+        contentRef: componentRef,
     });
 
     const generateEmailText = () => {
