@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIcon, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { get, set } from 'idb-keyval';
 import Fuse from 'fuse.js';
+import { useReactToPrint } from 'react-to-print';
+import OrderSheet from './OrderSheet';
 import './index.css';
 
 const imageCache = {}; // Global memory cache for current session
@@ -122,8 +124,15 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
     );
   };
 
-  const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total }) => {
+
+
+  const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, fileName }) => {
     const [copied, setCopied] = React.useState(false);
+    const componentRef = useRef();
+
+    const handlePrint = useReactToPrint({
+      content: () => componentRef.current,
+    });
 
     const generateEmailText = () => {
       const date = new Date().toLocaleDateString('ja-JP');
@@ -232,13 +241,29 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
               <span>合計:</span>
               <span className="cart-total-price">¥{total.toLocaleString()}</span>
             </div>
-            <button
-              className={`cart-checkout-btn ${copied ? 'copied' : ''}`}
-              onClick={handleCopyEmail}
-            >
-              {copied ? '✓ コピーしました！' : 'メール文章をコピー'}
-            </button>
+            <div className="cart-actions">
+              <button
+                className="cart-print-btn"
+                onClick={handlePrint}
+              >
+                発注書作成
+              </button>
+              <button
+                className={`cart-checkout-btn ${copied ? 'copied' : ''}`}
+                onClick={handleCopyEmail}
+              >
+                {copied ? '✓ コピーしました！' : 'メール文章をコピー'}
+              </button>
+            </div>
           </div>
+        </div>
+        <div style={{ display: 'none' }}>
+          <OrderSheet
+            ref={componentRef}
+            cart={cart}
+            totalAmount={total}
+            fileName={fileName}
+          />
         </div>
       </div>
     );
@@ -907,6 +932,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
               onRemove={removeFromCart}
               onClear={clearCart}
               total={cartTotal}
+              fileName={fileName}
             />
           )}
         </div>
