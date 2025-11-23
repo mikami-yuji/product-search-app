@@ -281,17 +281,28 @@ function App() {
 
             {Object.keys(filters).map(key => (
               <div key={key} className="amazon-filter-group">
-                <label>{key}</label>
-                <select
-                  value={filters[key][0] || ''}
-                  onChange={(e) => handleFilterChange(key, e.target.value)}
-                  className="amazon-filter-select"
-                >
-                  <option value="">すべて</option>
-                  {uniqueValues[key].map(val => (
-                    <option key={val} value={val}>{val}</option>
-                  ))}
-                </select>
+                <label className="amazon-filter-label">{key}</label>
+                <div className="amazon-filter-control">
+                  <select
+                    value={filters[key][0] || ''}
+                    onChange={(e) => handleFilterChange(key, e.target.value)}
+                    className="amazon-filter-select"
+                  >
+                    <option value="">すべて表示</option>
+                    {uniqueValues[key].map(val => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                  {filters[key].length > 0 && (
+                    <button
+                      className="amazon-filter-clear-btn"
+                      onClick={() => handleFilterChange(key, '')}
+                      title="クリア"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </aside>
