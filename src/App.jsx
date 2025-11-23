@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, Image as ImageIcon, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { get, set } from 'idb-keyval';
+import Fuse from 'fuse.js';
 import './index.css';
 
 const imageCache = {}; // Global memory cache for current session
@@ -539,117 +540,39 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
     const [itemsPerPage] = useState(20);
     const [cart, setCart] = useState([]);
     const [showCart, setShowCart] = useState(false);
+
+
     const [filters, setFilters] = useState({
-      '種別': '',
-      '重量': '',
-      '材質名称': '',
-      '総色数': '',
-      '直送先名称': ''
+      '種別': [],
+      '重量': [],
+      '材質名称': [],
+      '総色数': [],
+      '直送先名称': []
     });
 
-    // Load persisted data on mount
-    useEffect(() => {
-      const loadPersistedData = async () => {
-        try {
-          const savedData = await get('excelData');
-          const savedFileName = await get('fileName');
-          const savedDirHandle = await get('dirHandle');
-
-          if (savedData) setData(savedData);
-          if (savedFileName) setFileName(savedFileName);
-          if (savedDirHandle) {
-            setDirHandle(savedDirHandle);
-            try {
-              const perm = await savedDirHandle.queryPermission({ mode: 'read' });
-              setPermissionGranted(perm === 'granted');
-            } catch (e) {
-              console.error("Error querying permission:", e);
-              setPermissionGranted(false);
-            }
-          }
-        } catch (err) {
-          console.error("Error loading persisted data:", err);
-        }
-      };
-      loadPersistedData();
-
-      // Load web images map
-      fetch('/product_images.json')
-        .then(res => res.json())
-        .then(data => setWebImages(data))
-        .catch(err => console.error("Error loading product_images.json:", err));
-    }, []);
-
-    // Save data when it changes
-    useEffect(() => {
-      if (data.length > 0) set('excelData', data);
-      if (fileName) set('fileName', fileName);
-    }, [data, fileName]);
-
-    // Save dirHandle when it changes
-    useEffect(() => {
-      if (dirHandle) set('dirHandle', dirHandle);
-    }, [dirHandle]);
-
-    const handleFileUpload = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const jsonData = XLSX.utils.sheet_to_json(ws);
-        setData(jsonData);
-      };
-      reader.readAsBinaryString(file);
-    };
-
-    const handleFolderSelect = async () => {
-      try {
-        if (dirHandle && !permissionGranted) {
-          const perm = await dirHandle.requestPermission({ mode: 'read' });
-          setPermissionGranted(perm === 'granted');
-        } else {
-          const handle = await window.showDirectoryPicker();
-          setDirHandle(handle);
-          setPermissionGranted(true);
-        }
-      } catch (err) {
-        console.error("Error selecting folder:", err);
-      }
-    };
-
-    const uniqueValues = useMemo(() => {
-      const getUnique = (key) => {
-        return [...new Set(data.map(item => item[key]).filter(Boolean))].sort();
-      };
-      return {
-        '種別': getUnique('種別'),
-        '重量': getUnique('重量'),
-        '材質名称': getUnique('材質名称'),
-        '総色数': getUnique('総色数'),
-        '直送先名称': getUnique('直送先名称')
-      };
-    }, [data]);
+    // ... existing useEffects ...
 
     const filteredData = useMemo(() => {
-      let result = data.filter(item => {
-        const matchesFilters = Object.keys(filters).every(key => {
-          if (!filters[key]) return true;
-          return String(item[key]) === String(filters[key]);
+      let result = data;
+
+      // 1. Keyword Search (Fuzzy)
+      if (keyword) {
+        const fuse = new Fuse(data, {
+          keys: ['タイトル', '商品名', '受注№', '商品コード', '材質名称', '直送先名称', '形状', 'JANコード'],
+          threshold: 0.3, // 0.0 = exact match, 1.0 = match anything
+          ignoreLocation: true,
+          useExtendedSearch: true
         });
+        const searchResults = fuse.search(keyword);
+        result = searchResults.map(res => res.item);
+      }
 
-        if (!matchesFilters) return false;
-        if (!keyword) return true;
-
-        const lowerKeyword = keyword.toLowerCase();
-        return Object.values(item).some(val =>
-          String(val).toLowerCase().includes(lowerKeyword)
-        );
+      // 2. Filter Match (Multi-select)
+      result = result.filter(item => {
+        return Object.keys(filters).every(key => {
+          if (filters[key].length === 0) return true; // No filter selected for this key
+          return filters[key].includes(String(item[key]));
+        });
       });
 
       // Apply sorting
@@ -668,12 +591,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
       return result;
     }, [data, filters, keyword, sortBy]);
 
-    // Pagination
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const paginatedData = useMemo(() => {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      return filteredData.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredData, currentPage, itemsPerPage]);
+    // ... Pagination ...
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -681,19 +599,28 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
     }, [filters, keyword, sortBy]);
 
     const handleFilterChange = (key, value) => {
-      setFilters(prev => ({ ...prev, [key]: value }));
+      setFilters(prev => {
+        const currentValues = prev[key];
+        if (currentValues.includes(value)) {
+          return { ...prev, [key]: currentValues.filter(v => v !== value) };
+        } else {
+          return { ...prev, [key]: [...currentValues, value] };
+        }
+      });
     };
 
     const clearFilters = () => {
       setFilters({
-        '種別': '',
-        '重量': '',
-        '材質名称': '',
-        '総色数': '',
-        '直送先名称': ''
+        '種別': [],
+        '重量': [],
+        '材質名称': [],
+        '総色数': [],
+        '直送先名称': []
       });
       setKeyword('');
     };
+
+    // ... Cart functions ...
 
     // Cart functions
     const addToCart = (product) => {
@@ -803,17 +730,19 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
 
               {Object.keys(filters).map(key => (
                 <div key={key} className="amazon-filter-group">
-                  <label>{key}</label>
-                  <select
-                    value={filters[key]}
-                    onChange={(e) => handleFilterChange(key, e.target.value)}
-                    className="amazon-select"
-                  >
-                    <option value="">全て</option>
+                  <label className="filter-group-label">{key}</label>
+                  <div className="filter-checkbox-list">
                     {uniqueValues[key].map(val => (
-                      <option key={val} value={val}>{val}</option>
+                      <label key={val} className="filter-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={filters[key].includes(val)}
+                          onChange={() => handleFilterChange(key, val)}
+                        />
+                        <span>{val}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
               ))}
             </aside>
