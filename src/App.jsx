@@ -599,342 +599,318 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
     }, [filters, keyword, sortBy]);
 
     const handleFilterChange = (key, value) => {
-      setFilters(prev => {
-        const currentValues = prev[key];
-        if (currentValues.includes(value)) {
-          return { ...prev, [key]: currentValues.filter(v => v !== value) };
+      const addToCart = (product) => {
+        const existingItem = cart.find(item => item['受注№'] === product['受注№']);
+        if (existingItem) {
+          setCart(cart.map(item =>
+            item['受注№'] === product['受注№']
+              ? { ...item, quantity: item.quantity + (product['受注数'] || 1) }
+              : item
+          ));
         } else {
-          return { ...prev, [key]: [...currentValues, value] };
+          setCart([...cart, { ...product, quantity: product['受注数'] || 1 }]);
         }
-      });
-    };
+      };
 
-    const clearFilters = () => {
-      setFilters({
-        '種別': [],
-        '重量': [],
-        '材質名称': [],
-        '総色数': [],
-        '直送先名称': []
-      });
-      setKeyword('');
-    };
+      const updateCartQuantity = (orderNo, newQuantity) => {
+        if (newQuantity <= 0) {
+          removeFromCart(orderNo);
+        } else {
+          setCart(cart.map(item =>
+            item['受注№'] === orderNo ? { ...item, quantity: newQuantity } : item
+          ));
+        }
+      };
 
-    // ... Cart functions ...
+      const removeFromCart = (orderNo) => {
+        setCart(cart.filter(item => item['受注№'] !== orderNo));
+      };
 
-    // Cart functions
-    const addToCart = (product) => {
-      const existingItem = cart.find(item => item['受注№'] === product['受注№']);
-      if (existingItem) {
-        setCart(cart.map(item =>
-          item['受注№'] === product['受注№']
-            ? { ...item, quantity: item.quantity + (product['受注数'] || 1) }
-            : item
-        ));
-      } else {
-        setCart([...cart, { ...product, quantity: product['受注数'] || 1 }]);
-      }
-    };
+      const clearCart = () => {
+        setCart([]);
+      };
 
-    const updateCartQuantity = (orderNo, newQuantity) => {
-      if (newQuantity <= 0) {
-        removeFromCart(orderNo);
-      } else {
-        setCart(cart.map(item =>
-          item['受注№'] === orderNo ? { ...item, quantity: newQuantity } : item
-        ));
-      }
-    };
+      const cartTotal = cart.reduce((sum, item) => {
+        const price = parseFloat(item['単価']) || 0;
+        return sum + (price * item.quantity);
+      }, 0);
 
-    const removeFromCart = (orderNo) => {
-      setCart(cart.filter(item => item['受注№'] !== orderNo));
-    };
+      const cartItemCount = cart.length; // アイテム数（商品種類数）
 
-    const clearCart = () => {
-      setCart([]);
-    };
+      const columns = [
+        '画像', '受注№', '商品コード', 'タイトル', '重量', '材質名称', '総色数', '直送先名称'
+      ];
 
-    const cartTotal = cart.reduce((sum, item) => {
-      const price = parseFloat(item['単価']) || 0;
-      return sum + (price * item.quantity);
-    }, 0);
-
-    const cartItemCount = cart.length; // アイテム数（商品種類数）
-
-    const columns = [
-      '画像', '受注№', '商品コード', 'タイトル', '重量', '材質名称', '総色数', '直送先名称'
-    ];
-
-    return (
-      <div className="amazon-app">
-        {/* Header */}
-        <header className="amazon-header">
-          <div className="amazon-header-content">
-            <div className="amazon-logo">
-              <FileSpreadsheet size={28} />
-              <h1>商品検索</h1>
-            </div>
-            <div className="amazon-search-bar">
-              <Search size={20} className="search-icon" />
-              <input
-                type="text"
-                placeholder="商品を検索..."
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                className="amazon-search-input"
-              />
-            </div>
-            <div className="amazon-header-actions">
-              <button
-                onClick={() => setShowCart(!showCart)}
-                className="amazon-btn amazon-cart-btn"
-                title="カートを表示"
-              >
-                <ShoppingCart size={18} />
-                カート ({cartItemCount})
-              </button>
-              <button
-                onClick={handleFolderSelect}
-                className={`amazon-btn ${permissionGranted ? 'connected' : ''}`}
-                title={permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続"}
-              >
-                <FolderOpen size={18} />
-                {permissionGranted ? '接続済' : '画像フォルダ'}
-              </button>
-              <label htmlFor="file-input" className="amazon-btn amazon-btn-primary">
-                <Upload size={18} />
-                {fileName || 'ファイル選択'}
-              </label>
-              <input
-                id="file-input"
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleFileUpload}
-                hidden
-              />
-            </div>
-          </div>
-        </header>
-
-        {data.length > 0 ? (
-          <div className="amazon-main">
-            {/* Sidebar Filters */}
-            <aside className="amazon-sidebar">
-              <div className="amazon-sidebar-header">
-                <h2>フィルター</h2>
-                <button onClick={clearFilters} className="amazon-clear-btn">
-                  <FilterX size={16} />
-                  クリア
-                </button>
+      return (
+        <div className="amazon-app">
+          {/* Header */}
+          <header className="amazon-header">
+            <div className="amazon-header-content">
+              <div className="amazon-logo">
+                <FileSpreadsheet size={28} />
+                <h1>商品検索</h1>
               </div>
+              <div className="amazon-search-bar">
+                <Search size={20} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="商品を検索..."
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  className="amazon-search-input"
+                />
+              </div>
+              <div className="amazon-header-actions">
+                <button
+                  onClick={() => setShowCart(!showCart)}
+                  className="amazon-btn amazon-cart-btn"
+                  title="カートを表示"
+                >
+                  <ShoppingCart size={18} />
+                  カート ({cartItemCount})
+                </button>
+                <button
+                  onClick={handleFolderSelect}
+                  className={`amazon-btn ${permissionGranted ? 'connected' : ''}`}
+                  title={permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続"}
+                >
+                  <FolderOpen size={18} />
+                  {permissionGranted ? '接続済' : '画像フォルダ'}
+                </button>
+                <label htmlFor="file-input" className="amazon-btn amazon-btn-primary">
+                  <Upload size={18} />
+                  {fileName || 'ファイル選択'}
+                </label>
+                <input
+                  id="file-input"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={handleFileUpload}
+                  hidden
+                />
+              </div>
+            </div>
+          </header>
 
-              {Object.keys(filters).map(key => (
-                <div key={key} className="amazon-filter-group">
-                  <label className="filter-group-label">{key}</label>
-                  <div className="filter-checkbox-list">
-                    {uniqueValues[key].map(val => (
-                      <label key={val} className="filter-checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={filters[key].includes(val)}
-                          onChange={() => handleFilterChange(key, val)}
-                        />
-                        <span>{val}</span>
-                      </label>
+          {data.length > 0 ? (
+            <div className="amazon-main">
+              {/* Sidebar Filters */}
+              <aside className="amazon-sidebar">
+                <div className="amazon-sidebar-header">
+                  <h2>フィルター</h2>
+                  <button onClick={clearFilters} className="amazon-clear-btn">
+                    <FilterX size={16} />
+                    クリア
+                  </button>
+                </div>
+
+                {Object.keys(filters).map(key => (
+                  <div key={key} className="amazon-filter-group">
+                    <label className="filter-group-label">{key}</label>
+                    <div className="filter-checkbox-list">
+                      {uniqueValues[key].map(val => (
+                        <label key={val} className="filter-checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={filters[key].includes(val)}
+                            onChange={() => handleFilterChange(key, val)}
+                          />
+                          <span>{val}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </aside>
+
+              {/* Main Content */}
+              <main className="amazon-content">
+                {/* Toolbar */}
+                <div className="amazon-toolbar">
+                  <div className="amazon-results-info">
+                    <strong>{filteredData.length}</strong> 件の商品
+                  </div>
+
+                  <div className="amazon-toolbar-controls">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="amazon-sort-select"
+                    >
+                      <option value="">並び替え</option>
+                      <option value="price-asc">価格: 安い順</option>
+                      <option value="price-desc">価格: 高い順</option>
+                      <option value="date-desc">最新受注日順</option>
+                    </select>
+
+                    <div className="amazon-view-toggle">
+                      <button
+                        className={`amazon-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setViewMode('grid')}
+                        title="グリッド表示"
+                      >
+                        <LayoutGrid size={18} />
+                      </button>
+                      <button
+                        className={`amazon-view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                        onClick={() => setViewMode('table')}
+                        title="テーブル表示"
+                      >
+                        <List size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Products Grid/Table */}
+                {viewMode === 'grid' ? (
+                  <div className="amazon-products-grid">
+                    {paginatedData.map((product, index) => (
+                      <ProductCard
+                        key={index}
+                        product={product}
+                        dirHandle={dirHandle}
+                        webImages={webImages}
+                        onClick={() => setSelectedProduct(product)}
+                        onAddToCart={addToCart}
+                      />
                     ))}
                   </div>
-                </div>
-              ))}
-            </aside>
+                ) : (
+                  <div className="amazon-table-container">
+                    <table className="amazon-table">
+                      <thead>
+                        <tr>
+                          {columns.map(col => <th key={col}>{col}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedData.map((row, index) => {
+                          const getAgeColorClass = (dateStr) => {
+                            if (!dateStr) return '';
+                            const orderDate = new Date(dateStr);
+                            const now = new Date();
+                            const monthsDiff = (now.getFullYear() - orderDate.getFullYear()) * 12 + (now.getMonth() - orderDate.getMonth());
 
-            {/* Main Content */}
-            <main className="amazon-content">
-              {/* Toolbar */}
-              <div className="amazon-toolbar">
-                <div className="amazon-results-info">
-                  <strong>{filteredData.length}</strong> 件の商品
-                </div>
+                            if (monthsDiff >= 24) return 'age-alert-red';
+                            if (monthsDiff >= 22) return 'age-alert-yellow';
+                            return '';
+                          };
 
-                <div className="amazon-toolbar-controls">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="amazon-sort-select"
-                  >
-                    <option value="">並び替え</option>
-                    <option value="price-asc">価格: 安い順</option>
-                    <option value="price-desc">価格: 高い順</option>
-                    <option value="date-desc">最新受注日順</option>
-                  </select>
+                          const ageClass = getAgeColorClass(row['最新受注日']);
 
-                  <div className="amazon-view-toggle">
-                    <button
-                      className={`amazon-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
-                      title="グリッド表示"
-                    >
-                      <LayoutGrid size={18} />
-                    </button>
-                    <button
-                      className={`amazon-view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                      onClick={() => setViewMode('table')}
-                      title="テーブル表示"
-                    >
-                      <List size={18} />
-                    </button>
+                          return (
+                            <tr
+                              key={index}
+                              onClick={() => setSelectedProduct(row)}
+                              style={{ cursor: 'pointer' }}
+                              className={ageClass}
+                            >
+                              {columns.map(col => (
+                                <td key={`${index}-${col}`}>
+                                  {col === '画像' ? (
+                                    <ProductImage
+                                      dirHandle={dirHandle}
+                                      filename={row['受注№']}
+                                      productCode={row['商品コード']}
+                                      productType={row['種別'] || row['形状']}
+                                      materialName={row['材質名称']}
+                                      webImages={webImages}
+                                      onClick={(url) => {
+                                        setModalImage(url);
+                                      }}
+                                    />
+                                  ) : col === 'タイトル' ? (
+                                    row['種別'] === '既製品' ? row['商品名'] : row['タイトル']
+                                  ) : (
+                                    row[col]
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Products Grid/Table */}
-              {viewMode === 'grid' ? (
-                <div className="amazon-products-grid">
-                  {paginatedData.map((product, index) => (
-                    <ProductCard
-                      key={index}
-                      product={product}
-                      dirHandle={dirHandle}
-                      webImages={webImages}
-                      onClick={() => setSelectedProduct(product)}
-                      onAddToCart={addToCart}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="amazon-table-container">
-                  <table className="amazon-table">
-                    <thead>
-                      <tr>
-                        {columns.map(col => <th key={col}>{col}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedData.map((row, index) => {
-                        const getAgeColorClass = (dateStr) => {
-                          if (!dateStr) return '';
-                          const orderDate = new Date(dateStr);
-                          const now = new Date();
-                          const monthsDiff = (now.getFullYear() - orderDate.getFullYear()) * 12 + (now.getMonth() - orderDate.getMonth());
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="amazon-pagination">
+                    <button
+                      className="amazon-page-btn"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft size={18} />
+                      前へ
+                    </button>
 
-                          if (monthsDiff >= 24) return 'age-alert-red';
-                          if (monthsDiff >= 22) return 'age-alert-yellow';
-                          return '';
-                        };
-
-                        const ageClass = getAgeColorClass(row['最新受注日']);
+                    <div className="amazon-page-numbers">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
 
                         return (
-                          <tr
-                            key={index}
-                            onClick={() => setSelectedProduct(row)}
-                            style={{ cursor: 'pointer' }}
-                            className={ageClass}
+                          <button
+                            key={pageNum}
+                            className={`amazon-page-num ${currentPage === pageNum ? 'active' : ''}`}
+                            onClick={() => setCurrentPage(pageNum)}
                           >
-                            {columns.map(col => (
-                              <td key={`${index}-${col}`}>
-                                {col === '画像' ? (
-                                  <ProductImage
-                                    dirHandle={dirHandle}
-                                    filename={row['受注№']}
-                                    productCode={row['商品コード']}
-                                    productType={row['種別'] || row['形状']}
-                                    materialName={row['材質名称']}
-                                    webImages={webImages}
-                                    onClick={(url) => {
-                                      setModalImage(url);
-                                    }}
-                                  />
-                                ) : col === 'タイトル' ? (
-                                  row['種別'] === '既製品' ? row['商品名'] : row['タイトル']
-                                ) : (
-                                  row[col]
-                                )}
-                              </td>
-                            ))}
-                          </tr>
+                            {pageNum}
+                          </button>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="amazon-pagination">
-                  <button
-                    className="amazon-page-btn"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft size={18} />
-                    前へ
-                  </button>
-
-                  <div className="amazon-page-numbers">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNum}
-                          className={`amazon-page-num ${currentPage === pageNum ? 'active' : ''}`}
-                          onClick={() => setCurrentPage(pageNum)}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
+                    <button
+                      className="amazon-page-btn"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      次へ
+                      <ChevronRight size={18} />
+                    </button>
                   </div>
+                )}
+              </main>
+            </div>
+          ) : (
+            <div className="amazon-empty-state">
+              <FileSpreadsheet size={64} />
+              <h2>データを読み込んでください</h2>
+              <p>右上のボタンからエクセルファイルを選択してください。</p>
+            </div>
+          )}
 
-                  <button
-                    className="amazon-page-btn"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    次へ
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              )}
-            </main>
-          </div>
-        ) : (
-          <div className="amazon-empty-state">
-            <FileSpreadsheet size={64} />
-            <h2>データを読み込んでください</h2>
-            <p>右上のボタンからエクセルファイルを選択してください。</p>
-          </div>
-        )}
-
-        <ImageModal imageUrl={modalImage} onClose={() => setModalImage(null)} />
-        <ProductDetailsModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          dirHandle={dirHandle}
-          webImages={webImages}
-        />
-        {showCart && (
-          <CartModal
-            cart={cart}
-            onClose={() => setShowCart(false)}
-            onUpdateQuantity={updateCartQuantity}
-            onRemove={removeFromCart}
-            onClear={clearCart}
-            total={cartTotal}
+          <ImageModal imageUrl={modalImage} onClose={() => setModalImage(null)} />
+          <ProductDetailsModal
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            dirHandle={dirHandle}
+            webImages={webImages}
           />
-        )}
-      </div>
-    );
-  }
+          {showCart && (
+            <CartModal
+              cart={cart}
+              onClose={() => setShowCart(false)}
+              onUpdateQuantity={updateCartQuantity}
+              onRemove={removeFromCart}
+              onClear={clearCart}
+              total={cartTotal}
+            />
+          )}
+        </div>
+      );
+    }
 
-  export default App;
+    export default App;
