@@ -14,35 +14,53 @@
 
     /* Header improvements */
     .amazon-header {
-        padding: 0.5rem;
+        padding: 0.75rem 0.5rem;
     }
 
     .amazon-header-content {
-        gap: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .amazon-logo {
+        order: 1;
+        flex: 0 0 auto;
     }
 
     .amazon-logo h1 {
-        font-size: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .amazon-header-actions {
+        order: 2;
+        flex: 0 0 auto;
+        gap: 0.5rem;
+    }
+
+    .amazon-search-bar {
+        order: 3;
+        flex: 0 0 100%;
+        /* Full width on new line */
+        margin-top: 0.25rem;
+        max-width: none;
     }
 
     .amazon-search-input {
         padding: 0.625rem 0.75rem 0.625rem 2.5rem;
-        font-size: 0.875rem;
+        font-size: 1rem;
+        /* Prevent zoom on iOS */
     }
 
     .amazon-search-bar .search-icon {
         left: 0.75rem;
-        width: 16px;
-        height: 16px;
-    }
-
-    .amazon-header-actions {
-        gap: 0.5rem;
+        width: 18px;
+        height: 18px;
     }
 
     .amazon-btn {
         padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
 
     /* Main content */
@@ -225,11 +243,11 @@
 
     /* Extra small screens */
     .amazon-header {
-        padding: 0.375rem;
+        padding: 0.5rem;
     }
 
     .amazon-logo h1 {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .amazon-btn {
@@ -238,8 +256,8 @@
     }
 
     .amazon-btn svg {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
     }
 
     .amazon-main {
