@@ -390,7 +390,7 @@ function App() {
                           className={ageClass}
                         >
                           {columns.map(col => (
-                            <td key={`${index}-${col}`}>
+                            <td key={`${index}-${col}`} data-label={col}>
                               {col === '画像' ? (
                                 <ProductImage
                                   dirHandle={dirHandle}
