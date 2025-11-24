@@ -11,6 +11,7 @@ import ImageModal from './ImageModal';
 import CartModal from './CartModal';
 import ProductDetailsModal from './ProductDetailsModal';
 import ProductCard from './ProductCard';
+import Toast from './Toast';
 
 const imageCache = {}; // Global memory cache for current session
 
@@ -28,7 +29,7 @@ function App() {
   const [itemsPerPage] = useState(20);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
-
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const [filters, setFilters] = useState({
     '種別': [],
@@ -79,7 +80,10 @@ function App() {
       setDirHandle(handle);
       setPermissionGranted(true);
     } catch (err) {
-      console.error('Error selecting folder:', err);
+      // Don't log error if user simply cancelled the dialog
+      if (err.name !== 'AbortError') {
+        console.error('Error selecting folder:', err);
+      }
     }
   };
 
@@ -173,18 +177,35 @@ function App() {
     setKeyword('');
   };
 
+  // Toast function
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
   // Cart functions
-  const addToCart = (product) => {
-    const existingItem = cart.find(item => item['受注№'] === product['受注№']);
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item['受注№'] === product['受注№']
-          ? { ...item, quantity: item.quantity + (product['受注数'] || 1) }
-          : item
-      ));
-    } else {
-      setCart([...cart, { ...product, quantity: product['受注数'] || 1 }]);
-    }
+  const addToCart = (product, quantity = 1) => {
+    // Use orderQuantity if available and quantity is not specified (default 1)
+    // If the user clicked "Add to Cart" from the card, quantity will be 1, so we check if we should use orderQuantity
+    const qtyToAdd = quantity === 1 && product['受注数'] ? Number(product['受注数']) : quantity;
+
+    setCart(prevCart => {
+      // Check if item already exists in cart
+      // We use both Product Code and Order Number to identify unique items
+      const existingItemIndex = prevCart.findIndex(item =>
+        item['商品コード'] === product['商品コード'] && item['受注№'] === product['受注№']
+      );
+
+      if (existingItemIndex > -1) {
+        // Item exists, update quantity
+        const newCart = [...prevCart];
+        newCart[existingItemIndex].quantity += qtyToAdd;
+        return newCart;
+      } else {
+        // Item doesn't exist, add new item
+        return [...prevCart, { ...product, quantity: qtyToAdd }];
+      }
+    });
+    showToast(`${product['商品名'] || product['タイトル']}をカートに追加しました`);
   };
 
   const updateCartQuantity = (orderNo, newQuantity) => {
@@ -487,6 +508,13 @@ function App() {
           fileName={fileName}
         />
       )}
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 }
