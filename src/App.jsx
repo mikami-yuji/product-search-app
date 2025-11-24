@@ -1,8 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState } from 'react';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
-import { get, set } from 'idb-keyval';
-import Fuse from 'fuse.js';
 import './index.css';
 
 // Import Components
@@ -14,231 +11,53 @@ import ProductCard from './ProductCard';
 import Toast from './Toast';
 import HighlightText from './HighlightText';
 
-const imageCache = {}; // Global memory cache for current session
+// Import Custom Hooks
+import { useToast, useCart, useProductData, useProductFilters } from './hooks';
 
 function App() {
-  const [data, setData] = useState([]);
-  const [fileName, setFileName] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [dirHandle, setDirHandle] = useState(null);
-  const [permissionGranted, setPermissionGranted] = useState(false);
+  // UI State
   const [modalImage, setModalImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-  const [sortBy, setSortBy] = useState(''); // '', 'price-asc', 'price-desc', 'date-desc'
-  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('grid');
   const [itemsPerPage] = useState(20);
-  const [cart, setCart] = useState([]);
-  const [showCart, setShowCart] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const [filters, setFilters] = useState({
-    '種別': [],
-    '重量': [],
-    '材質名称': [],
-    '総色数': [],
-    '直送先名称': []
-  });
+  // Custom Hooks
+  const { toast, showToast, hideToast } = useToast();
+  const { data, fileName, dirHandle, permissionGranted, handleFileUpload, handleFolderSelect } = useProductData();
+  const {
+    keyword,
+    setKeyword,
+    sortBy,
+    setSortBy,
+    currentPage,
+    setCurrentPage,
+    filters,
+    uniqueValues,
+    filteredData,
+    handleFilterChange,
+    clearFilters
+  } = useProductFilters(data);
 
-  // Load cached data on mount
-  useEffect(() => {
-    const loadCachedData = async () => {
-      try {
-        const cachedData = await get('productData');
-        const cachedFileName = await get('fileName');
-        if (cachedData) setData(cachedData);
-        if (cachedFileName) setFileName(cachedFileName);
-      } catch (err) {
-        console.error('Error loading cache:', err);
-      }
-    };
-    loadCachedData();
-  }, []);
+  const {
+    cart,
+    showCart,
+    setShowCart,
+    addToCart,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    cartTotal,
+    cartItemCount
+  } = useCart(showToast);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setFileName(file.name);
-    set('fileName', file.name); // Cache filename
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target.result;
-      const workbook = XLSX.read(bstr, { type: 'binary' });
-      const wsname = workbook.SheetNames[0];
-      const ws = workbook.Sheets[wsname];
-      const jsonData = XLSX.utils.sheet_to_json(ws);
-      setData(jsonData);
-      set('productData', jsonData); // Cache data
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  const handleFolderSelect = async () => {
-    try {
-      const handle = await window.showDirectoryPicker();
-      setDirHandle(handle);
-      setPermissionGranted(true);
-    } catch (err) {
-      // Don't log error if user simply cancelled the dialog
-      if (err.name !== 'AbortError') {
-        console.error('Error selecting folder:', err);
-      }
-    }
-  };
-
-  const uniqueValues = useMemo(() => {
-    const getUnique = (key, sortFn) => {
-      const values = [...new Set(data.map(item => item[key]).filter(Boolean))];
-      return sortFn ? values.sort(sortFn) : values.sort();
-    };
-
-    const numericSort = (a, b) => {
-      const numA = parseFloat(a) || 0;
-      const numB = parseFloat(b) || 0;
-      return numA - numB;
-    };
-
-    return {
-      '種別': getUnique('種別'),
-      '重量': getUnique('重量', numericSort),
-      '材質名称': getUnique('材質名称'),
-      '総色数': getUnique('総色数'),
-      '直送先名称': getUnique('直送先名称')
-    };
-  }, [data]);
-
-  const filteredData = useMemo(() => {
-    let result = data;
-
-    // 1. Keyword Search (Fuzzy)
-    if (keyword) {
-      const fuse = new Fuse(data, {
-        keys: ['タイトル', '商品名', '受注№', '商品コード', '材質名称', '直送先名称', '形状', 'JANコード'],
-        threshold: 0.3, // 0.0 = exact match, 1.0 = match anything
-        ignoreLocation: true,
-        useExtendedSearch: true
-      });
-      const searchResults = fuse.search(keyword);
-      result = searchResults.map(res => res.item);
-    }
-
-    // 2. Filter Match (Multi-select)
-    result = result.filter(item => {
-      return Object.keys(filters).every(key => {
-        if (filters[key].length === 0) return true; // No filter selected for this key
-        return filters[key].includes(String(item[key]));
-      });
-    });
-
-    // Apply sorting
-    if (sortBy === 'price-asc') {
-      result.sort((a, b) => (parseFloat(a['単価']) || 0) - (parseFloat(b['単価']) || 0));
-    } else if (sortBy === 'price-desc') {
-      result.sort((a, b) => (parseFloat(b['単価']) || 0) - (parseFloat(a['単価']) || 0));
-    } else if (sortBy === 'date-desc') {
-      result.sort((a, b) => {
-        const dateA = new Date(a['最新受注日'] || 0);
-        const dateB = new Date(b['最新受注日'] || 0);
-        return dateB - dateA;
-      });
-    }
-
-    return result;
-  }, [data, filters, keyword, sortBy]);
-
-  // Pagination Logic
+  // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, keyword, sortBy]);
-
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value ? [value] : []
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      '種別': [],
-      '重量': [],
-      '材質名称': [],
-      '総色数': [],
-      '直送先名称': []
-    });
-    setKeyword('');
-  };
-
-  // Toast function
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-  };
-
-  // Cart functions
-  const addToCart = (product, quantity = 1) => {
-    // Use orderQuantity if available and quantity is not specified (default 1)
-    // If the user clicked "Add to Cart" from the card, quantity will be 1, so we check if we should use orderQuantity
-    const qtyToAdd = quantity === 1 && product['受注数'] ? Number(product['受注数']) : quantity;
-
-    setCart(prevCart => {
-      // Check if item already exists in cart
-      // We use both Product Code and Order Number to identify unique items
-      const existingItemIndex = prevCart.findIndex(item =>
-        item['商品コード'] === product['商品コード'] && item['受注№'] === product['受注№']
-      );
-
-      if (existingItemIndex > -1) {
-        // Item exists, update quantity
-        const newCart = [...prevCart];
-        newCart[existingItemIndex].quantity += qtyToAdd;
-        return newCart;
-      } else {
-        // Item doesn't exist, add new item
-        return [...prevCart, { ...product, quantity: qtyToAdd }];
-      }
-    });
-    showToast(`${product['商品名'] || product['タイトル']}をカートに追加しました`);
-  };
-
-  const updateCartQuantity = (orderNo, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(orderNo);
-    } else {
-      setCart(cart.map(item =>
-        item['受注№'] === orderNo ? { ...item, quantity: newQuantity } : item
-      ));
-    }
-  };
-
-  const removeFromCart = (orderNo) => {
-    setCart(cart.filter(item => item['受注№'] !== orderNo));
-  };
-
-  const clearCart = () => {
-    setCart([]);
-  };
-
-  const cartTotal = cart.reduce((sum, item) => {
-    const price = parseFloat(item['単価']) || 0;
-    return sum + (price * item.quantity);
-  }, 0);
-
-  const cartItemCount = cart.length; // アイテム数（商品種類数）
-
-  const columns = [
-    '画像', '受注№', '商品コード', 'タイトル', '重量', '材質名称', '総色数', '直送先名称'
-  ];
-
-  // Product Navigation Logic
+  // Product Navigation
   const handleNextProduct = () => {
     if (!selectedProduct || filteredData.length === 0) return;
     const currentIndex = filteredData.findIndex(p => p['受注№'] === selectedProduct['受注№']);
@@ -255,10 +74,13 @@ function App() {
     }
   };
 
-  // Calculate navigation availability
   const currentIndex = selectedProduct ? filteredData.findIndex(p => p['受注№'] === selectedProduct['受注№']) : -1;
   const hasNext = currentIndex !== -1 && currentIndex < filteredData.length - 1;
   const hasPrev = currentIndex !== -1 && currentIndex > 0;
+
+  const columns = [
+    '画像', '受注№', '商品コード', 'タイトル', '重量', '材質名称', '総色数', '直送先名称'
+  ];
 
   return (
     <div className="amazon-app">
@@ -541,7 +363,7 @@ function App() {
         message={toast.message}
         type={toast.type}
         isVisible={toast.show}
-        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        onClose={hideToast}
       />
     </div>
   );
