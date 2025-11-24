@@ -238,6 +238,28 @@ function App() {
     '画像', '受注№', '商品コード', 'タイトル', '重量', '材質名称', '総色数', '直送先名称'
   ];
 
+  // Product Navigation Logic
+  const handleNextProduct = () => {
+    if (!selectedProduct || filteredData.length === 0) return;
+    const currentIndex = filteredData.findIndex(p => p['受注№'] === selectedProduct['受注№']);
+    if (currentIndex < filteredData.length - 1) {
+      setSelectedProduct(filteredData[currentIndex + 1]);
+    }
+  };
+
+  const handlePrevProduct = () => {
+    if (!selectedProduct || filteredData.length === 0) return;
+    const currentIndex = filteredData.findIndex(p => p['受注№'] === selectedProduct['受注№']);
+    if (currentIndex > 0) {
+      setSelectedProduct(filteredData[currentIndex - 1]);
+    }
+  };
+
+  // Calculate navigation availability
+  const currentIndex = selectedProduct ? filteredData.findIndex(p => p['受注№'] === selectedProduct['受注№']) : -1;
+  const hasNext = currentIndex !== -1 && currentIndex < filteredData.length - 1;
+  const hasPrev = currentIndex !== -1 && currentIndex > 0;
+
   return (
     <div className="amazon-app">
       {/* Header */}
@@ -498,6 +520,10 @@ function App() {
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         dirHandle={dirHandle}
+        onNext={handleNextProduct}
+        onPrev={handlePrevProduct}
+        hasNext={hasNext}
+        hasPrev={hasPrev}
       />
       {showCart && (
         <CartModal

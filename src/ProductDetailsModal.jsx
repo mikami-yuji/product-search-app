@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
-const ProductDetailsModal = ({ product, onClose, dirHandle }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowRight' && hasNext) {
+                onNext();
+            } else if (e.key === 'ArrowLeft' && hasPrev) {
+                onPrev();
+            } else if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [hasNext, hasPrev, onNext, onPrev, onClose]);
 
     useEffect(() => {
         const checkImages = async () => {
@@ -49,11 +65,13 @@ const ProductDetailsModal = ({ product, onClose, dirHandle }) => {
         };
     }, [product, dirHandle]);
 
-    const handlePrevImage = () => {
+    const handlePrevImage = (e) => {
+        e.stopPropagation();
         setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : availableImages.length - 1));
     };
 
-    const handleNextImage = () => {
+    const handleNextImage = (e) => {
+        e.stopPropagation();
         setCurrentImageIndex((prev) => (prev < availableImages.length - 1 ? prev + 1 : 0));
     };
 
@@ -63,6 +81,16 @@ const ProductDetailsModal = ({ product, onClose, dirHandle }) => {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
+            {hasPrev && (
+                <button
+                    className="product-nav-btn prev"
+                    onClick={(e) => { e.stopPropagation(); onPrev(); }}
+                    title="前の商品 (←)"
+                >
+                    <ChevronLeft size={48} />
+                </button>
+            )}
+
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>×</button>
                 <div className="modal-body">
@@ -214,6 +242,16 @@ const ProductDetailsModal = ({ product, onClose, dirHandle }) => {
                     </div>
                 </div>
             </div>
+
+            {hasNext && (
+                <button
+                    className="product-nav-btn next"
+                    onClick={(e) => { e.stopPropagation(); onNext(); }}
+                    title="次の商品 (→)"
+                >
+                    <ChevronRight size={48} />
+                </button>
+            )}
         </div>
     );
 };
