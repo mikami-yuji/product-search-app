@@ -32,7 +32,10 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
             </div>
             <div className="amazon-card-content">
                 <h3 className="amazon-card-title">
-                    <HighlightText text={product['商品名'] || product['タイトル']} keyword={keyword} />
+                    <HighlightText
+                        text={product['種別'] === '既製品' ? product['商品名'] : (product['タイトル'] || product['商品名'])}
+                        keyword={keyword}
+                    />
                 </h3>
                 <div className="amazon-card-meta">
                     <span className="amazon-card-code">

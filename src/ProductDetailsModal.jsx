@@ -127,7 +127,9 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                         )}
                     </div>
                     <div className="modal-details">
-                        <h2 className="modal-title">{product['種別'] === '既製品' ? product['商品名'] : product['タイトル']}</h2>
+                        <h2 className="modal-title">
+                            {product['種別'] === '既製品' ? product['商品名'] : (product['タイトル'] || product['商品名'])}
+                        </h2>
 
                         {/* 基本情報 */}
                         <div className="info-section">
