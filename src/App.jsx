@@ -12,6 +12,7 @@ import CartModal from './CartModal';
 import ProductDetailsModal from './ProductDetailsModal';
 import ProductCard from './ProductCard';
 import Toast from './Toast';
+import HighlightText from './HighlightText';
 
 const imageCache = {}; // Global memory cache for current session
 
@@ -377,6 +378,7 @@ function App() {
                     dirHandle={dirHandle}
                     onClick={() => setSelectedProduct(product)}
                     onAddToCart={addToCart}
+                    keyword={keyword}
                   />
                 ))}
               </div>
@@ -422,7 +424,7 @@ function App() {
                                   }}
                                 />
                               ) : (
-                                row[col]
+                                <HighlightText text={row[col]} keyword={keyword} />
                               )}
                             </td>
                           ))}
