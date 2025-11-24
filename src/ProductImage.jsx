@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
+import { getCachedImage, cacheImage } from './utils/imageCache';
 
 const ProductImage = ({ dirHandle, filename, productCode, productType, materialName, className, onClick }) => {
     const [imageUrl, setImageUrl] = useState(null);
@@ -33,7 +34,20 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
         let objectUrl = null;
 
         const loadImage = async () => {
-            // 1. Try Local Image (if folder connected)
+            // 1. Try Cache First (Offline Support)
+            try {
+                const cachedBlob = await getCachedImage(filename);
+                if (cachedBlob) {
+                    objectUrl = URL.createObjectURL(cachedBlob);
+                    setImageUrl(objectUrl);
+                    setError(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Error loading cached image:", err);
+            }
+
+            // 2. Try Local Image (if folder connected)
             if (dirHandle && filename) {
                 try {
                     const extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'];
@@ -55,6 +69,14 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
 
                     if (fileHandle) {
                         const file = await fileHandle.getFile();
+
+                        // Cache the image for offline use
+                        try {
+                            await cacheImage(filename, file);
+                        } catch (err) {
+                            console.error("Failed to cache image:", err);
+                        }
+
                         objectUrl = URL.createObjectURL(file);
                         setImageUrl(objectUrl);
                         setError(false);
@@ -65,7 +87,7 @@ const ProductImage = ({ dirHandle, filename, productCode, productType, materialN
                 }
             }
 
-            // External image fetching disabled – only local images are used
+            // No image found
             setError(true);
         };
 
