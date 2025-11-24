@@ -128,70 +128,20 @@
         min-width: 150px;
     }
 
-    /* Table - Transform to Cards for Mobile */
+    /* Table */
     .amazon-table-container {
-        overflow-x: visible;
-        background-color: transparent;
-        box-shadow: none;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .amazon-table {
-        display: block;
-        width: 100%;
+        font-size: 0.8rem;
     }
 
-    .amazon-table thead {
-        display: none;
-        /* Hide headers */
-    }
-
-    .amazon-table tbody {
-        display: block;
-        width: 100%;
-    }
-
-    .amazon-table tr {
-        display: block;
-        background-color: white;
-        border: 1px solid var(--amazon-border);
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
+    .amazon-table th,
     .amazon-table td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #f0f0f0;
-        text-align: right;
-        font-size: 0.9rem;
-    }
-
-    .amazon-table td:last-child {
-        border-bottom: none;
-    }
-
-    .amazon-table td::before {
-        content: attr(data-label);
-        font-weight: 700;
-        color: var(--amazon-text-light);
-        text-align: left;
-        margin-right: 1rem;
-        font-size: 0.85rem;
-    }
-
-    /* Special styling for image cell in card view */
-    .amazon-table td[data-label="画像"] {
-        justify-content: center;
-        border-bottom: none;
-        padding-bottom: 1rem;
-    }
-
-    .amazon-table td[data-label="画像"]::before {
-        display: none;
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
     }
 
     /* Pagination */
