@@ -10,6 +10,7 @@ import ProductDetailsModal from './ProductDetailsModal';
 import ProductCard from './ProductCard';
 import Toast from './Toast';
 import HighlightText from './HighlightText';
+import ErrorBanner from './ErrorBanner';
 
 // Import Custom Hooks
 import { useToast, useCart, useProductData, useProductFilters } from './hooks';
@@ -23,7 +24,17 @@ function App() {
 
   // Custom Hooks
   const { toast, showToast, hideToast } = useToast();
-  const { data, fileName, dirHandle, permissionGranted, handleFileUpload, handleFolderSelect } = useProductData();
+  const {
+    data,
+    fileName,
+    dirHandle,
+    permissionGranted,
+    error,
+    isLoading,
+    handleFileUpload,
+    handleFolderSelect,
+    clearError
+  } = useProductData();
   const {
     keyword,
     setKeyword,
@@ -84,6 +95,9 @@ function App() {
 
   return (
     <div className="amazon-app">
+      {/* Error Banner */}
+      <ErrorBanner error={error} onClose={clearError} />
+
       {/* Header */}
       <header className="amazon-header">
         <div className="amazon-header-content">

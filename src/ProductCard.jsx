@@ -17,11 +17,13 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
 
     const ageClass = getAgeColorClass(product['最新受注日']);
 
+    const handleAddToCart = (e) => {
+        e.stopPropagation();
+        onAddToCart(product);
+    };
+
     return (
-        <div
-            className={`amazon-product-card ${ageClass}`}
-            onClick={onClick}
-        >
+        <div className={`amazon-product-card ${ageClass}`} onClick={onClick}>
             <div className="amazon-card-image-container">
                 <ProductImage
                     dirHandle={dirHandle}
@@ -47,37 +49,41 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
                 </div>
                 <div className="amazon-card-details">
                     <div className="amazon-detail-row">
-                        <span className="label">材質:</span>
-                        <span className="value">
+                        <span className="amazon-detail-label">材質:</span>
+                        <span className="amazon-detail-value">
                             <HighlightText text={product['材質名称']} keyword={keyword} />
                         </span>
                     </div>
                     <div className="amazon-detail-row">
-                        <span className="label">直送先:</span>
-                        <span className="value">
+                        <span className="amazon-detail-label">直送先:</span>
+                        <span className="amazon-detail-value">
                             <HighlightText text={product['直送先名称']} keyword={keyword} />
                         </span>
                     </div>
+                    {product['単価'] && (
+                        <div className="amazon-card-price">
+                            ¥{Number(product['単価']).toLocaleString()}
+                        </div>
+                    )}
                 </div>
-                <div className="amazon-card-footer">
-                    <div className="amazon-card-price">
-                        ¥{Number(product['単価']).toLocaleString()}
-                    </div>
-                    <button
-                        className="amazon-add-to-cart-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAddToCart(product);
-                        }}
-                        title="カートに追加"
-                    >
-                        <ShoppingCart size={16} />
-                        追加
-                    </button>
-                </div>
+                <button
+                    className="amazon-add-to-cart-btn"
+                    onClick={handleAddToCart}
+                >
+                    <ShoppingCart size={18} />
+                    カートに追加
+                </button>
             </div>
         </div>
     );
 };
 
-export default ProductCard;
+// Memoize to prevent unnecessary re-renders
+export default React.memo(ProductCard, (prevProps, nextProps) => {
+    // Only re-render if these props change
+    return (
+        prevProps.product['受注№'] === nextProps.product['受注№'] &&
+        prevProps.keyword === nextProps.keyword &&
+        prevProps.dirHandle === nextProps.dirHandle
+    );
+});
