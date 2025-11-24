@@ -1,0 +1,15 @@
+/* Print cost label - smaller font size for grid cards */
+.print-cost-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #666;
+}
+
+/* Sticky sidebar to follow scroll */
+.amazon-sidebar {
+    position: sticky;
+    top: 90px;
+    align-self: flex-start;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+}

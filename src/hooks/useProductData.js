@@ -8,6 +8,7 @@ const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
 export const useProductData = () => {
     const [data, setData] = useState([]);
     const [fileName, setFileName] = useState('');
+    const [lastModified, setLastModified] = useState(null);
     const [dirHandle, setDirHandle] = useState(null);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
@@ -20,8 +21,11 @@ export const useProductData = () => {
                 setIsLoading(true);
                 const cachedData = await get('productData');
                 const cachedFileName = await get('fileName');
+                const cachedLastModified = await get('lastModified');
+
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
+                if (cachedLastModified) setLastModified(cachedLastModified);
             } catch (err) {
                 console.error('Error loading cache:', err);
                 setError('キャッシュの読み込みに失敗しました');
@@ -54,6 +58,7 @@ export const useProductData = () => {
         setIsLoading(true);
         setError(null);
         setFileName(file.name);
+        setLastModified(file.lastModified);
 
         const reader = new FileReader();
 
@@ -81,6 +86,7 @@ export const useProductData = () => {
                 setData(jsonData);
                 set('productData', jsonData);
                 set('fileName', file.name);
+                set('lastModified', file.lastModified);
                 setError(null);
             } catch (err) {
                 console.error('Error parsing file:', err);
@@ -111,6 +117,7 @@ export const useProductData = () => {
     return {
         data,
         fileName,
+        lastModified,
         dirHandle,
         permissionGranted,
         error,

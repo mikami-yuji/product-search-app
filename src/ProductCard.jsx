@@ -40,11 +40,11 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
                     />
                 </h3>
                 <div className="amazon-card-meta">
-                    <span className="amazon-card-code">
-                        <HighlightText text={product['商品コード']} keyword={keyword} />
-                    </span>
                     <span className="amazon-card-order-no">
                         <HighlightText text={product['受注№']} keyword={keyword} />
+                    </span>
+                    <span className="amazon-card-code">
+                        <HighlightText text={product['商品コード']} keyword={keyword} />
                     </span>
                 </div>
                 <div className="amazon-card-details">
@@ -60,11 +60,15 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
                             <HighlightText text={product['直送先名称']} keyword={keyword} />
                         </span>
                     </div>
-                    {product['単価'] && (
-                        <div className="amazon-card-price">
-                            ¥{Number(product['単価']).toLocaleString()}
-                        </div>
-                    )}
+                    <div className="amazon-card-price">
+                        {product['単価'] ? (
+                            <span>¥{parseFloat(String(product['単価']).replace(/,/g, '')).toLocaleString()}</span>
+                        ) : null}
+                        {product['単価'] && product['印刷代'] ? <span> + </span> : null}
+                        {product['印刷代'] ? (
+                            <span className="print-cost-label">印刷代 ¥{parseFloat(String(product['印刷代']).replace(/,/g, '')).toLocaleString()}</span>
+                        ) : null}
+                    </div>
                 </div>
                 <button
                     className="amazon-add-to-cart-btn"

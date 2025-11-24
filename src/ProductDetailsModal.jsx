@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import './product-details-modal.css';
 
 const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -80,7 +81,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
     const currentImage = availableImages[currentImageIndex];
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="product-details-modal-overlay" onClick={onClose}>
             {hasPrev && (
                 <button
                     className="product-nav-btn prev"
@@ -91,17 +92,17 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                 </button>
             )}
 
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="product-details-modal-content" onClick={(e) => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>×</button>
-                <div className="modal-body">
-                    <div className="modal-image">
+                <div className="product-details-layout">
+                    <div className="product-details-image-section">
                         {availableImages.length > 0 ? (
-                            <>
+                            <div className="product-details-main-image-container">
                                 {currentImage ? (
                                     <img
                                         src={currentImage.url}
                                         alt={`${product['タイトル']} - ${currentImage.suffix}`}
-                                        className="modal-product-image"
+                                        className="product-details-image"
                                     />
                                 ) : (
                                     <div className="no-image"><ImageIcon size={64} /></div>
@@ -121,12 +122,12 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                                         </div>
                                     </>
                                 )}
-                            </>
+                            </div>
                         ) : (
                             <div className="no-image"><ImageIcon size={64} /></div>
                         )}
                     </div>
-                    <div className="modal-details">
+                    <div className="product-details-info-section">
                         <h2 className="modal-title">
                             {product['種別'] === '既製品' ? product['商品名'] : (product['タイトル'] || product['商品名'])}
                         </h2>
@@ -157,7 +158,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                         {/* 仕様 */}
                         <div className="info-section">
                             <h3 className="section-title">仕様</h3>
-                            <div className="info-grid">
+                            <div className="info-grid single-column">
                                 <div className="info-row">
                                     <span className="info-label">形状</span>
                                     <span className="info-value">{product['形状']}</span>
@@ -174,32 +175,27 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                         </div>
 
                         {/* 印刷情報 */}
-                        {(product['表色数'] || product['裏色数'] || product['総色数'] || product['印刷代']) && (
+                        {/* 印刷情報 */}
+                        {(product['表色数'] != null || product['裏色数'] != null || product['総色数'] != null) && (
                             <div className="info-section">
                                 <h3 className="section-title">印刷情報</h3>
-                                <div className="info-grid">
-                                    {product['表色数'] && (
+                                <div className="info-grid single-column">
+                                    {product['表色数'] != null && (
                                         <div className="info-row">
                                             <span className="info-label">表色数</span>
                                             <span className="info-value">{product['表色数']}</span>
                                         </div>
                                     )}
-                                    {product['裏色数'] && (
+                                    {product['裏色数'] != null && (
                                         <div className="info-row">
                                             <span className="info-label">裏色数</span>
                                             <span className="info-value">{product['裏色数']}</span>
                                         </div>
                                     )}
-                                    {product['総色数'] && (
+                                    {product['総色数'] != null && (
                                         <div className="info-row">
                                             <span className="info-label">総色数</span>
                                             <span className="info-value">{product['総色数']}</span>
-                                        </div>
-                                    )}
-                                    {product['印刷代'] && (
-                                        <div className="info-row">
-                                            <span className="info-label">印刷代</span>
-                                            <span className="info-value">{product['印刷代']}</span>
                                         </div>
                                     )}
                                 </div>
@@ -209,7 +205,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                         {/* 価格・数量 */}
                         <div className="info-section highlight">
                             <h3 className="section-title">価格・数量</h3>
-                            <div className="info-grid">
+                            <div className="info-grid single-column">
                                 <div className="info-row highlight">
                                     <span className="info-label">受注数</span>
                                     <span className="info-value">{product['受注数']}</span>
@@ -220,6 +216,14 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                                         {product['単価'] ? `¥${parseFloat(product['単価']).toLocaleString()}` : '-'}
                                     </span>
                                 </div>
+                                {product['印刷代'] != null && (
+                                    <div className="info-row highlight">
+                                        <span className="info-label">印刷代</span>
+                                        <span className="info-value">
+                                            {product['印刷代'] ? `¥${parseFloat(product['印刷代']).toLocaleString()}` : '-'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
