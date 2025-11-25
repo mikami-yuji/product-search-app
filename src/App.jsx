@@ -24,7 +24,12 @@ function App() {
   const [itemsPerPage] = useState(20);
   const [showCacheManager, setShowCacheManager] = useState(false);
   // PC (width > 480px) defaults to open, Mobile defaults to closed
-  const [isFilterOpen, setIsFilterOpen] = useState(window.innerWidth > 480);
+  const [isFilterOpen, setIsFilterOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth > 480;
+    }
+    return true; // Default to open for SSR/build
+  });
 
   // Custom hooks
   const { toast, showToast, hideToast } = useToast();
