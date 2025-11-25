@@ -13,8 +13,15 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
 
     const generateEmailText = () => {
         const date = new Date().toLocaleDateString('ja-JP');
-        let emailText = `【注文依頼】\n\n`;
-        emailText += `注文日: ${date}\n\n`;
+        // ファイル名から拡張子を削除し、（株）を株式会社に置き換えて会社名として表示
+        const companyName = fileName
+            ? fileName.replace(/\.[^/.]+$/, "").replace(/[\(（]株[\)）]/g, "株式会社")
+            : "株式会社サンプル商事";
+
+        let emailText = `お疲れ様です。\n\n`;
+        emailText += `【注文依頼】\n\n`;
+        emailText += `注文日: ${date}\n`;
+        emailText += `発注者: ${companyName}\n\n`;
         emailText += `商品一覧:\n`;
         emailText += `${'='.repeat(60)}\n\n`;
 
@@ -26,22 +33,10 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
             emailText += `   材質: ${item['材質名称']}\n`;
             emailText += `   重量: ${item['重量']}\n`;
             emailText += `   数量: ${item.quantity}\n`;
-            if (item['単価']) {
-                const price = parseFloat(item['単価']);
-                const printingCost = parseFloat(item['印刷代']) || 0;
-                const itemTotal = (price * item.quantity) + printingCost;
-
-                emailText += `   単価: ¥${price.toLocaleString()}\n`;
-                if (printingCost > 0) {
-                    emailText += `   印刷代: ¥${printingCost.toLocaleString()}\n`;
-                }
-                emailText += `   小計: ¥${itemTotal.toLocaleString()}\n`;
-            }
             emailText += `\n`;
         });
 
         emailText += `${'='.repeat(60)}\n`;
-        emailText += `合計金額: ¥${total.toLocaleString()}\n`;
         emailText += `商品点数: ${cart.length}点\n\n`;
         emailText += `よろしくお願いいたします。\n`;
 
