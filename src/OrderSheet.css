@@ -132,6 +132,11 @@
     text-align: right;
 }
 
+.col-print {
+    width: 80px;
+    text-align: right;
+}
+
 .col-amount {
     width: 90px;
     text-align: right;

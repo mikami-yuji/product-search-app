@@ -46,7 +46,8 @@ export const useCart = (showToast) => {
 
     const cartTotal = cart.reduce((sum, item) => {
         const price = parseFloat(item['単価']) || 0;
-        return sum + (price * item.quantity);
+        const printingCost = parseFloat(item['印刷代']) || 0;
+        return sum + (price * item.quantity) + printingCost;
     }, 0);
 
     const cartItemCount = cart.length;

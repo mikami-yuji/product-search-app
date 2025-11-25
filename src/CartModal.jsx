@@ -27,8 +27,14 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
             emailText += `   重量: ${item['重量']}\n`;
             emailText += `   数量: ${item.quantity}\n`;
             if (item['単価']) {
-                const itemTotal = parseFloat(item['単価']) * item.quantity;
-                emailText += `   単価: ¥${parseFloat(item['単価']).toLocaleString()}\n`;
+                const price = parseFloat(item['単価']);
+                const printingCost = parseFloat(item['印刷代']) || 0;
+                const itemTotal = (price * item.quantity) + printingCost;
+
+                emailText += `   単価: ¥${price.toLocaleString()}\n`;
+                if (printingCost > 0) {
+                    emailText += `   印刷代: ¥${printingCost.toLocaleString()}\n`;
+                }
                 emailText += `   小計: ¥${itemTotal.toLocaleString()}\n`;
             }
             emailText += `\n`;
@@ -81,37 +87,49 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                     </button>
                 </div>
                 <div className="cart-items">
-                    {cart.map((item, index) => (
-                        <div key={index} className="cart-item">
-                            <div className="cart-item-info">
-                                <h3>{item['種別'] === '既製品' ? item['商品名'] : item['タイトル']}</h3>
-                                <p className="cart-item-meta">#{item['受注№']} | {item['材質名称']}</p>
-                                {item['単価'] && (
-                                    <p className="cart-item-price">¥{parseFloat(item['単価']).toLocaleString()} × {item.quantity}</p>
-                                )}
-                            </div>
-                            <div className="cart-item-controls">
-                                <div className="cart-quantity-controls">
-                                    <button onClick={() => onUpdateQuantity(item['受注№'], item.quantity - 100)}>
-                                        <Minus size={16} />
-                                    </button>
-                                    <input
-                                        type="number"
-                                        value={item.quantity}
-                                        onChange={(e) => onUpdateQuantity(item['受注№'], parseInt(e.target.value) || 0)}
-                                        min="0"
-                                        step="100"
-                                    />
-                                    <button onClick={() => onUpdateQuantity(item['受注№'], item.quantity + 100)}>
-                                        <Plus size={16} />
+                    {cart.map((item, index) => {
+                        const price = parseFloat(item['単価']) || 0;
+                        const printingCost = parseFloat(item['印刷代']) || 0;
+                        const itemTotal = (price * item.quantity) + printingCost;
+
+                        return (
+                            <div key={index} className="cart-item">
+                                <div className="cart-item-info">
+                                    <h3>{item['種別'] === '既製品' ? item['商品名'] : item['タイトル']}</h3>
+                                    <p className="cart-item-meta">#{item['受注№']} | {item['材質名称']}</p>
+                                    {item['単価'] && (
+                                        <div className="cart-item-price-details">
+                                            <p>単価: ¥{price.toLocaleString()} × {item.quantity}</p>
+                                            {printingCost > 0 && (
+                                                <p>印刷代: ¥{printingCost.toLocaleString()}</p>
+                                            )}
+                                            <p className="cart-item-subtotal">小計: ¥{itemTotal.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="cart-item-controls">
+                                    <div className="cart-quantity-controls">
+                                        <button onClick={() => onUpdateQuantity(item['受注№'], item.quantity - 100)}>
+                                            <Minus size={16} />
+                                        </button>
+                                        <input
+                                            type="number"
+                                            value={item.quantity}
+                                            onChange={(e) => onUpdateQuantity(item['受注№'], parseInt(e.target.value) || 0)}
+                                            min="0"
+                                            step="100"
+                                        />
+                                        <button onClick={() => onUpdateQuantity(item['受注№'], item.quantity + 100)}>
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
+                                    <button className="cart-remove-btn" onClick={() => onRemove(item['受注№'])}>
+                                        <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <button className="cart-remove-btn" onClick={() => onRemove(item['受注№'])}>
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
                 <div className="cart-footer">
                     <div className="cart-total">

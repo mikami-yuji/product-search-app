@@ -53,28 +53,36 @@ const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref)
                             <th className="col-qty">数量</th>
                             <th className="col-unit">単位</th>
                             <th className="col-price">単価</th>
+                            <th className="col-print">印刷代</th>
                             <th className="col-amount">金額</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {cart.map((item, index) => (
-                            <tr key={index}>
-                                <td className="col-no">{index + 1}</td>
-                                <td className="col-order-no">{item['受注№']}</td>
-                                <td className="col-code">{item['商品コード']}</td>
-                                <td className="col-name">{item['タイトル'] || item['品名']}</td>
-                                <td className="col-qty">{item.quantity}</td>
-                                <td className="col-unit">{getUnit(item)}</td>
-                                <td className="col-price">
-                                    {item['単価'] ? `¥${parseFloat(item['単価']).toLocaleString()}` : '-'}
-                                </td>
-                                <td className="col-amount">
-                                    {item['単価']
-                                        ? `¥${(parseFloat(item['単価']) * item.quantity).toLocaleString()}`
-                                        : '-'}
-                                </td>
-                            </tr>
-                        ))}
+                        {cart.map((item, index) => {
+                            const price = parseFloat(item['単価']) || 0;
+                            const printingCost = parseFloat(item['印刷代']) || 0;
+                            const itemTotal = (price * item.quantity) + printingCost;
+
+                            return (
+                                <tr key={index}>
+                                    <td className="col-no">{index + 1}</td>
+                                    <td className="col-order-no">{item['受注№']}</td>
+                                    <td className="col-code">{item['商品コード']}</td>
+                                    <td className="col-name">{item['タイトル'] || item['品名']}</td>
+                                    <td className="col-qty">{item.quantity}</td>
+                                    <td className="col-unit">{getUnit(item)}</td>
+                                    <td className="col-price">
+                                        {item['単価'] ? `¥${price.toLocaleString()}` : '-'}
+                                    </td>
+                                    <td className="col-print">
+                                        {printingCost > 0 ? `¥${printingCost.toLocaleString()}` : '-'}
+                                    </td>
+                                    <td className="col-amount">
+                                        {item['単価'] ? `¥${itemTotal.toLocaleString()}` : '-'}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         {/* Empty rows to fill space if needed */}
                         {Array.from({ length: Math.max(0, 10 - cart.length) }).map((_, i) => (
                             <tr key={`empty-${i}`}>
@@ -85,6 +93,7 @@ const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref)
                                 <td className="col-qty"></td>
                                 <td className="col-unit"></td>
                                 <td className="col-price"></td>
+                                <td className="col-print"></td>
                                 <td className="col-amount"></td>
                             </tr>
                         ))}

@@ -6,66 +6,6 @@
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-    }
-}
-
-@media (max-width: 768px) {
-
-    /* Header improvements */
-    .amazon-header {
-        padding: 0.75rem 0.5rem;
-    }
-
-    .amazon-header-content {
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: space-between;
-    }
-
-    .amazon-logo {
-        order: 1;
-        flex: 0 0 auto;
-    }
-
-    .amazon-logo h1 {
-        font-size: 1.1rem;
-    }
-
-    .amazon-header-actions {
-        order: 2;
-        flex: 0 0 auto;
-        gap: 0.5rem;
-    }
-
-    .amazon-search-bar {
-        order: 3;
-        flex: 0 0 100%;
-        /* Full width on new line */
-        margin-top: 0.25rem;
-        max-width: none;
-    }
-
-    .amazon-search-input {
-        padding: 0.625rem 0.75rem 0.625rem 2.5rem;
-        font-size: 1rem;
-        /* Prevent zoom on iOS */
-    }
-
-    .amazon-search-bar .search-icon {
-        left: 0.75rem;
-        width: 18px;
-        height: 18px;
-    }
-
-    .amazon-btn {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
-    }
-
-    /* Main content */
-    .amazon-main {
-        padding: 1rem;
         gap: 1rem;
     }
 
@@ -74,8 +14,55 @@
         padding: 0.75rem;
     }
 
+    .amazon-sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .sidebar-header-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     .amazon-sidebar-header h2 {
         font-size: 1rem;
+        margin: 0;
+    }
+
+    .sidebar-toggle-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #555;
+    }
+
+    .amazon-sidebar-content {
+        display: none;
+        margin-top: 1rem;
+        border-top: 1px solid #eee;
+        padding-top: 1rem;
+    }
+
+    .amazon-sidebar.open .amazon-sidebar-content {
+        display: block;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .amazon-filter-group {
@@ -310,5 +297,20 @@
 
     .cart-item {
         padding: 0.5rem;
+    }
+}
+
+/* PC styles for toggle */
+@media (min-width: 769px) {
+    .sidebar-toggle-icon {
+        display: none;
+    }
+
+    .amazon-sidebar-content {
+        display: block !important;
+    }
+
+    .amazon-sidebar-header {
+        cursor: default;
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock } from 'lucide-react';
+import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import './index.css';
 import './custom.css';
 
@@ -24,6 +24,7 @@ function App() {
   const [viewMode, setViewMode] = useState('grid');
   const [itemsPerPage] = useState(20);
   const [showCacheManager, setShowCacheManager] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Custom hooks
   const { toast, showToast, hideToast } = useToast();
@@ -157,34 +158,42 @@ function App() {
       {data.length > 0 ? (
         <div className="amazon-main">
           {/* Sidebar Filters */}
-          <aside className="amazon-sidebar">
-            <div className="amazon-sidebar-header">
-              <h2>フィルター</h2>
-              <button onClick={clearFilters} className="amazon-clear-btn">
+          {/* Sidebar Filters */}
+          <aside className={`amazon-sidebar ${isFilterOpen ? 'open' : ''}`}>
+            <div className="amazon-sidebar-header" onClick={() => setIsFilterOpen(!isFilterOpen)}>
+              <div className="sidebar-header-title">
+                <h2>フィルター</h2>
+                <div className="sidebar-toggle-icon">
+                  {isFilterOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); clearFilters(); }} className="amazon-clear-btn">
                 <FilterX size={16} />
                 クリア
               </button>
             </div>
-            {Object.keys(filters).map(key => (
-              <div key={key} className="amazon-filter-group">
-                <label className="amazon-filter-label">{key}</label>
-                <div className="amazon-filter-control">
-                  <select
-                    value={filters[key][0] || ''}
-                    onChange={e => handleFilterChange(key, e.target.value)}
-                    className="amazon-filter-select"
-                  >
-                    <option value="">すべて表示</option>
-                    {uniqueValues[key].map(val => (
-                      <option key={val} value={val}>{val}</option>
-                    ))}
-                  </select>
-                  {filters[key].length > 0 && (
-                    <button className="amazon-filter-clear-btn" onClick={() => handleFilterChange(key, '')} title="クリア">×</button>
-                  )}
+            <div className="amazon-sidebar-content">
+              {Object.keys(filters).map(key => (
+                <div key={key} className="amazon-filter-group">
+                  <label className="amazon-filter-label">{key}</label>
+                  <div className="amazon-filter-control">
+                    <select
+                      value={filters[key][0] || ''}
+                      onChange={e => handleFilterChange(key, e.target.value)}
+                      className="amazon-filter-select"
+                    >
+                      <option value="">すべて表示</option>
+                      {uniqueValues[key].map(val => (
+                        <option key={val} value={val}>{val}</option>
+                      ))}
+                    </select>
+                    {filters[key].length > 0 && (
+                      <button className="amazon-filter-clear-btn" onClick={() => handleFilterChange(key, '')} title="クリア">×</button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </aside>
 
           {/* Main Content */}
