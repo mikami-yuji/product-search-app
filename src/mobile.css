@@ -1,68 +1,129 @@
 /* Mobile-specific improvements */
 
-@media (max-width: 1024px) {
-    .amazon-sidebar {
-        background-color: white;
-        border-radius: 8px;
+/* Common Sidebar Toggle Styles (Applied to all screen sizes) */
+.amazon-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.amazon-sidebar-header h2 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.sidebar-toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+}
+
+/* Default state: Closed (Hidden) */
+.amazon-sidebar-content {
+    display: none;
+    margin-top: 1rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+/* Open state: Visible */
+.amazon-sidebar.open .amazon-sidebar-content {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile styles (Smartphone only - max-width: 480px) */
+@media (max-width: 480px) {
+
+    /* Header improvements */
+    .amazon-header {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .amazon-header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .amazon-logo {
+        text-align: center;
+        width: 100%;
+    }
+
+    .amazon-logo h1 {
+        font-size: 1.2rem;
+        justify-content: center;
+    }
+
+    .amazon-search-bar {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+
+    .amazon-search-input {
+        padding: 0.625rem 0.75rem 0.625rem 2.5rem;
+        font-size: 1rem;
+    }
+
+    .amazon-search-bar .search-icon {
+        left: 0.75rem;
+        width: 18px;
+        height: 18px;
+    }
+
+    .amazon-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .amazon-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        flex: 1 0 auto;
+        justify-content: center;
+        min-width: auto;
+    }
+
+    /* Main content */
+    .amazon-main {
         padding: 1rem;
-        margin-bottom: 1rem;
         gap: 1rem;
     }
 
     /* Sidebar */
     .amazon-sidebar {
         padding: 0.75rem;
-    }
-
-    .amazon-sidebar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        padding-bottom: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .sidebar-header-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .amazon-sidebar-header h2 {
-        font-size: 1rem;
-        margin: 0;
-    }
-
-    .sidebar-toggle-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #555;
-    }
-
-    .amazon-sidebar-content {
-        display: none;
-        margin-top: 1rem;
-        border-top: 1px solid #eee;
-        padding-top: 1rem;
-    }
-
-    .amazon-sidebar.open .amazon-sidebar-content {
-        display: block;
-        animation: slideDown 0.3s ease-out;
-    }
-
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        background-color: white;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        gap: 1rem;
     }
 
     .amazon-filter-group {
@@ -226,9 +287,8 @@
     }
 }
 
-@media (max-width: 480px) {
-
-    /* Extra small screens */
+/* Extra small screens */
+@media (max-width: 320px) {
     .amazon-header {
         padding: 0.5rem;
     }
@@ -300,17 +360,30 @@
     }
 }
 
-/* PC styles for toggle */
-@media (min-width: 769px) {
-    .sidebar-toggle-icon {
-        display: none;
+/* PC styles (Width > 480px) */
+@media (min-width: 481px) {
+
+    /* Ensure header is row layout on PC */
+    .amazon-header-content {
+        flex-direction: row !important;
+        align-items: center;
+        flex-wrap: nowrap;
     }
 
-    .amazon-sidebar-content {
-        display: block !important;
+    .amazon-header-actions {
+        flex-wrap: nowrap;
+        width: auto;
     }
 
-    .amazon-sidebar-header {
-        cursor: default;
+    .amazon-search-bar {
+        width: auto;
+        margin: 0;
     }
+
+    .amazon-logo {
+        width: auto;
+        text-align: left;
+    }
+
+    /* Sidebar is now collapsible on PC too, so we removed the forced display styles */
 }

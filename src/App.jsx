@@ -18,13 +18,13 @@ import CacheManager from './CacheManager';
 import { useToast, useCart, useProductData, useProductFilters } from './hooks';
 
 function App() {
-  // UI state
   const [modalImage, setModalImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [itemsPerPage] = useState(20);
   const [showCacheManager, setShowCacheManager] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // PC (width > 480px) defaults to open, Mobile defaults to closed
+  const [isFilterOpen, setIsFilterOpen] = useState(window.innerWidth > 480);
 
   // Custom hooks
   const { toast, showToast, hideToast } = useToast();
