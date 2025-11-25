@@ -8,9 +8,8 @@ export default defineConfig(({ command }) => {
     base: '/',
   }
 
-  if (command !== 'serve') {
-    config.base = '/product-search-app/'
-  }
+  // Base path is root for Vercel
+  config.base = '/'
 
   config.server = {
     headers: {
