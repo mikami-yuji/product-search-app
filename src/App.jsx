@@ -181,6 +181,7 @@ function App() {
                       value={filters[key][0] || ''}
                       onChange={e => handleFilterChange(key, e.target.value)}
                       className="amazon-filter-select"
+                      aria-label={`${key}で絞り込み`}
                     >
                       <option value="">すべて表示</option>
                       {uniqueValues[key].map(val => (
@@ -204,7 +205,7 @@ function App() {
                 <strong>{filteredData.length}</strong> 件の商品
               </div>
               <div className="amazon-toolbar-controls">
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="amazon-sort-select">
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="amazon-sort-select" aria-label="並び替え">
                   <option value="">並び替え</option>
                   <option value="price-asc">価格: 安い順</option>
                   <option value="price-desc">価格: 高い順</option>
