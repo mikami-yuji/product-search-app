@@ -127,6 +127,9 @@ function App() {
           <div className="amazon-search-bar">
             <Search size={20} className="search-icon" />
             <input
+              id="search-input"
+              name="keyword"
+              aria-label="商品検索"
               type="text"
               placeholder="商品を検索..."
               value={keyword}
@@ -147,7 +150,7 @@ function App() {
               <Upload size={18} />
               {fileName || 'ファイル選択'}
             </label>
-            <input id="file-input" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
+            <input id="file-input" name="file" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
             <button onClick={() => setShowCacheManager(true)} className="amazon-btn" title="キャッシュ管理">
               キャッシュ
             </button>

@@ -12,5 +12,12 @@ export default defineConfig(({ command }) => {
     config.base = '/product-search-app/'
   }
 
+  config.server = {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store',
+    }
+  }
+
   return config
 })
