@@ -26,18 +26,20 @@ export const useCart = (showToast) => {
         }
     };
 
-    const updateCartQuantity = (orderNo, newQuantity) => {
+    const updateCartQuantity = (orderNo, productCode, newQuantity) => {
         if (newQuantity <= 0) {
-            removeFromCart(orderNo);
+            removeFromCart(orderNo, productCode);
         } else {
             setCart(cart.map(item =>
-                item['受注№'] === orderNo ? { ...item, quantity: newQuantity } : item
+                (item['受注№'] === orderNo && item['商品コード'] === productCode)
+                    ? { ...item, quantity: newQuantity }
+                    : item
             ));
         }
     };
 
-    const removeFromCart = (orderNo) => {
-        setCart(cart.filter(item => item['受注№'] !== orderNo));
+    const removeFromCart = (orderNo, productCode) => {
+        setCart(cart.filter(item => !(item['受注№'] === orderNo && item['商品コード'] === productCode)));
     };
 
     const clearCart = () => {
