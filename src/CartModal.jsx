@@ -104,21 +104,21 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                                 </div>
                                 <div className="cart-item-controls">
                                     <div className="cart-quantity-controls">
-                                        <button onClick={() => onUpdateQuantity(item['受注№'], item['商品コード'], item.quantity - 100)}>
+                                        <button onClick={() => onUpdateQuantity(item.cartId, item.quantity - 100)}>
                                             <Minus size={16} />
                                         </button>
                                         <input
                                             type="number"
                                             value={item.quantity}
-                                            onChange={(e) => onUpdateQuantity(item['受注№'], item['商品コード'], parseInt(e.target.value) || 0)}
+                                            onChange={(e) => onUpdateQuantity(item.cartId, parseInt(e.target.value) || 0)}
                                             min="0"
                                             step="100"
                                         />
-                                        <button onClick={() => onUpdateQuantity(item['受注№'], item['商品コード'], item.quantity + 100)}>
+                                        <button onClick={() => onUpdateQuantity(item.cartId, item.quantity + 100)}>
                                             <Plus size={16} />
                                         </button>
                                     </div>
-                                    <button className="cart-remove-btn" onClick={() => onRemove(item['受注№'], item['商品コード'])}>
+                                    <button className="cart-remove-btn" onClick={() => onRemove(item.cartId)}>
                                         <Trash2 size={16} />
                                     </button>
                                 </div>

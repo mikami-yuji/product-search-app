@@ -17,7 +17,9 @@ export const useCart = (showToast) => {
                 newCart[existingItemIndex].quantity += qtyToAdd;
                 return newCart;
             } else {
-                return [...prevCart, { ...product, quantity: qtyToAdd }];
+                // Generate a unique ID for the cart item
+                const cartId = `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                return [...prevCart, { ...product, quantity: qtyToAdd, cartId }];
             }
         });
 
@@ -26,20 +28,18 @@ export const useCart = (showToast) => {
         }
     };
 
-    const updateCartQuantity = (orderNo, productCode, newQuantity) => {
+    const updateCartQuantity = (cartId, newQuantity) => {
         if (newQuantity <= 0) {
-            removeFromCart(orderNo, productCode);
+            removeFromCart(cartId);
         } else {
             setCart(cart.map(item =>
-                (item['受注№'] === orderNo && item['商品コード'] === productCode)
-                    ? { ...item, quantity: newQuantity }
-                    : item
+                item.cartId === cartId ? { ...item, quantity: newQuantity } : item
             ));
         }
     };
 
-    const removeFromCart = (orderNo, productCode) => {
-        setCart(cart.filter(item => !(item['受注№'] === orderNo && item['商品コード'] === productCode)));
+    const removeFromCart = (cartId) => {
+        setCart(cart.filter(item => item.cartId !== cartId));
     };
 
     const clearCart = () => {
