@@ -60,6 +60,15 @@ export const useProductData = () => {
         setFileName(file.name);
         setLastModified(file.lastModified);
 
+        // Check for empty file
+        if (file.size === 0) {
+            setError('ファイルのサイズが0です。正しいファイルを選択してください。');
+            setIsLoading(false);
+            return;
+        }
+
+
+
         const reader = new FileReader();
 
         reader.onerror = () => {
@@ -68,36 +77,56 @@ export const useProductData = () => {
         };
 
         reader.onload = (evt) => {
-            try {
-                const bstr = evt.target.result;
-                const workbook = XLSX.read(bstr, { type: 'binary' });
+            // Create worker for heavy processing
+            const worker = new Worker(new URL('../workers/excelWorker.js', import.meta.url), { type: 'module' });
 
-                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                    throw new Error('シートが見つかりません');
+            worker.onmessage = (e) => {
+                const { type, data, error: errorMsg } = e.data;
+
+                if (type === 'success') {
+                    try {
+                        // Validate data structure in main thread
+                        validateData(data);
+
+                        setData(data);
+                        set('productData', data);
+                        set('fileName', file.name);
+                        set('lastModified', file.lastModified);
+                        setError(null);
+                    } catch (validationErr) {
+                        setError(validationErr.message);
+                        setData([]);
+                    }
+                } else {
+                    console.error('Worker error:', e.data);
+                    if (errorMsg && errorMsg.includes('Bad compressed size')) {
+                        setError('ファイルが破損しているか、読み込めない形式です。別のファイルをお試しください。');
+                    } else if (errorMsg && errorMsg.includes('Password')) {
+                        setError('パスワード保護されたファイルは読み込めません。');
+                    } else {
+                        setError('ファイルの解析に失敗しました: ' + errorMsg);
+                    }
+                    setData([]);
                 }
 
-                const wsname = workbook.SheetNames[0];
-                const ws = workbook.Sheets[wsname];
-                const jsonData = XLSX.utils.sheet_to_json(ws);
-
-                // Validate data structure
-                validateData(jsonData);
-
-                setData(jsonData);
-                set('productData', jsonData);
-                set('fileName', file.name);
-                set('lastModified', file.lastModified);
-                setError(null);
-            } catch (err) {
-                console.error('Error parsing file:', err);
-                setError(err.message || 'ファイルの解析に失敗しました');
-                setData([]);
-            } finally {
+                // Cleanup
                 setIsLoading(false);
-            }
+                worker.terminate();
+            };
+
+            worker.onerror = (err) => {
+                console.error('Worker infrastructure error:', err);
+                setError('解析プロセスの起動に失敗しました。');
+                setIsLoading(false);
+                worker.terminate();
+            };
+
+            // Send data to worker (transferable object for performance)
+            const buffer = evt.target.result;
+            worker.postMessage({ data: buffer, fileName: file.name }, [buffer]);
         };
 
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
 
     const handleFolderSelect = async () => {
