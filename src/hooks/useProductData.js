@@ -60,73 +60,115 @@ export const useProductData = () => {
         setFileName(file.name);
         setLastModified(file.lastModified);
 
-        // Check for empty file
+        // Initial check for 0 byte file (common with cloud placeholders)
         if (file.size === 0) {
-            setError('ファイルのサイズが0です。正しいファイルを選択してください。');
-            setIsLoading(false);
-            return;
+            console.log('File size is 0. Attempting to wake up cloud file...');
         }
 
+        const readWithRetry = async (attempt = 1) => {
+            const MAX_RETRIES = 3;
+            const RETRY_DELAY = 1500; // 1.5 seconds
 
+            if (file.size === 0) {
+                setError(`クラウドからデータを取得中... (${attempt}/${MAX_RETRIES})`);
+            }
 
-        const reader = new FileReader();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
 
-        reader.onerror = () => {
-            setError('ファイルの読み込みに失敗しました');
-            setIsLoading(false);
+                reader.onerror = () => {
+                    reject(new Error(`Read failed (Code: ${reader.error?.code})`));
+                };
+
+                reader.onload = (evt) => {
+                    const buffer = evt.target.result;
+                    if (buffer.byteLength === 0 && attempt <= MAX_RETRIES) {
+                        console.warn(`Attempt ${attempt}: Read 0 bytes. Retrying...`);
+                        setTimeout(() => readWithRetry(attempt + 1).then(resolve).catch(reject), RETRY_DELAY);
+                    } else {
+                        resolve(buffer);
+                    }
+                };
+
+                reader.readAsArrayBuffer(file);
+            });
         };
 
-        reader.onload = (evt) => {
-            // Create worker for heavy processing
-            const worker = new Worker(new URL('../workers/excelWorker.js', import.meta.url), { type: 'module' });
+        const processFile = async () => {
+            // For cloud files, sometimes we need to "wait" for the download
+            if (file.size === 0) {
+                setError('クラウドからデータを取得中... (これには数秒かかる場合があります)');
+            }
 
-            worker.onmessage = (e) => {
-                const { type, data, error: errorMsg } = e.data;
+            try {
+                const buffer = await readWithRetry();
 
-                if (type === 'success') {
-                    try {
-                        // Validate data structure in main thread
-                        validateData(data);
-
-                        setData(data);
-                        set('productData', data);
-                        set('fileName', file.name);
-                        set('lastModified', file.lastModified);
-                        setError(null);
-                    } catch (validationErr) {
-                        setError(validationErr.message);
-                        setData([]);
-                    }
-                } else {
-                    console.error('Worker error:', e.data);
-                    if (errorMsg && errorMsg.includes('Bad compressed size')) {
-                        setError('ファイルが破損しているか、読み込めない形式です。別のファイルをお試しください。');
-                    } else if (errorMsg && errorMsg.includes('Password')) {
-                        setError('パスワード保護されたファイルは読み込めません。');
-                    } else {
-                        setError('ファイルの解析に失敗しました: ' + errorMsg);
-                    }
-                    setData([]);
+                if (buffer.byteLength === 0) {
+                    throw new Error('File is empty after retries');
                 }
 
-                // Cleanup
-                setIsLoading(false);
-                worker.terminate();
-            };
+                console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
 
-            worker.onerror = (err) => {
-                console.error('Worker infrastructure error:', err);
-                setError('解析プロセスの起動に失敗しました。');
-                setIsLoading(false);
-                worker.terminate();
-            };
+                // Create worker for heavy processing
+                const worker = new Worker(new URL('../workers/excelWorker.js', import.meta.url), { type: 'module' });
 
-            // Send data to worker (transferable object for performance)
-            const buffer = evt.target.result;
-            worker.postMessage({ data: buffer, fileName: file.name }, [buffer]);
+                worker.onmessage = (e) => {
+                    const { type, data, error: errorMsg, details } = e.data;
+
+                    if (type === 'success') {
+                        try {
+                            validateData(data);
+                            setData(data);
+                            set('productData', data);
+                            set('fileName', file.name);
+                            set('lastModified', file.lastModified);
+                            setError(null);
+                        } catch (validationErr) {
+                            setError(validationErr.message);
+                            setData([]);
+                        }
+                    } else {
+                        console.error('Worker error:', errorMsg, details);
+
+                        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        let userMsg = `エラーが発生しました (File: ${sizeMB}MB)`;
+
+                        if (errorMsg && errorMsg.includes('Bad compressed size')) {
+                            userMsg = `ファイルが破損しているか、ダウンロードが完了していません。\n(Bad compressed size)\n\nスマホの場合は、iCloud/Google Driveから「このiPhone内」に保存してから再度お試しください。`;
+                        } else if (errorMsg && errorMsg.includes('Password')) {
+                            userMsg = 'パスワード保護されたファイルは読み込めません。';
+                        } else {
+                            userMsg = `ファイルの解析に失敗しました: ${errorMsg}`;
+                        }
+                        setError(userMsg);
+                        setData([]);
+                    }
+
+                    setIsLoading(false);
+                    worker.terminate();
+                };
+
+                worker.onerror = (err) => {
+                    console.error('Worker infrastructure error:', err);
+                    setError('解析プロセスの起動に失敗しました。');
+                    setIsLoading(false);
+                    worker.terminate();
+                };
+
+                worker.postMessage({ data: buffer, fileName: file.name }, [buffer]);
+
+            } catch (err) {
+                console.error('File processing error:', err);
+                if (file.size === 0) {
+                    setError('ファイルの取得に失敗しました。クラウドからダウンロードされていない可能性があります。\n一度「ファイル」アプリで開いてから再度お試しください。');
+                } else {
+                    setError('ファイルの読み込みに失敗しました。');
+                }
+                setIsLoading(false);
+            }
         };
 
-        reader.readAsArrayBuffer(file);
+        processFile();
     };
 
     const handleFolderSelect = async () => {
