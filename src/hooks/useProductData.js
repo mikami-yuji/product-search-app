@@ -16,16 +16,32 @@ export const useProductData = () => {
 
     // Load cached data on mount
     useEffect(() => {
+        /**
+         * @returns {Promise<void>}
+         */
         const loadCachedData = async () => {
             try {
                 setIsLoading(true);
                 const cachedData = await get('productData');
                 const cachedFileName = await get('fileName');
                 const cachedLastModified = await get('lastModified');
+                const cachedDirHandle = await get('imageDirHandle');
 
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
                 if (cachedLastModified) setLastModified(cachedLastModified);
+                
+                if (cachedDirHandle) {
+                    setDirHandle(cachedDirHandle);
+                    // コメント: 保存済みフォルダの権限を確認し、既に許可されていれば接続済みにする
+                    const options = { mode: 'read' };
+                    const permission = await cachedDirHandle.queryPermission(options);
+                    if (permission === 'granted') {
+                        setPermissionGranted(true);
+                    } else {
+                        setPermissionGranted(false);
+                    }
+                }
             } catch (err) {
                 console.error('Error loading cache:', err);
                 setError('キャッシュの読み込みに失敗しました');
@@ -171,12 +187,29 @@ export const useProductData = () => {
         processFile();
     };
 
+    /**
+     * @returns {Promise<void>}
+     */
     const handleFolderSelect = async () => {
         try {
+            // コメント: すでに保存されたハンドルがあり、かつパーミッション未付与の場合、再度パーミッションを要求する
+            if (dirHandle) {
+                const options = { mode: 'read' };
+                const permission = await dirHandle.requestPermission(options);
+                if (permission === 'granted') {
+                    setPermissionGranted(true);
+                    setError(null);
+                    return;
+                }
+            }
+
+            // コメント: ハンドルがない、またはパーミッション要求が拒否された場合は新しくフォルダ選択ピッカーを開く
             const handle = await window.showDirectoryPicker();
             setDirHandle(handle);
             setPermissionGranted(true);
             setError(null);
+            // コメント: 選択したディレクトリハンドルをIndexedDBにキャッシュ保存する
+            await set('imageDirHandle', handle);
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error selecting folder:', err);
