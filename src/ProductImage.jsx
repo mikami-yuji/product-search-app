@@ -96,7 +96,8 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                 const cachedBlob = await getCachedImage(filename);
                 if (isCancelled) return;
 
-                if (cachedBlob) {
+                // キャッシュデータの健全性チェック (画像データであること)
+                if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith('image/')) {
                     const objectUrl = URL.createObjectURL(cachedBlob);
                     if (isCancelled) {
                         URL.revokeObjectURL(objectUrl);
@@ -105,6 +106,8 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                     updateImageUrl(objectUrl);
                     setError(false);
                     return;
+                } else if (cachedBlob) {
+                    console.warn(`Invalid cached image detected for ${filename}. Cached item is not a valid image Blob.`, cachedBlob);
                 }
             } catch (err) {
                 console.error("Error loading cached image:", err);
@@ -117,23 +120,29 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                     if (isCancelled) return;
 
                     if (response.ok) {
-                        const blob = await response.blob();
-                        // オフライン用にキャッシュを保存
-                        try {
-                            await cacheImage(filename, blob);
-                        } catch (err) {
-                            console.error("Failed to cache dev server image:", err);
-                        }
-                        if (isCancelled) return;
+                        // 本番環境での SPA rewrite による HTML データ誤認を防ぐため Content-Type を厳格に確認
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.startsWith('image/')) {
+                            const blob = await response.blob();
+                            // オフライン用にキャッシュを保存
+                            try {
+                                await cacheImage(filename, blob);
+                            } catch (err) {
+                                console.error("Failed to cache dev server image:", err);
+                            }
+                            if (isCancelled) return;
 
-                        const objectUrl = URL.createObjectURL(blob);
-                        if (isCancelled) {
-                            URL.revokeObjectURL(objectUrl);
+                            const objectUrl = URL.createObjectURL(blob);
+                            if (isCancelled) {
+                                URL.revokeObjectURL(objectUrl);
+                                return;
+                            }
+                            updateImageUrl(objectUrl);
+                            setError(false);
                             return;
+                        } else {
+                            console.log(`Local dev server response for ${filename} is not an image. Content-Type:`, contentType);
                         }
-                        updateImageUrl(objectUrl);
-                        setError(false);
-                        return;
                     }
                 } catch (err) {
                     console.log("Local dev server image not available, falling back:", err.message);
