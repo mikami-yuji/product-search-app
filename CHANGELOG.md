@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [Unreleased] - 2026-05-22
+
+### Fixed
+- **画像読み込みエラー (Failed to load image: blob:) の解消**
+  - `ProductImage.jsx` において、`useEffect` が再実行されるタイミングで表示中の `blob:` URL が同期的に `revoke` されてしまい、画像がロードできないバグを修正。
+  - 非同期処理（キャッシュロード、ローカル配信フェッチ、File System API）の最中にコンポーネントがアンマウントまたは依存関係が変更された場合のキャンセル処理（`isCancelled` フラグ）を導入。
+  - ステート更新（`updateImageUrl`）時およびアンマウント時にのみ古い `blob:` URL を安全に `revoke` する設計にリファクタリング。
+  
+- **詳細モーダルの画像チェック時のメモリリークおよびロード競合の解消**
+  - `ProductDetailsModal.jsx` 内の非同期画像存在確認処理（`checkImages`）に `isCancelled` フラグを導入し、古い非同期処理が残した不要な `blob:` URL が画面に反映されたりリークしたりするのを防止。
+  - モーダルアンマウント時およびステート更新時に古いローカル画像 URL を確実に `revoke` するようにライフサイクル管理を修正。
+
+### Added
+- **コード品質の向上とルール準拠**
+  - 修正した `ProductImage.jsx` と `ProductDetailsModal.jsx` の関数やプロパティに JSDoc コメントによる詳細な型ヒント（Type Hints）と明示的な戻り値の型を追加。
+  - 日本語コメント、英語コードのルールに完全準拠。
+
 ## [Unreleased] - 2026-05-21
 
 ### Added

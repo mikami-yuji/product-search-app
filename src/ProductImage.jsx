@@ -3,23 +3,34 @@ import { Image as ImageIcon } from 'lucide-react';
 import { getCachedImage, cacheImage } from './utils/imageCache';
 
 /**
- * @param {Object} props
- * @param {FileSystemDirectoryHandle} [props.dirHandle]
- * @param {string} props.filename
- * @param {string} [props.productCode]
- * @param {string} [props.productType]
- * @param {string} [props.materialName]
- * @param {string} [props.className]
- * @param {function} [props.onClick]
- * @returns {React.ReactElement}
+ * @typedef {Object} ProductImageProps
+ * @property {FileSystemDirectoryHandle} [dirHandle] - ディレクトリハンドル
+ * @property {string} filename - 画像ファイル名
+ * @property {string} [productCode] - 商品コード
+ * @property {string} [productType] - 商品種別
+ * @property {string} [materialName] - 材質名称
+ * @property {string} [className] - CSSクラス名
+ * @property {function} [onClick] - クリック時のコールバック
+ */
+
+/**
+ * 商品画像を表示するコンポーネント。キャッシュ、ローカルサーバー、File System APIからの非同期ロードを処理します。
+ * 
+ * @param {ProductImageProps} props - プロパティ
+ * @returns {React.ReactElement} - レンダリング要素
  */
 const ProductImage = ({ dirHandle, filename, className, onClick }) => {
+    /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
+    /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [error, setError] = useState(false);
+    /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [isVisible, setIsVisible] = useState(false);
+    /** @type {React.RefObject<HTMLDivElement>} */
     const imgRef = useRef(null);
 
     useEffect(() => {
+        /** @type {IntersectionObserver} */
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -36,24 +47,62 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
             observer.observe(imgRef.current);
         }
 
-        return () => observer.disconnect();
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    // imageUrl の更新時に古い blob URL を安全に破棄するカスタム関数
+    /**
+     * 画像URLステートを更新し、古い blob: URL があれば適切に解放します。
+     * 
+     * @param {string|null} newUrl - 新しい画像URL
+     * @returns {void}
+     */
+    const updateImageUrl = (newUrl) => {
+        setImageUrl((prevUrl) => {
+            if (prevUrl && prevUrl.startsWith('blob:') && prevUrl !== newUrl) {
+                URL.revokeObjectURL(prevUrl);
+            }
+            return newUrl;
+        });
+    };
+
+    // コンポーネントが完全にアンマウントされた際のクリーンアップ
+    useEffect(() => {
+        return () => {
+            setImageUrl((prevUrl) => {
+                if (prevUrl && prevUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(prevUrl);
+                }
+                return null;
+            });
+        };
     }, []);
 
     useEffect(() => {
         if (!isVisible) return;
 
-        let objectUrl = null;
+        let isCancelled = false;
 
         /**
+         * 各種ソースから画像を非同期でロードします。
+         * 
          * @returns {Promise<void>}
          */
         const loadImage = async () => {
             // 1. キャッシュから読み込みを試みる (オフライン対応)
             try {
                 const cachedBlob = await getCachedImage(filename);
+                if (isCancelled) return;
+
                 if (cachedBlob) {
-                    objectUrl = URL.createObjectURL(cachedBlob);
-                    setImageUrl(objectUrl);
+                    const objectUrl = URL.createObjectURL(cachedBlob);
+                    if (isCancelled) {
+                        URL.revokeObjectURL(objectUrl);
+                        return;
+                    }
+                    updateImageUrl(objectUrl);
                     setError(false);
                     return;
                 }
@@ -65,6 +114,8 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
             if (filename) {
                 try {
                     const response = await fetch(`/_local_images/${filename}`);
+                    if (isCancelled) return;
+
                     if (response.ok) {
                         const blob = await response.blob();
                         // オフライン用にキャッシュを保存
@@ -73,8 +124,14 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                         } catch (err) {
                             console.error("Failed to cache dev server image:", err);
                         }
-                        objectUrl = URL.createObjectURL(blob);
-                        setImageUrl(objectUrl);
+                        if (isCancelled) return;
+
+                        const objectUrl = URL.createObjectURL(blob);
+                        if (isCancelled) {
+                            URL.revokeObjectURL(objectUrl);
+                            return;
+                        }
+                        updateImageUrl(objectUrl);
                         setError(false);
                         return;
                     }
@@ -90,6 +147,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                     let fileHandle = null;
 
                     for (const ext of extensions) {
+                        if (isCancelled) return;
                         try {
                             try {
                                 fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
@@ -109,6 +167,8 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                         }
                     }
 
+                    if (isCancelled) return;
+
                     if (fileHandle) {
                         const file = await fileHandle.getFile();
 
@@ -118,9 +178,14 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                         } catch (err) {
                             console.error("Failed to cache image:", err);
                         }
+                        if (isCancelled) return;
 
-                        objectUrl = URL.createObjectURL(file);
-                        setImageUrl(objectUrl);
+                        const objectUrl = URL.createObjectURL(file);
+                        if (isCancelled) {
+                            URL.revokeObjectURL(objectUrl);
+                            return;
+                        }
+                        updateImageUrl(objectUrl);
                         setError(false);
                         return;
                     }
@@ -129,14 +194,15 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                 }
             }
 
-            // 画像が見つからなかった場合
-            setError(true);
+            if (!isCancelled) {
+                setError(true);
+            }
         };
 
         loadImage();
 
         return () => {
-            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            isCancelled = true;
         };
     }, [dirHandle, filename, isVisible]);
 

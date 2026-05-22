@@ -23,9 +23,19 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
     }, [hasNext, hasPrev, onNext, onPrev, onClose]);
 
     useEffect(() => {
+        let isCancelled = false;
+        /** @type {string[]} */
+        const createdUrls = [];
+
+        /**
+         * 対象商品の画像が存在するかどうかをローカルフォルダから非同期にチェックします。
+         * 
+         * @returns {Promise<void>}
+         */
         const checkImages = async () => {
             if (!product) return;
 
+            /** @type {Array<{url: string, suffix: string, source: string}>} */
             const images = [];
             const suffixes = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
             const extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'];
@@ -34,37 +44,72 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                 // Check local images
                 for (const suffix of suffixes) {
                     for (const ext of extensions) {
+                        if (isCancelled) break;
                         try {
                             const filename = `${product['受注№']}${suffix}${ext}`;
                             const fileHandle = await dirHandle.getFileHandle(filename);
+                            if (isCancelled) break;
+
                             if (fileHandle) {
                                 const file = await fileHandle.getFile();
+                                if (isCancelled) break;
+
                                 const url = URL.createObjectURL(file);
+                                if (isCancelled) {
+                                    URL.revokeObjectURL(url);
+                                    break;
+                                }
+                                createdUrls.push(url);
                                 images.push({ url, suffix, source: 'local' });
                                 break; // Found this suffix, move to next
                             }
-                        } catch (e) {
+                        } catch {
                             // File doesn't exist, continue
                         }
                     }
                 }
             }
 
-            setAvailableImages(images);
+            if (isCancelled) {
+                // キャンセルされている場合は、この非同期実行中に新しく作成されたURLをすべて即座に解放する
+                createdUrls.forEach(url => URL.revokeObjectURL(url));
+                return;
+            }
+
+            setAvailableImages((prevImages) => {
+                // 古い画像のURLをすべてクリーンアップする
+                prevImages.forEach((img) => {
+                    if (img.source === 'local') {
+                        URL.revokeObjectURL(img.url);
+                    }
+                });
+                return images;
+            });
             setCurrentImageIndex(0);
         };
 
         checkImages();
 
         return () => {
-            // Cleanup local URLs
-            availableImages.forEach(img => {
-                if (img.source === 'local') {
-                    URL.revokeObjectURL(img.url);
-                }
-            });
+            isCancelled = true;
+            // 同期的に、このサイクル内で作成されたURLをすべて解放する
+            createdUrls.forEach(url => URL.revokeObjectURL(url));
         };
     }, [product, dirHandle]);
+
+    // モーダル全体がアンマウントされた際のクリーンアップ
+    useEffect(() => {
+        return () => {
+            setAvailableImages((prevImages) => {
+                prevImages.forEach((img) => {
+                    if (img.source === 'local') {
+                        URL.revokeObjectURL(img.url);
+                    }
+                });
+                return [];
+            });
+        };
+    }, []);
 
     const handlePrevImage = (e) => {
         e.stopPropagation();
