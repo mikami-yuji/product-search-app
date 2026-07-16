@@ -31,14 +31,6 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     /** @type {React.RefObject<HTMLDivElement>} */
     const imgRef = useRef(null);
 
-    // Reset loaded state on image source change
-    useEffect(() => {
-        const animFrame = requestAnimationFrame(() => {
-            setIsLoaded(false);
-        });
-        return () => cancelAnimationFrame(animFrame);
-    }, [imageUrl, filename]);
-
     useEffect(() => {
         /** @type {IntersectionObserver} */
         const observer = new IntersectionObserver(
@@ -70,6 +62,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
      * @returns {void}
      */
     const updateImageUrl = (newUrl) => {
+        setIsLoaded(false);
         setImageUrl((prevUrl) => {
             if (prevUrl && prevUrl.startsWith('blob:') && prevUrl !== newUrl) {
                 URL.revokeObjectURL(prevUrl);
