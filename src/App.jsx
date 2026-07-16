@@ -39,12 +39,23 @@ function App() {
     lastModified,
     dirHandle,
     permissionGranted,
+    customerPermissionGranted,
+    customerFiles,
     error,
-    isLoading,
     handleFileUpload,
     handleFolderSelect,
+    handleCustomerFolderSelect,
+    loadCustomerFile,
     clearError,
   } = useProductData();
+
+  // Customer search state
+  const [customerSearchKeyword, setCustomerSearchKeyword] = useState('');
+
+  // Filter customer files based on search keyword
+  const filteredCustomerFiles = customerFiles.filter(file =>
+    file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
+  );
   const {
     keyword,
     setKeyword,
@@ -147,9 +158,13 @@ function App() {
               <ShoppingCart size={18} />
               カート ({cartItemCount})
             </button>
+            <button onClick={handleCustomerFolderSelect} className={`amazon-btn ${customerPermissionGranted ? 'connected' : ''}`} title={customerPermissionGranted ? '顧客フォルダ接続済み' : '顧客フォルダを接続'}>
+              <FolderOpen size={18} />
+              {customerPermissionGranted ? '顧客接続済' : '顧客フォルダ'}
+            </button>
             <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : '画像フォルダを接続'}>
               <FolderOpen size={18} />
-              {permissionGranted ? '接続済' : '画像フォルダ'}
+              {permissionGranted ? '画像接続済' : '画像フォルダ'}
             </button>
             <label htmlFor="file-input" className="amazon-btn amazon-btn-primary">
               <Upload size={18} />
@@ -168,6 +183,63 @@ function App() {
           {/* Sidebar Filters */}
           {/* Sidebar Filters */}
           <aside className={`amazon-sidebar ${isFilterOpen ? 'open' : ''}`}>
+            {/* 顧客選択セクション */}
+            <div className="amazon-sidebar-section customer-section">
+              <div className="customer-section-header">
+                <h2>顧客選択</h2>
+              </div>
+              {!customerPermissionGranted ? (
+                <div className="customer-connect-prompt">
+                  <p className="prompt-text">顧客フォルダが接続されていません。</p>
+                  <button onClick={handleCustomerFolderSelect} className="amazon-btn amazon-btn-primary customer-connect-btn">
+                    <FolderOpen size={16} /> 顧客フォルダを選択
+                  </button>
+                </div>
+              ) : (
+                <div className="customer-select-controls">
+                  <div className="customer-search-box">
+                    <Search size={16} className="customer-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="顧客名で検索..."
+                      value={customerSearchKeyword}
+                      onChange={e => setCustomerSearchKeyword(e.target.value)}
+                      className="customer-search-input"
+                    />
+                  </div>
+                  
+                  {filteredCustomerFiles.length > 0 ? (
+                    <div className="customer-list-container">
+                      <ul className="customer-list">
+                        {filteredCustomerFiles.map(file => {
+                          const isCurrent = fileName === file.name;
+                          return (
+                            <li 
+                              key={file.name} 
+                              className={`customer-item ${isCurrent ? 'active' : ''}`}
+                              onClick={() => {
+                                if (!isCurrent) {
+                                  loadCustomerFile(file.name);
+                                }
+                              }}
+                            >
+                              <span className="customer-name" title={file.name}>
+                                {file.name.replace(/\.xlsx?$/, '')}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="no-customers-text">該当する顧客が見つかりません</p>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <hr className="sidebar-divider" />
+
             <div className="amazon-sidebar-header" onClick={() => setIsFilterOpen(!isFilterOpen)}>
               <div className="sidebar-header-title">
                 <h2>フィルター</h2>
@@ -294,7 +366,48 @@ function App() {
         <div className="amazon-empty-state">
           <FileSpreadsheet size={64} />
           <h2>データを読み込んでください</h2>
-          <p>右上のボタンからエクセルファイルを選択してください。</p>
+          <p>右上の「ファイル選択」から個別にExcelファイルを開くか、顧客フォルダを接続してください。</p>
+          
+          {!customerPermissionGranted ? (
+            <button onClick={handleCustomerFolderSelect} className="amazon-btn amazon-btn-primary empty-connect-btn" style={{ marginTop: '1.5rem' }}>
+              <FolderOpen size={18} /> 顧客フォルダを接続する
+            </button>
+          ) : (
+            <div className="empty-customer-select" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '400px' }}>
+              <div className="customer-search-box">
+                <Search size={16} className="customer-search-icon" />
+                <input
+                  type="text"
+                  placeholder="顧客名で検索..."
+                  value={customerSearchKeyword}
+                  onChange={e => setCustomerSearchKeyword(e.target.value)}
+                  className="customer-search-input"
+                />
+              </div>
+              {filteredCustomerFiles.length > 0 ? (
+                <div className="customer-list-container" style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '0.75rem', background: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' }}>
+                  <ul className="customer-list" style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left' }}>
+                    {filteredCustomerFiles.map(file => (
+                      <li
+                        key={file.name}
+                        className="customer-item"
+                        style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', transition: 'background-color 0.2s' }}
+                        onClick={() => loadCustomerFile(file.name)}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <span className="customer-name" style={{ color: '#111', fontSize: '0.9rem', fontWeight: 500 }}>
+                          {file.name.replace(/\.xlsx?$/, '')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p style={{ marginTop: '0.75rem', color: '#888', fontSize: '0.9rem' }}>該当する顧客が見つかりません</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
