@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
+import ExcelWorker from '../workers/excelWorker?worker&inline';
 
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
@@ -168,8 +169,8 @@ export const useProductData = () => {
 
             console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
 
-            // Create worker for heavy processing
-            const worker = new Worker(new URL('../workers/excelWorker.js', import.meta.url), { type: 'module' });
+            // Create worker for heavy processing (inlined to avoid path issues with relative build base)
+            const worker = new ExcelWorker();
 
             worker.onmessage = (e) => {
                 const { type, data: parsedData, error: errorMsg, details } = e.data;
