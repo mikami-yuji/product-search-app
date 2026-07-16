@@ -212,13 +212,13 @@ export const useProductFilters = (data) => {
         return result;
     }, [data, filters, keyword, sortBy, searchScope]);
 
-    // フィルター、キーワード、ソート条件の変更時にページ番号を1にリセットする
+    // データ（顧客データ）、フィルター、キーワード、ソート条件の変更時にページ番号を1にリセットする
     useEffect(() => {
         const animFrame = requestAnimationFrame(() => {
             setCurrentPage(1);
         });
         return () => cancelAnimationFrame(animFrame);
-    }, [filters, keyword, sortBy, searchScope]);
+    }, [data, filters, keyword, sortBy, searchScope]);
 
     /**
      * フィルター値のチェック状態を切り替える（トグル処理）。

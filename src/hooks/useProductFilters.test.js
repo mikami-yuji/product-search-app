@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useProductFilters } from './useProductFilters';
 
 // テスト用のダミー商品データ
@@ -184,5 +184,33 @@ describe('useProductFilters', () => {
         });
         expect(result.current.keyword).toBe('');
         expect(result.current.filteredData).toHaveLength(4);
+    });
+
+    /**
+     * @returns {Promise<void>}
+     */
+    it('データ（顧客）が変更されたときにページ番号が1にリセットされること', async () => {
+        const { result, rerender } = renderHook(({ products }) => useProductFilters(products), {
+            initialProps: { products: mockProducts }
+        });
+
+        // ページを 2 に設定
+        act(() => {
+            result.current.setCurrentPage(2);
+        });
+        expect(result.current.currentPage).toBe(2);
+
+        // 新しいデータ（顧客データの変更）を渡して再描画
+        const newProducts = [
+            { '受注№': 'ORD-NEW', '商品コード': 'CODE-NEW', 'タイトル': '新規商品', '種別': '既製品' }
+        ];
+        act(() => {
+            rerender({ products: newProducts });
+        });
+
+        // ページが1にリセットされていること
+        await waitFor(() => {
+            expect(result.current.currentPage).toBe(1);
+        });
     });
 });
