@@ -56,12 +56,19 @@ function App() {
     customerFiles,
     error,
     isLoading,
+    isFileSystemSupported,
     handleFileUpload,
     handleFolderSelect,
     handleCustomerFolderSelect,
+    handleCustomerFilesSelect,
     loadCustomerFile,
     clearError,
   } = useProductData();
+
+  // Trigger mobile file input click
+  const triggerCustomerFilesSelect = () => {
+    document.getElementById('customer-files-input')?.click();
+  };
 
   // Customer search state
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState('');
@@ -190,9 +197,19 @@ function App() {
               <ShoppingCart size={18} />
               カート ({cartItemCount})
             </button>
-            <button onClick={handleCustomerFolderSelect} className={`amazon-btn ${customerPermissionGranted ? 'connected' : ''}`} title={customerPermissionGranted ? '顧客フォルダ接続済み' : '顧客フォルダを接続'}>
+            <button 
+              onClick={isFileSystemSupported ? handleCustomerFolderSelect : triggerCustomerFilesSelect} 
+              className={`amazon-btn ${customerPermissionGranted ? 'connected' : ''}`} 
+              title={
+                isFileSystemSupported
+                  ? (customerPermissionGranted ? '顧客フォルダ接続済み' : '顧客フォルダを接続')
+                  : (customerPermissionGranted ? '顧客ファイル選択済み' : '顧客ファイルを選択')
+              }
+            >
               <FolderOpen size={18} />
-              {customerPermissionGranted ? '顧客接続済' : '顧客フォルダ'}
+              {isFileSystemSupported
+                ? (customerPermissionGranted ? '顧客接続済' : '顧客フォルダ')
+                : (customerPermissionGranted ? '顧客選択済' : '顧客ファイル')}
             </button>
             <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : '画像フォルダを接続'}>
               <FolderOpen size={18} />
@@ -203,6 +220,7 @@ function App() {
               {fileName || 'ファイル選択'}
             </label>
             <input id="file-input" name="file" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
+            <input id="customer-files-input" name="customerFiles" type="file" accept=".xlsx,.xls" onChange={handleCustomerFilesSelect} multiple hidden />
             <button onClick={() => setShowCacheManager(true)} className="amazon-btn" title="キャッシュ管理">
               キャッシュ
             </button>
@@ -218,13 +236,18 @@ function App() {
             {/* 顧客選択セクション */}
             <div className="amazon-sidebar-section customer-section">
               <div className="customer-section-header">
-                <h2>顧客選択</h2>
+                <h2>{isFileSystemSupported ? '顧客選択' : '顧客ファイル選択'}</h2>
               </div>
               {!customerPermissionGranted ? (
                 <div className="customer-connect-prompt">
-                  <p className="prompt-text">顧客フォルダが接続されていません。</p>
-                  <button onClick={handleCustomerFolderSelect} className="amazon-btn amazon-btn-primary customer-connect-btn">
-                    <FolderOpen size={16} /> 顧客フォルダを選択
+                  <p className="prompt-text">
+                    {isFileSystemSupported ? '顧客フォルダが接続されていません。' : '顧客ファイルが選択されていません。'}
+                  </p>
+                  <button 
+                    onClick={isFileSystemSupported ? handleCustomerFolderSelect : triggerCustomerFilesSelect} 
+                    className="amazon-btn amazon-btn-primary customer-connect-btn"
+                  >
+                    <FolderOpen size={16} /> {isFileSystemSupported ? '顧客フォルダを選択' : '顧客ファイルを選択'}
                   </button>
                 </div>
               ) : (
@@ -404,11 +427,18 @@ function App() {
         <div className="amazon-empty-state">
           <FileSpreadsheet size={64} />
           <h2>データを読み込んでください</h2>
-          <p>右上の「ファイル選択」から個別にExcelファイルを開くか、顧客フォルダを接続してください。</p>
+          <p>
+            右上の「ファイル選択」から個別にExcelファイルを開くか、
+            {isFileSystemSupported ? '顧客フォルダを接続してください。' : '複数の顧客ファイルを選択してください。'}
+          </p>
           
           {!customerPermissionGranted ? (
-            <button onClick={handleCustomerFolderSelect} className="amazon-btn amazon-btn-primary empty-connect-btn" style={{ marginTop: '1.5rem' }}>
-              <FolderOpen size={18} /> 顧客フォルダを接続する
+            <button 
+              onClick={isFileSystemSupported ? handleCustomerFolderSelect : triggerCustomerFilesSelect} 
+              className="amazon-btn amazon-btn-primary empty-connect-btn" 
+              style={{ marginTop: '1.5rem' }}
+            >
+              <FolderOpen size={18} /> {isFileSystemSupported ? '顧客フォルダを接続する' : '顧客ファイルを選択する'}
             </button>
           ) : (
             <div className="empty-customer-select" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '400px' }}>

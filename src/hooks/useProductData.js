@@ -27,6 +27,8 @@ const getExcelFilesFromDir = async (dirHandle) => {
     return files;
 };
 
+export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
+
 export const useProductData = () => {
     const [data, setData] = useState([]);
     const [fileName, setFileName] = useState('');
@@ -52,13 +54,13 @@ export const useProductData = () => {
                 const cachedFileName = await get('fileName');
                 const cachedLastModified = await get('lastModified');
                 const cachedDirHandle = await get('imageDirHandle');
-                const cachedCustomerDirHandle = await get('customerDirHandle');
+                const cachedCustomerDirHandle = isFileSystemSupported ? await get('customerDirHandle') : null;
 
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
                 if (cachedLastModified) setLastModified(cachedLastModified);
                 
-                if (cachedDirHandle) {
+                if (cachedDirHandle && isFileSystemSupported) {
                     setDirHandle(cachedDirHandle);
                     // コメント: 保存済みフォルダの権限を確認し、既に許可されていれば接続済みにする
                     const options = { mode: 'read' };
@@ -70,7 +72,7 @@ export const useProductData = () => {
                     }
                 }
 
-                if (cachedCustomerDirHandle) {
+                if (cachedCustomerDirHandle && isFileSystemSupported) {
                     setCustomerDirHandle(cachedCustomerDirHandle);
                     const options = { mode: 'read' };
                     const permission = await cachedCustomerDirHandle.queryPermission(options);
@@ -272,6 +274,7 @@ export const useProductData = () => {
      * @returns {Promise<void>}
      */
     const handleCustomerFolderSelect = async () => {
+        if (!isFileSystemSupported) return;
         try {
             if (customerDirHandle) {
                 const options = { mode: 'read' };
@@ -301,16 +304,46 @@ export const useProductData = () => {
     };
 
     /**
+     * Handle multiple customer files upload from input on mobile.
+     * @param {React.ChangeEvent<HTMLInputElement>} e
+     * @returns {void}
+     */
+    const handleCustomerFilesSelect = (e) => {
+        const files = Array.from(e.target.files).filter(
+            file => file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+        );
+        const mappedFiles = files.map(file => ({
+            name: file.name,
+            file: file
+        }));
+        setCustomerFiles(mappedFiles);
+        setCustomerPermissionGranted(files.length > 0);
+        setError(null);
+    };
+
+    /**
      * Load a specific customer file from the connected customer directory.
      * @param {string} name
      * @returns {Promise<void>}
      */
     const loadCustomerFile = async (name) => {
-        if (!customerDirHandle) return;
         try {
-            const fileHandle = await customerDirHandle.getFileHandle(name);
-            const file = await fileHandle.getFile();
-            await processExcelFile(file);
+            let file;
+            if (isFileSystemSupported && customerDirHandle) {
+                const fileHandle = await customerDirHandle.getFileHandle(name);
+                file = await fileHandle.getFile();
+            } else {
+                const found = customerFiles.find(f => f.name === name);
+                if (found && found.file) {
+                    file = found.file;
+                }
+            }
+
+            if (file) {
+                await processExcelFile(file);
+            } else {
+                throw new Error('ファイルが見つかりません');
+            }
         } catch (err) {
             console.error('Error loading customer file:', err);
             setError(`顧客ファイル「${name}」の読み込みに失敗しました`);
@@ -328,9 +361,11 @@ export const useProductData = () => {
         customerFiles,
         error,
         isLoading,
+        isFileSystemSupported,
         handleFileUpload,
         handleFolderSelect,
         handleCustomerFolderSelect,
+        handleCustomerFilesSelect,
         loadCustomerFile,
         clearError: () => setError(null)
     };
