@@ -1,13 +1,17 @@
-/* Amazon-Style UI */
+/* Corporate-Style Business UI */
 :root {
-  --amazon-orange: #FF9900;
-  --amazon-dark: #131921;
-  --amazon-light: #232F3E;
-  --amazon-blue: #007185;
-  --amazon-hover: #F3F3F3;
-  --amazon-border: #D5D9D9;
-  --amazon-text: #0F1111;
-  --amazon-text-light: #565959;
+  --amazon-orange: #1E40AF; /* ディープコーポレートネイビー */
+  --amazon-dark: #0F172A;   /* ダークスレート */
+  --amazon-light: #1E293B;  /* スレートミドル */
+  --amazon-blue: #3B82F6;   /* スチールブルー */
+  --amazon-hover: #F8FAFC;  /* 非常に薄いグレー */
+  --amazon-border: #E2E8F0;  /* 柔らかい境界線 */
+  --amazon-text: #0F172A;    /* ダークスレートテキスト */
+  --amazon-text-light: #64748B; /* ミディアムスレートテキスト */
+  --primary-blue: #1E40AF;
+  --primary-blue-hover: #1D4ED8;
+  --badge-ready: #10B981;
+  --badge-custom: #F59E0B;
 }
 
 * {
@@ -2504,4 +2508,349 @@ body {
 
 .image-fade-in.loaded {
   opacity: 1;
+}
+
+/* Premium Business Theme Additional Styles */
+
+/* Search Container and Scope */
+.amazon-search-container {
+  display: flex;
+  flex: 1;
+  max-width: 800px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: visible; /* Dropdown needs to be visible */
+  border: 1px solid var(--amazon-border);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.amazon-search-container:focus-within {
+  border-color: var(--amazon-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.search-scope-select-wrapper {
+  border-right: 1px solid var(--amazon-border);
+  background-color: #F8FAFC;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.search-scope-select {
+  padding: 0.5rem 1.5rem 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--amazon-text);
+  outline: none;
+  cursor: pointer;
+}
+
+.amazon-search-container .amazon-search-bar {
+  flex: 1;
+  border: none;
+  background: transparent;
+  max-width: none;
+  box-shadow: none;
+}
+
+.amazon-search-container .amazon-search-input {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding-left: 2.75rem;
+}
+
+.amazon-search-container .amazon-search-input:focus {
+  box-shadow: none;
+  border: none !important;
+}
+
+/* Search suggestions and history dropdown */
+.search-history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid var(--amazon-border);
+  border-radius: 8px;
+  margin-top: 4px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.search-history-header {
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--amazon-text-light);
+  border-bottom: 1px solid var(--amazon-border);
+  background-color: #F8FAFC;
+}
+
+.search-history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  color: var(--amazon-text);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.search-history-item:hover,
+.search-history-item.active {
+  background-color: #F1F5F9;
+}
+
+.search-history-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clear-history-btn {
+  background: none;
+  border: none;
+  color: var(--amazon-text-light);
+  font-size: 1.1rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.clear-history-btn:hover {
+  color: #EF4444;
+  background-color: #FEE2E2;
+}
+
+/* Accordion sidebar filters */
+.amazon-filter-group-accordion {
+  border-bottom: 1px solid var(--amazon-border);
+  padding: 0.75rem 0;
+}
+
+.filter-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-group-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--amazon-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.active-filter-badge {
+  background-color: var(--amazon-blue);
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-weight: 700;
+}
+
+.accordion-arrow {
+  color: var(--amazon-text-light);
+  transition: transform 0.2s;
+}
+
+.amazon-filter-group-accordion.open .accordion-arrow {
+  transform: rotate(0deg);
+}
+
+.filter-group-body {
+  padding: 0.5rem 0.25rem 0.25rem 0.25rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+.clear-group-filter-btn {
+  background: none;
+  border: none;
+  color: var(--amazon-blue);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  display: block;
+}
+
+.clear-group-filter-btn:hover {
+  text-decoration: underline;
+}
+
+.filter-checkbox-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-right: 0.25rem;
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--amazon-text);
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 0.15rem 0;
+}
+
+.filter-checkbox-label:hover:not(.disabled) {
+  color: var(--amazon-blue);
+}
+
+.filter-checkbox-label input[type="checkbox"] {
+  margin-right: 0.5rem;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--amazon-orange);
+  cursor: pointer;
+}
+
+.filter-value-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-count {
+  font-size: 0.75rem;
+  color: var(--amazon-text-light);
+  margin-left: 0.25rem;
+}
+
+.filter-checkbox-label.disabled {
+  color: #A0AEC0;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.filter-checkbox-label.checked {
+  font-weight: 500;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Badges for Product Type */
+.product-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.product-badge.ready-made {
+  background-color: var(--badge-ready);
+}
+
+.product-badge.custom-made {
+  background-color: var(--badge-custom);
+}
+
+/* Micro-animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Premium card hover styling */
+.amazon-product-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.amazon-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.15);
+  border-color: var(--amazon-blue);
+}
+
+.amazon-add-to-cart-btn {
+  background-color: var(--amazon-orange) !important;
+  color: white !important;
+  transition: all 0.2s ease;
+  border: none !important;
+}
+
+.amazon-add-to-cart-btn:hover {
+  background-color: var(--primary-blue-hover) !important;
+  box-shadow: 0 4px 10px rgba(30, 64, 175, 0.3);
+}
+
+/* Highlight styles override */
+.text-highlight {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: var(--amazon-orange) !important;
+  font-weight: 600;
+  padding: 0 2px;
+  border-radius: 2px;
 }

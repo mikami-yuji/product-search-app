@@ -2,6 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import './product-details-modal.css';
 
+/**
+ * 商品の詳細情報を表示するモーダルコンポーネント。
+ * キーボード（左右矢印キーでの商品移動、ESCキーでの終了）に対応。
+ * 
+ * @param {Object} props
+ * @param {import('./types/product').Product} props.product - 対象の商品オブジェクト
+ * @param {() => void} props.onClose - モーダルを閉じるイベントハンドラ
+ * @param {FileSystemDirectoryHandle} [props.dirHandle] - 画像フォルダのディレクトリハンドル
+ * @param {() => void} props.onNext - 次の商品を表示するイベントハンドラ
+ * @param {() => void} props.onPrev - 前の商品を表示するイベントハンドラ
+ * @param {boolean} props.hasNext - 次の商品があるかどうか
+ * @param {boolean} props.hasPrev - 前の商品があるかどうか
+ * @returns {React.JSX.Element | null} モーダルのJSX要素
+ */
 const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
@@ -187,9 +201,14 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                         )}
                     </div>
                     <div className="product-details-info-section">
-                        <h2 className="modal-title">
-                            {product['種別'] === '既製品' ? product['商品名'] : (product['タイトル'] || product['商品名'])}
-                        </h2>
+                        <div className="modal-header-container">
+                            <span className={`product-badge ${product['種別'] === '既製品' ? 'ready-made' : 'custom-made'}`}>
+                                {product['種別']}
+                            </span>
+                            <h2 className="modal-title">
+                                {product['種別'] === '既製品' ? product['商品名'] : (product['タイトル'] || product['商品名'])}
+                            </h2>
+                        </div>
 
                         {/* 基本情報 */}
                         <div className="info-section">

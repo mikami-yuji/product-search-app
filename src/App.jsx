@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Sun, Moon } from 'lucide-react';
 import './index.css';
 import './custom.css';
 
@@ -44,6 +44,48 @@ function App() {
     return true; // Default to open for SSR/build
   });
 
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  // Apply dark mode class to body element
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  // Search History State
+  const [history, setHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('search_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
+
+  // Sidebar Accordion Open States
+  const [openFilters, setOpenFilters] = useState({
+    '種別': true,
+    '重量': false,
+    '材質名称': true,
+    '総色数': false,
+    '直送先名称': false
+  });
+
   // Custom hooks
   const { toast, showToast, hideToast } = useToast();
   const {
@@ -80,17 +122,23 @@ function App() {
   const filteredCustomerFiles = customerFiles.filter(file =>
     file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
   );
+
   const {
     keyword,
     setKeyword,
+    searchScope,
+    setSearchScope,
+    suggestions,
     sortBy,
     setSortBy,
     currentPage,
     setCurrentPage,
     filters,
     uniqueValues,
+    facetCounts,
     filteredData,
     handleFilterChange,
+    clearFilterKey,
     clearFilters,
   } = useProductFilters(data);
   const {
@@ -119,6 +167,99 @@ function App() {
       };
     }
   }, [cartItemCount]);
+
+  /**
+   * 検索クエリを履歴に追加し、ローカルストレージに保存する。
+   * 
+   * @param {string} query - 追加する検索文字列
+   * @returns {void}
+   */
+  const addToHistory = (query) => {
+    if (!query || !query.trim()) return;
+    const trimmed = query.trim();
+    setHistory(prev => {
+      const filtered = prev.filter(item => item !== trimmed);
+      const nextHistory = [trimmed, ...filtered].slice(0, 8);
+      localStorage.setItem('search_history', JSON.stringify(nextHistory));
+      return nextHistory;
+    });
+  };
+
+  /**
+   * 検索クエリを履歴から削除し、ローカルストレージを更新する。
+   * 
+   * @param {React.MouseEvent} e - マウスイベント
+   * @param {string} query - 削除する検索文字列
+   * @returns {void}
+   */
+  const removeFromHistory = (e, query) => {
+    e.stopPropagation();
+    setHistory(prev => {
+      const nextHistory = prev.filter(item => item !== query);
+      localStorage.setItem('search_history', JSON.stringify(nextHistory));
+      return nextHistory;
+    });
+  };
+
+  /**
+   * 検索キーワードを確定し、履歴への保存とポップアップの非表示を行う。
+   * 
+   * @param {string} query - 確定した検索文字列
+   * @returns {void}
+   */
+  const handleSearchSubmit = (query) => {
+    setKeyword(query);
+    addToHistory(query);
+    setIsSearchFocused(false);
+    setActiveSuggestionIdx(-1);
+  };
+
+  /**
+   * 検索窓でのキーボード入力を処理し、候補の移動や決定を行う。
+   * 
+   * @param {React.KeyboardEvent} e - キーボードイベント
+   * @returns {void}
+   */
+  const handleSearchKeyDown = (e) => {
+    const activeList = keyword ? suggestions : history;
+    if (activeList.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearchSubmit(keyword);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIdx(prev => (prev < activeList.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIdx(prev => (prev > 0 ? prev - 1 : activeList.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestionIdx >= 0 && activeSuggestionIdx < activeList.length) {
+        handleSearchSubmit(activeList[activeSuggestionIdx]);
+      } else {
+        handleSearchSubmit(keyword);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+      setActiveSuggestionIdx(-1);
+    }
+  };
+
+  /**
+   * フィルターカテゴリのアコーディオン開閉状態を切り替える。
+   * 
+   * @param {string} sectionKey - カテゴリキー
+   * @returns {void}
+   */
+  const toggleFilterSection = (sectionKey) => {
+    setOpenFilters(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -179,20 +320,84 @@ function App() {
               )}
             </div>
           </div>
-          <div className="amazon-search-bar">
-            <Search size={20} className="search-icon" />
-            <input
-              id="search-input"
-              name="keyword"
-              aria-label="商品検索"
-              type="text"
-              placeholder="商品を検索..."
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              className="amazon-search-input"
-            />
+          <div className="amazon-search-container">
+            <div className="search-scope-select-wrapper">
+              <select
+                value={searchScope}
+                onChange={e => setSearchScope(e.target.value)}
+                className="search-scope-select"
+                aria-label="検索対象"
+              >
+                <option value="all">すべて</option>
+                <option value="title">タイトル</option>
+                <option value="code">コード</option>
+              </select>
+            </div>
+            <div 
+              className="amazon-search-bar"
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => {
+                setTimeout(() => {
+                  setIsSearchFocused(false);
+                  setActiveSuggestionIdx(-1);
+                }, 200);
+              }}
+            >
+              <Search size={20} className="search-icon" />
+              <input
+                id="search-input"
+                name="keyword"
+                aria-label="商品検索"
+                type="text"
+                placeholder="商品を検索..."
+                value={keyword}
+                onChange={e => {
+                  setKeyword(e.target.value);
+                  setActiveSuggestionIdx(-1);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                className="amazon-search-input"
+                autoComplete="off"
+              />
+              {isSearchFocused && (keyword ? suggestions.length > 0 : history.length > 0) && (
+                <div className="search-history-dropdown">
+                  <div className="search-history-header">
+                    {keyword ? '検索候補' : '最近の検索履歴'}
+                  </div>
+                  <div className="search-history-list">
+                    {(keyword ? suggestions : history).map((item, idx) => (
+                      <div
+                        key={item}
+                        className={`search-history-item ${idx === activeSuggestionIdx ? 'active' : ''}`}
+                        onMouseDown={() => handleSearchSubmit(item)}
+                        onMouseEnter={() => setActiveSuggestionIdx(idx)}
+                      >
+                        <span className="search-history-text">{item}</span>
+                        {!keyword && (
+                          <button
+                            className="clear-history-btn"
+                            onMouseDown={(e) => removeFromHistory(e, item)}
+                            title="履歴から削除"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="amazon-header-actions">
+            <button 
+              onClick={() => setDarkMode(!darkMode)} 
+              className="amazon-btn theme-toggle-btn" 
+              title={darkMode ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {darkMode ? "ライト" : "ダーク"}
+            </button>
             <button onClick={() => setShowCart(!showCart)} className={`amazon-btn amazon-cart-btn ${cartBouncing ? 'cart-bounce' : ''}`} title="カートを表示">
               <ShoppingCart size={18} />
               カート ({cartItemCount})
@@ -302,33 +507,63 @@ function App() {
                   {isFilterOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); clearFilters(); }} className="amazon-clear-btn">
+              <button onClick={(e) => { e.stopPropagation(); clearFilters(); }} className="amazon-clear-btn" title="すべてのフィルターをクリア">
                 <FilterX size={16} />
                 クリア
               </button>
             </div>
             <div className="amazon-sidebar-content">
-              {Object.keys(filters).map(key => (
-                <div key={key} className="amazon-filter-group">
-                  <label className="amazon-filter-label">{key}</label>
-                  <div className="amazon-filter-control">
-                    <select
-                      value={filters[key][0] || ''}
-                      onChange={e => handleFilterChange(key, e.target.value)}
-                      className="amazon-filter-select"
-                      aria-label={`${key}で絞り込み`}
-                    >
-                      <option value="">すべて表示</option>
-                      {uniqueValues[key].map(val => (
-                        <option key={val} value={val}>{val}</option>
-                      ))}
-                    </select>
-                    {filters[key].length > 0 && (
-                      <button className="amazon-filter-clear-btn" onClick={() => handleFilterChange(key, '')} title="クリア">×</button>
+              {Object.keys(filters).map(key => {
+                const isOpen = openFilters[key];
+                const activeCount = filters[key].length;
+                return (
+                  <div key={key} className={`amazon-filter-group-accordion ${isOpen ? 'open' : ''}`}>
+                    <div className="filter-group-header" onClick={() => toggleFilterSection(key)}>
+                      <span className="filter-group-title">
+                        {key}
+                        {activeCount > 0 && <span className="active-filter-badge">{activeCount}</span>}
+                      </span>
+                      <span className="accordion-arrow">
+                        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </span>
+                    </div>
+                    {isOpen && (
+                      <div className="filter-group-body">
+                        {activeCount > 0 && (
+                          <button 
+                            className="clear-group-filter-btn" 
+                            onClick={(e) => { e.stopPropagation(); clearFilterKey(key); }}
+                          >
+                            このフィルターをクリア
+                          </button>
+                        )}
+                        <div className="filter-checkbox-list">
+                          {uniqueValues[key].map(val => {
+                            const count = facetCounts[key]?.[val] ?? 0;
+                            const isChecked = filters[key].includes(String(val));
+                            const isDisabled = count === 0 && !isChecked;
+                            return (
+                              <label 
+                                key={val} 
+                                className={`filter-checkbox-label ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={isDisabled}
+                                  onChange={() => handleFilterChange(key, String(val))}
+                                />
+                                <span className="filter-value-text" title={val}>{val}</span>
+                                <span className="filter-count">({count})</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </aside>
 
