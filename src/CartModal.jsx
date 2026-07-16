@@ -15,7 +15,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
         const date = new Date().toLocaleDateString('ja-JP');
         // ファイル名から拡張子を削除し、（株）を株式会社に置き換えて会社名として表示
         const companyName = fileName
-            ? fileName.replace(/\.[^/.]+$/, "").replace(/[\(（]株[\)）]/g, "株式会社")
+            ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社")
             : "株式会社サンプル商事";
 
         let emailText = `お疲れ様です。\n\n`;

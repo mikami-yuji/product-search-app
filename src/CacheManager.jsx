@@ -24,7 +24,7 @@ const CacheManager = ({ onClose }) => {
             await clearImageCache();
             await loadStats();
             alert('画像キャッシュをクリアしました');
-        } catch (err) {
+        } catch {
             alert('キャッシュのクリアに失敗しました');
         } finally {
             setIsClearing(false);

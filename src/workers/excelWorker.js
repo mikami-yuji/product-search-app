@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 const DO_NOT_PROCESS = { cellStyles: false, cellFormula: false, cellHTML: false, cellNF: false, cellText: false };
 
 self.onmessage = async (e) => {
-    const { data: fileBuffer, fileName } = e.data;
+    const { data: fileBuffer } = e.data;
 
     try {
         // Read file

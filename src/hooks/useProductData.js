@@ -79,6 +79,7 @@ export const useProductData = () => {
                     if (permission === 'granted') {
                         setCustomerPermissionGranted(true);
                         const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
+                        files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
                         setCustomerFiles(files);
                     } else {
                         setCustomerPermissionGranted(false);
@@ -282,6 +283,7 @@ export const useProductData = () => {
                 if (permission === 'granted') {
                     setCustomerPermissionGranted(true);
                     const files = await getExcelFilesFromDir(customerDirHandle);
+                    files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
                     setCustomerFiles(files);
                     setError(null);
                     return;
@@ -292,6 +294,7 @@ export const useProductData = () => {
             setCustomerDirHandle(handle);
             setCustomerPermissionGranted(true);
             const files = await getExcelFilesFromDir(handle);
+            files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
             setCustomerFiles(files);
             setError(null);
             await set('customerDirHandle', handle);
@@ -316,6 +319,7 @@ export const useProductData = () => {
             name: file.name,
             file: file
         }));
+        mappedFiles.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
         setCustomerFiles(mappedFiles);
         setCustomerPermissionGranted(files.length > 0);
         setError(null);

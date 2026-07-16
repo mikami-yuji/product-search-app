@@ -77,7 +77,10 @@ export const useProductFilters = (data) => {
 
     // Reset to page 1 when filters change
     useEffect(() => {
-        setCurrentPage(1);
+        const animFrame = requestAnimationFrame(() => {
+            setCurrentPage(1);
+        });
+        return () => cancelAnimationFrame(animFrame);
     }, [filters, keyword, sortBy]);
 
     const handleFilterChange = (key, value) => {

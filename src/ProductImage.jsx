@@ -26,8 +26,18 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     const [error, setError] = useState(false);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [isVisible, setIsVisible] = useState(false);
+    /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
+    const [isLoaded, setIsLoaded] = useState(false);
     /** @type {React.RefObject<HTMLDivElement>} */
     const imgRef = useRef(null);
+
+    // Reset loaded state on image source change
+    useEffect(() => {
+        const animFrame = requestAnimationFrame(() => {
+            setIsLoaded(false);
+        });
+        return () => cancelAnimationFrame(animFrame);
+    }, [imageUrl, filename]);
 
     useEffect(() => {
         /** @type {IntersectionObserver} */
@@ -232,10 +242,10 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
             <img
                 src={imageUrl}
                 alt={filename}
-                className="product-thumbnail"
-                onError={(e) => {
+                className={`product-thumbnail image-fade-in ${isLoaded ? 'loaded' : ''}`}
+                onLoad={() => setIsLoaded(true)}
+                onError={() => {
                     console.error(`Failed to load image: ${imageUrl}`);
-                    e.target.style.display = 'none';
                     setError(true);
                 }}
             />

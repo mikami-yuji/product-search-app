@@ -70,9 +70,8 @@ async function fetchImageForCode(code) {
                     console.log(`Found image for code ${code} (sub: ${sub}) at ${url}: ${imgSrc}`);
                     return imgSrc;
                 }
-            } catch (error) {
+            } catch {
                 // 404 or other error, continue to next url/substring
-                // console.log(`Failed to fetch ${url}: ${error.message}`);
             }
         }
     }
@@ -132,7 +131,9 @@ async function main() {
         try {
             const existing = await fs.readFile(OUTPUT_FILE, 'utf-8');
             Object.assign(imageMap, JSON.parse(existing));
-        } catch (e) { }
+        } catch {
+            // File does not exist yet or is invalid, ignore
+        }
 
         for (const code of codesArray) {
             if (imageMap[code]) continue; // Skip if already found

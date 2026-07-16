@@ -10,7 +10,7 @@ const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref)
     // ファイル名から拡張子を削除し、（株）を株式会社に置き換えて会社名として表示
     // fileNameが未定義の場合はデフォルト値を表示
     const companyName = fileName
-        ? fileName.replace(/\.[^/.]+$/, "").replace(/[\(（]株[\)）]/g, "株式会社")
+        ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社")
         : "株式会社サンプル商事";
 
     const getUnit = (item) => {
@@ -34,7 +34,7 @@ const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref)
                 {/* Info Area */}
                 <div className="order-sheet-info">
                     <div className="order-sheet-recipient">
-                        <div className="recipient-name">株式会社アサヒパック　御中</div>
+                        <div className="recipient-name">株式会社アサヒパック 御中</div>
                         <div>下記商品を注文いたします。</div>
                     </div>
                     <div className="order-sheet-sender">
