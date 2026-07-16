@@ -5,6 +5,20 @@ import './product-details-modal.css';
 const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
+    const [isSwitching, setIsSwitching] = useState(false);
+
+    // Trigger fade animation on image or product change
+    useEffect(() => {
+        let timer;
+        const animFrame = requestAnimationFrame(() => {
+            setIsSwitching(true);
+            timer = setTimeout(() => setIsSwitching(false), 200);
+        });
+        return () => {
+            cancelAnimationFrame(animFrame);
+            if (timer) clearTimeout(timer);
+        };
+    }, [currentImageIndex, product]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -147,7 +161,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                                     <img
                                         src={currentImage.url}
                                         alt={`${product['タイトル']} - ${currentImage.suffix}`}
-                                        className="product-details-image"
+                                        className={`product-details-image ${isSwitching ? 'switching' : ''}`}
                                     />
                                 ) : (
                                     <div className="no-image"><ImageIcon size={64} /></div>

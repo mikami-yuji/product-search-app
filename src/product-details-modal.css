@@ -1,4 +1,24 @@
 /* Product Details Modal Layout Fixes */
+@keyframes fadeInBg {
+    from {
+        background-color: rgba(0, 0, 0, 0);
+    }
+    to {
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+}
+
+@keyframes scaleUpShow {
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 .product-details-modal-overlay {
     position: fixed;
     top: 0;
@@ -11,11 +31,12 @@
     align-items: center;
     z-index: 1000;
     padding: 1rem;
+    animation: fadeInBg 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .product-details-modal-content {
     background-color: white;
-    border-radius: 8px;
+    border-radius: 12px;
     width: 95vw;
     max-width: 1200px;
     height: 90vh;
@@ -26,7 +47,8 @@
     position: relative;
     overflow: hidden;
     /* 全体のスクロールを禁止 */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    animation: scaleUpShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .product-details-layout {
@@ -62,6 +84,12 @@
     max-height: 100%;
     object-fit: contain;
     cursor: zoom-in;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-details-image.switching {
+    opacity: 0;
+    transform: scale(0.96);
 }
 
 /* 右側：情報セクション */

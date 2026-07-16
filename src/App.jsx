@@ -17,6 +17,19 @@ import CacheManager from './CacheManager';
 // Hooks
 import { useToast, useCart, useProductData, useProductFilters } from './hooks';
 
+// Skeleton Loading Card for UX enhancement
+const SkeletonCard = () => (
+  <div className="skeleton-card">
+    <div className="skeleton-pulse" style={{ width: '100%', height: '200px' }} />
+    <div style={{ padding: '1rem' }}>
+      <div className="skeleton-line skeleton-title skeleton-pulse" />
+      <div className="skeleton-line skeleton-meta skeleton-pulse" />
+      <div className="skeleton-line skeleton-meta skeleton-pulse" style={{ width: '40%' }} />
+      <div className="skeleton-line skeleton-price skeleton-pulse" />
+    </div>
+  </div>
+);
+
 function App() {
   const [modalImage, setModalImage] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -42,6 +55,7 @@ function App() {
     customerPermissionGranted,
     customerFiles,
     error,
+    isLoading,
     handleFileUpload,
     handleFolderSelect,
     handleCustomerFolderSelect,
@@ -51,6 +65,9 @@ function App() {
 
   // Customer search state
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState('');
+  
+  // Cart bounce state
+  const [cartBouncing, setCartBouncing] = useState(false);
 
   // Filter customer files based on search keyword
   const filteredCustomerFiles = customerFiles.filter(file =>
@@ -80,6 +97,21 @@ function App() {
     cartTotal,
     cartItemCount,
   } = useCart(showToast);
+
+  // Trigger bounce animation when cart item count changes
+  useEffect(() => {
+    if (cartItemCount > 0) {
+      let timer;
+      const animFrame = requestAnimationFrame(() => {
+        setCartBouncing(true);
+        timer = setTimeout(() => setCartBouncing(false), 500);
+      });
+      return () => {
+        cancelAnimationFrame(animFrame);
+        if (timer) clearTimeout(timer);
+      };
+    }
+  }, [cartItemCount]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -154,7 +186,7 @@ function App() {
             />
           </div>
           <div className="amazon-header-actions">
-            <button onClick={() => setShowCart(!showCart)} className="amazon-btn amazon-cart-btn" title="カートを表示">
+            <button onClick={() => setShowCart(!showCart)} className={`amazon-btn amazon-cart-btn ${cartBouncing ? 'cart-bounce' : ''}`} title="カートを表示">
               <ShoppingCart size={18} />
               カート ({cartItemCount})
             </button>
@@ -178,7 +210,7 @@ function App() {
         </div>
       </header>
 
-      {data.length > 0 ? (
+      {data.length > 0 || isLoading ? (
         <div className="amazon-main">
           {/* Sidebar Filters */}
           {/* Sidebar Filters */}
@@ -299,8 +331,14 @@ function App() {
             </div>
 
             {/* Products */}
-            {viewMode === 'grid' ? (
+            {isLoading ? (
               <div className="amazon-products-grid">
+                {Array.from({ length: 12 }).map((_, idx) => (
+                  <SkeletonCard key={idx} />
+                ))}
+              </div>
+            ) : viewMode === 'grid' ? (
+              <div className="amazon-products-grid fade-in-up">
                 {paginatedData.map((product, idx) => (
                   <ProductCard
                     key={idx}
@@ -313,7 +351,7 @@ function App() {
                 ))}
               </div>
             ) : (
-              <div className="amazon-table-container">
+              <div className="amazon-table-container fade-in-up">
                 <table className="amazon-table">
                   <thead>
                     <tr>{columns.map(col => <th key={col}>{col}</th>)}</tr>
@@ -338,7 +376,7 @@ function App() {
             )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages > 1 && !isLoading && (
               <div className="amazon-pagination">
                 <button className="amazon-page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                   <ChevronLeft size={18} /> 前へ
