@@ -1,17 +1,17 @@
 /* Corporate-Style Business UI */
 :root {
-  --amazon-orange: #1E40AF; /* ディープコーポレートネイビー */
-  --amazon-dark: #0F172A;   /* ダークスレート */
-  --amazon-light: #1E293B;  /* スレートミドル */
-  --amazon-blue: #3B82F6;   /* スチールブルー */
-  --amazon-hover: #F8FAFC;  /* 非常に薄いグレー */
-  --amazon-border: #E2E8F0;  /* 柔らかい境界線 */
-  --amazon-text: #0F172A;    /* ダークスレートテキスト */
-  --amazon-text-light: #64748B; /* ミディアムスレートテキスト */
-  --primary-blue: #1E40AF;
-  --primary-blue-hover: #1D4ED8;
-  --badge-ready: #10B981;
-  --badge-custom: #F59E0B;
+  --amazon-orange: #2B4C7E;     /* 彩度を落としたスレートインディゴ（メインカラー） */
+  --amazon-dark: #1E293B;       /* ダークチャコール（ヘッダー背景などの黒みを和らげる） */
+  --amazon-light: #334155;      /* ミディアムチャコール */
+  --amazon-blue: #4B6A9B;       /* スモーキーブルー */
+  --amazon-hover: #F8FAFC;      /* 非常に薄いブルーグレー */
+  --amazon-border: #E2E8F0;     /* 柔らかい境界線 */
+  --amazon-text: #1E293B;       /* 本文テキスト（コントラストを抑えたダークグレー） */
+  --amazon-text-light: #64748B;  /* ミディアムスレートテキスト */
+  --primary-blue: #2B4C7E;      /* スレートインディゴ */
+  --primary-blue-hover: #1E365C;/* ディープスレートインディゴ */
+  --badge-ready: #059669;       /* 彩度を抑えたグリーン */
+  --badge-custom: #D97706;      /* 彩度を抑えたアンバー */
 }
 
 * {
@@ -22,7 +22,7 @@
 
 body {
   font-family: 'Amazon Ember', Arial, sans-serif;
-  background-color: #EAEDED;
+  background-color: #F1F5F9;    /* 無機質なグレーから柔らかいペールスチール（ブルーグレー）に変更 */
   color: var(--amazon-text);
   line-height: 1.5;
 }
