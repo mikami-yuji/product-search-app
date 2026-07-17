@@ -40,7 +40,7 @@ use chrome, FireFox or Internet Explorer 11`)}var a=o("safe-buffer"),t=o("random
         <td class="text-center image-cell">${m}</td>
         <td class="text-center font-mono">${t["受注№"]||"-"}</td>
         <td class="text-center font-mono">${t.商品コード||"-"}</td>
-        <td>${n||"-"}</td>
+        <td class="text-center">${n||"-"}</td>
         <td class="text-center">${t.種別||"-"}</td>
         <td class="text-center">${t.形状||"-"}</td>
         <td>${t.材質名称||"-"}</td>
