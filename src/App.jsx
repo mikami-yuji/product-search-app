@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import { createProductExcelWorkbook } from './utils/excelExporter';
 import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Sun, Moon } from 'lucide-react';
 import './index.css';
 import './custom.css';
@@ -167,6 +169,33 @@ function App() {
       };
     }
   }, [cartItemCount]);
+
+  /**
+   * 現在表示されている（検索・フィルターで絞り込まれた）商品データをExcelファイルとして生成し、ダウンロードする。
+   * 
+   * @returns {void}
+   */
+  const handleExportExcel = () => {
+    if (!filteredData || filteredData.length === 0) {
+      showToast('出力するデータがありません', 'error');
+      return;
+    }
+
+    try {
+      const wb = createProductExcelWorkbook(filteredData, fileName);
+
+      const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
+      const today = new Date();
+      const fileDateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+      const exportFileName = `${cleanCompanyName}_商品一覧_${fileDateStr}.xlsx`;
+
+      XLSX.writeFile(wb, exportFileName);
+      showToast('Excelファイルをエクスポートしました', 'success');
+    } catch (err) {
+      console.error('Excelエクスポートエラー:', err);
+      showToast(err.message || 'Excelファイルの生成に失敗しました', 'error');
+    }
+  };
 
   /**
    * 検索クエリを履歴に追加し、ローカルストレージに保存する。
@@ -575,6 +604,14 @@ function App() {
                 <strong>{filteredData.length}</strong> 件の商品
               </div>
               <div className="amazon-toolbar-controls">
+                <button
+                  onClick={handleExportExcel}
+                  className="amazon-btn amazon-btn-primary excel-export-btn"
+                  title="商品一覧をExcel出力"
+                >
+                  <FileSpreadsheet size={16} />
+                  Excel出力
+                </button>
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="amazon-sort-select" aria-label="並び替え">
                   <option value="">並び替え</option>
                   <option value="price-asc">価格: 安い順</option>
