@@ -22,6 +22,11 @@
   - テストおよびメンテナンス性を考慮し、データ構築用ロジックを [excelExporter.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.js) に分離・カプセル化し、[excelExporter.test.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.test.js) にて単体テスト（2件）を追加。
 
 ### Fixed
+- **サイドバーフィルターの操作性および視覚的フィードバックの改善**
+  - 各チェックボックス行のクリック範囲（上下左右のパディング）を広げ、行全体をクリックしてトグルできるように改善。
+  - ホバー時にごく薄い青のハイライト背景（`rgba(59, 130, 246, 0.08)`）と角丸を適用し、クリック可能な領域であることを明示。
+  - 選択中のフィルター項目を太字と薄い背景で強調。
+  - 各フィルター項目の該当件数を右端に揃えることでリスト全体の整列感を向上。
 - **本番環境における Excel 解析時の Worker 起動エラーの修正**
   - プロダクションビルド環境（Vercel）において、Vite が Web Worker 内の SheetJS 依存関係を正しく解決できずに `Worker infrastructure error` でクラッシュしていた問題を修正。
   - Web Worker への依存を廃止し、[useProductData.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/hooks/useProductData.js) にて直接 SheetJS のパースを実行する形に移行。
