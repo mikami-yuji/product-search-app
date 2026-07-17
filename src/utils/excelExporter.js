@@ -2,6 +2,34 @@ import ExcelJS from 'exceljs';
 import { fetchProductImageBlob } from './imageLoader';
 
 /**
+ * 画像Blobからアスペクト比計算用のサイズ（幅と高さ）を非同期で取得する。
+ * 
+ * @param {Blob} blob - 画像のBlobデータ
+ * @returns {Promise<{width: number, height: number}>} 画像の幅と高さ
+ */
+const getImageDimensions = (blob) => {
+  return new Promise((resolve, reject) => {
+    if (typeof Image === 'undefined') {
+      resolve({ width: 0, height: 0 });
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const dimensions = { width: img.naturalWidth, height: img.naturalHeight };
+      URL.revokeObjectURL(url);
+      resolve(dimensions);
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+};
+
+/**
  * 商品データを元に、お客様提出用の高クオリティなExcelワークブックオブジェクトを作成する。
  * 画像取得、罫線、整列、およびスタイリングを含みます。
  * 
@@ -160,9 +188,45 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
             extension: extension
           });
 
+          // アスペクト比を考慮したサイズ調整 (最大 72px)
+          const maxBoxSize = 72;
+          let destWidth = maxBoxSize;
+          let destHeight = maxBoxSize;
+
+          try {
+            const { width, height } = await getImageDimensions(imageBlob);
+            if (width > 0 && height > 0) {
+              const aspectRatio = width / height;
+              if (aspectRatio > 1) {
+                // 横長画像
+                destWidth = maxBoxSize;
+                destHeight = maxBoxSize / aspectRatio;
+              } else {
+                // 縦長画像
+                destHeight = maxBoxSize;
+                destWidth = maxBoxSize * aspectRatio;
+              }
+            }
+          } catch {
+            // 寸法取得失敗時はスキップしてデフォルト（正方形）で描画
+          }
+
+          // セル（B列: 幅約96px, 高さ80px）の中央寄せ計算 (1px = 9525 EMU)
+          const EMU_PER_PX = 9525;
+          const cellWidthPx = 96; // col width 12 is approx 96px
+          const cellHeightPx = 80; // row height 80px
+
+          const colOff = Math.max(0, Math.floor((cellWidthPx - destWidth) / 2)) * EMU_PER_PX;
+          const rowOff = Math.max(0, Math.floor((cellHeightPx - destHeight) / 2)) * EMU_PER_PX;
+
           worksheet.addImage(imageId, {
-            tl: { col: 1.05, row: currentRowIndex - 1 + 0.05 },
-            ext: { width: 72, height: 72 }
+            tl: { 
+              col: 1, 
+              row: currentRowIndex - 1,
+              colOff: colOff,
+              rowOff: rowOff
+            },
+            ext: { width: destWidth, height: destHeight }
           });
         }
       } catch (err) {
