@@ -22,6 +22,10 @@
   - テストおよびメンテナンス性を考慮し、データ構築用ロジックを [excelExporter.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.js) に分離・カプセル化し、[excelExporter.test.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.test.js) にて単体テスト（2件）を追加。
 
 ### Fixed
+- **モバイル（スマートフォン）表示向け UI の最適化**
+  - 画面幅が 768px 以下の環境（スマートフォンや縦向きタブレット等）で「テーブル表示」を選択した際、画面外へテーブルがはみ出して崩れてしまう不具合を修正。
+  - PC版のテーブルと並行して、縦スクロールでタップしやすい「モバイル専用カードレイアウト（`.mobile-table-cards`）」を [App.jsx](file:///c:/gemini_cli/得意先別商品検索ツール/src/App.jsx) に適用。
+  - プロジェクト内に用意されていたがインポート漏れしていた [mobile-table.css](file:///c:/gemini_cli/得意先別商品検索ツール/src/mobile-table.css) を [main.jsx](file:///c:/gemini_cli/得意先別商品検索ツール/src/main.jsx) でインポートし、メディアクエリ（画面幅 768px 以下）との完全な連動を有効化。
 - **目に優しいプレミアムビジネスカラーへのテーマ刷新**
   - 長時間の使用による目への負担を減らすため、原色に近い青（`#1E40AF`）から彩度を抑えた深みのあるスレートインディゴ（`#2B4C7E`）にテーマカラーを調整。
   - ボディの背景色を明るすぎるグレー（`#EAEDED`）から、目に優しい柔らかいブルーグレーのペールスチール（`#F1F5F9`）に変更。

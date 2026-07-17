@@ -689,6 +689,7 @@ function App() {
               </div>
             ) : (
               <div className="amazon-table-container fade-in-up">
+                {/* Desktop view: Standard table */}
                 <table className="amazon-table">
                   <thead>
                     <tr>{columns.map(col => <th key={col}>{col}</th>)}</tr>
@@ -709,6 +710,68 @@ function App() {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile view: Card-based list */}
+                <div className="mobile-table-cards">
+                  {paginatedData.map((row, idx) => (
+                    <div 
+                      key={idx} 
+                      className="mobile-table-card"
+                      onClick={() => setSelectedProduct(row)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="mobile-card-header">
+                        <div className="mobile-card-title">
+                          <HighlightText text={row['商品名'] || row['タイトル']} keyword={keyword} />
+                        </div>
+                        <div className="mobile-card-id">
+                          {row['商品コード']}
+                        </div>
+                      </div>
+                      
+                      <div className="mobile-card-body">
+                        <div className="mobile-card-field" style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                          <ProductImage dirHandle={dirHandle} filename={row['受注№']} productCode={row['商品コード']} onClick={url => setModalImage(url)} />
+                        </div>
+                        
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">受注№</span>
+                          <span className="mobile-card-value">{row['受注№']}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">材質</span>
+                          <span className="mobile-card-value">{row['材質名称'] || '-'}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">重量</span>
+                          <span className="mobile-card-value">{row['重量'] || '-'}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">直送先</span>
+                          <span className="mobile-card-value" title={row['直送先名称']}>{row['直送先名称'] || '-'}</span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-footer" onClick={e => e.stopPropagation()}>
+                        <button 
+                          className="mobile-card-btn mobile-card-btn-primary"
+                          onClick={() => {
+                            addToCart(row);
+                            showToast(`${row['商品名'] || row['タイトル']}をカートに追加しました`);
+                          }}
+                        >
+                          カートに追加
+                        </button>
+                        <button 
+                          className="mobile-card-btn mobile-card-btn-secondary"
+                          onClick={() => setSelectedProduct(row)}
+                        >
+                          詳細
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
