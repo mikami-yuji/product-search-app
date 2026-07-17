@@ -63,7 +63,7 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
 
     // 画像タグの生成
     const imageTag = imageSrc 
-      ? `<img src="${imageSrc}" alt="${displayName}" class="product-img" />`
+      ? `<img src="${imageSrc}" alt="${displayName}" class="product-img" onclick="openModal(this)" />`
       : '<span class="no-img-text">No Image</span>';
 
     tableRows += `
@@ -177,6 +177,70 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
       border: 1px solid #e2e8f0;
       background-color: #ffffff;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      cursor: zoom-in;
+      transition: transform 0.2s ease;
+    }
+    .product-img:hover {
+      transform: scale(1.05);
+    }
+    /* 画像拡大用モーダルスタイル */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      padding-top: 50px;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(8px);
+      cursor: zoom-out;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .modal.open {
+      display: block;
+      opacity: 1;
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+    .modal.open .modal-content {
+      transform: scale(1);
+    }
+    .modal-caption {
+      margin: auto;
+      display: block;
+      width: 80%;
+      max-width: 700px;
+      text-align: center;
+      color: #ffffff;
+      padding: 15px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 35px;
+      color: #f1f5f9;
+      font-size: 40px;
+      font-weight: bold;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+    .modal-close:hover {
+      color: #94a3b8;
     }
     .no-img-text {
       font-size: 11px;
@@ -235,6 +299,46 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
       </table>
     </div>
   </div>
+
+  <!-- 画像拡大用モーダル -->
+  <div id="imageModal" class="modal" onclick="closeModal()">
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImg" alt="拡大画像">
+    <div id="modalCaption" class="modal-caption"></div>
+  </div>
+
+  <script>
+    function openModal(imgElement) {
+      var modal = document.getElementById("imageModal");
+      var modalImg = document.getElementById("modalImg");
+      var captionText = document.getElementById("modalCaption");
+      
+      modal.style.display = "block";
+      // トランジションが動作するように遅延させてクラスを追加
+      setTimeout(function() {
+        modal.classList.add("open");
+      }, 10);
+      
+      modalImg.src = imgElement.src;
+      captionText.innerHTML = imgElement.alt;
+    }
+
+    function closeModal() {
+      var modal = document.getElementById("imageModal");
+      modal.classList.remove("open");
+      // アニメーション完了後に非表示にする
+      setTimeout(function() {
+        modal.style.display = "none";
+      }, 300);
+    }
+
+    // ESCキー押下時にも閉じる
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    });
+  </script>
 </body>
 </html>`;
 
