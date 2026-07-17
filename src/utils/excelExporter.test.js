@@ -33,49 +33,48 @@ describe('createProductExcelWorkbook', () => {
     }
   ];
 
-  it('should successfully create a workbook with correct structures', () => {
-    const wb = createProductExcelWorkbook(mockProducts, '28031_（株）千亀利ライスセンター.xlsx');
+  it('should successfully create a workbook with correct structures', async () => {
+    // Note: passing null for dirHandle to skip actual image loading in unit test
+    const wb = await createProductExcelWorkbook(mockProducts, '28031_（株）千亀利ライスセンター.xlsx', null);
     
     expect(wb).toBeDefined();
-    expect(wb.SheetNames).toContain('商品一覧');
     
-    const ws = wb.Sheets['商品一覧'];
+    const ws = wb.getWorksheet('商品一覧');
     expect(ws).toBeDefined();
 
     // Check cells
-    // Row 1 (index 0): Title
-    expect(ws['A1'].v).toBe('【28031_株式会社千亀利ライスセンター 様】 取扱商品一覧');
+    // Row 1 (index 1): Title
+    expect(ws.getCell('A1').value).toBe('【28031_株式会社千亀利ライスセンター 様】 取扱商品一覧');
     
-    // Row 4 (index 3): Headers
-    expect(ws['A4'].v).toBe('No.');
-    expect(ws['B4'].v).toBe('受注№');
-    expect(ws['C4'].v).toBe('商品コード');
-    expect(ws['D4'].v).toBe('品名');
-    expect(ws['I4'].v).toBe('単価');
+    // Row 4: Headers (including new image column at B)
+    expect(ws.getCell('A4').value).toBe('No.');
+    expect(ws.getCell('B4').value).toBe('商品画像');
+    expect(ws.getCell('C4').value).toBe('受注№');
+    expect(ws.getCell('D4').value).toBe('商品コード');
+    expect(ws.getCell('E4').value).toBe('品名');
+    expect(ws.getCell('J4').value).toBe('単価');
 
-    // Row 5 (index 4): Data 1 (別注品: タイトルを表示)
-    expect(ws['A5'].v).toBe(1);
-    expect(ws['B5'].v).toBe('12345');
-    expect(ws['C5'].v).toBe('A001');
-    expect(ws['D5'].v).toBe('別注ポリ袋A');
-    expect(ws['I5'].v).toBe(15);
-    expect(ws['I5'].t).toBe('n');
-    expect(ws['I5'].z).toBe('"¥"#,##0');
-    expect(ws['J5'].v).toBe(5000);
-    expect(ws['J5'].t).toBe('n');
-    expect(ws['J5'].z).toBe('"¥"#,##0');
+    // Row 5: Data 1 (別注品: タイトルを表示)
+    expect(ws.getCell('A5').value).toBe(1);
+    expect(ws.getCell('C5').value).toBe('12345');
+    expect(ws.getCell('D5').value).toBe('A001');
+    expect(ws.getCell('E5').value).toBe('別注ポリ袋A');
+    expect(ws.getCell('J5').value).toBe(15);
+    expect(ws.getCell('J5').numFmt).toBe('"¥"#,##0');
+    expect(ws.getCell('K5').value).toBe(5000);
+    expect(ws.getCell('K5').numFmt).toBe('"¥"#,##0');
 
-    // Row 6 (index 5): Data 2 (既製品: 商品名を表示)
-    expect(ws['A6'].v).toBe(2);
-    expect(ws['B6'].v).toBe('67890');
-    expect(ws['C6'].v).toBe('K001');
-    expect(ws['D6'].v).toBe('既製米袋K');
-    expect(ws['I6'].v).toBe(30);
-    expect(ws['J6']).toBeUndefined(); // 印刷代は空
+    // Row 6: Data 2 (既製品: 商品名を表示)
+    expect(ws.getCell('A6').value).toBe(2);
+    expect(ws.getCell('C6').value).toBe('67890');
+    expect(ws.getCell('D6').value).toBe('K001');
+    expect(ws.getCell('E6').value).toBe('既製米袋K');
+    expect(ws.getCell('J6').value).toBe(30);
+    expect(ws.getCell('K6').value).toBeNull(); // 印刷代は空
   });
 
-  it('should throw an error if product array is empty', () => {
-    expect(() => createProductExcelWorkbook([], 'test.xlsx')).toThrow('出力するデータがありません');
-    expect(() => createProductExcelWorkbook(null, 'test.xlsx')).toThrow();
+  it('should throw an error if product array is empty', async () => {
+    await expect(createProductExcelWorkbook([], 'test.xlsx', null)).rejects.toThrow('出力するデータがありません');
+    await expect(createProductExcelWorkbook(null, 'test.xlsx', null)).rejects.toThrow();
   });
 });

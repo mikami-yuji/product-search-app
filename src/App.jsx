@@ -173,23 +173,36 @@ function App() {
   /**
    * 現在表示されている（検索・フィルターで絞り込まれた）商品データをExcelファイルとして生成し、ダウンロードする。
    * 
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!filteredData || filteredData.length === 0) {
       showToast('出力するデータがありません', 'error');
       return;
     }
 
+    showToast('Excelファイルを生成中...画像点数により時間がかかる場合があります', 'info');
+
     try {
-      const wb = createProductExcelWorkbook(filteredData, fileName);
+      const wb = await createProductExcelWorkbook(filteredData, fileName, dirHandle);
 
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
       const today = new Date();
       const fileDateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
       const exportFileName = `${cleanCompanyName}_商品一覧_${fileDateStr}.xlsx`;
 
-      XLSX.writeFile(wb, exportFileName);
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
       showToast('Excelファイルをエクスポートしました', 'success');
     } catch (err) {
       console.error('Excelエクスポートエラー:', err);
