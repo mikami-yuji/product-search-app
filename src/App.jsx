@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
-import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Sun, Moon } from 'lucide-react';
+import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import './index.css';
 import './custom.css';
 
@@ -47,25 +47,13 @@ function App() {
     return true; // Default to open for SSR/build
   });
 
-  // Dark Mode State
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  // Apply dark mode class to body element
+  // Initialize theme to light mode and clean up any dark mode classes
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('theme', 'dark');
-    } else {
+    if (typeof window !== 'undefined') {
       document.body.classList.remove('dark-mode');
-      localStorage.setItem('theme', 'light');
+      localStorage.removeItem('theme');
     }
-  }, [darkMode]);
+  }, []);
 
   // Search History State
   const [history, setHistory] = useState(() => {
@@ -472,14 +460,7 @@ function App() {
             </div>
           </div>
           <div className="amazon-header-actions">
-            <button 
-              onClick={() => setDarkMode(!darkMode)} 
-              className="amazon-btn theme-toggle-btn" 
-              title={darkMode ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              {darkMode ? "ライト" : "ダーク"}
-            </button>
+
             <button onClick={() => setShowCart(!showCart)} className={`amazon-btn amazon-cart-btn ${cartBouncing ? 'cart-bounce' : ''}`} title="カートを表示">
               <ShoppingCart size={18} />
               カート ({cartItemCount})

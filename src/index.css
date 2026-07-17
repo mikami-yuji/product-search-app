@@ -2722,18 +2722,21 @@ body {
   font-size: 0.85rem;
   color: var(--amazon-text);
   cursor: pointer;
-  transition: color 0.15s;
-  padding: 0.15rem 0;
+  transition: background-color 0.15s, color 0.15s;
+  padding: 0.4rem 0.6rem;
+  margin: 0.15rem 0;
+  border-radius: 6px;
 }
 
 .filter-checkbox-label:hover:not(.disabled) {
+  background-color: rgba(59, 130, 246, 0.08); /* プレミアムな薄い青背景 */
   color: var(--amazon-blue);
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-  margin-right: 0.5rem;
-  width: 14px;
-  height: 14px;
+  margin-right: 0.6rem;
+  width: 15px;
+  height: 15px;
   accent-color: var(--amazon-orange);
   cursor: pointer;
 }
@@ -2743,12 +2746,14 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 0.25rem;
 }
 
 .filter-count {
   font-size: 0.75rem;
   color: var(--amazon-text-light);
-  margin-left: 0.25rem;
+  margin-left: auto; /* 件数を右端に寄せる */
+  font-weight: normal;
 }
 
 .filter-checkbox-label.disabled {
@@ -2758,7 +2763,8 @@ body {
 }
 
 .filter-checkbox-label.checked {
-  font-weight: 500;
+  font-weight: 600;
+  background-color: rgba(59, 130, 246, 0.04); /* 選択中のアイテムを薄くハイライト */
 }
 
 /* Theme Toggle Button */
