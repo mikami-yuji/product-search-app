@@ -72,7 +72,7 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
         <td class="text-center image-cell">${imageTag}</td>
         <td class="text-center font-mono">${item['受注№'] || '-'}</td>
         <td class="text-center font-mono">${item['商品コード'] || '-'}</td>
-        <td>${displayName || '-'}</td>
+        <td class="text-center">${displayName || '-'}</td>
         <td class="text-center">${item['種別'] || '-'}</td>
         <td class="text-center">${item['形状'] || '-'}</td>
         <td>${item['材質名称'] || '-'}</td>
