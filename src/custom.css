@@ -62,3 +62,11 @@
     justify-content: center;
     gap: 0.5rem;
 }
+
+/* HTMLエクスポートボタンの配置用スタイル */
+.html-export-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}

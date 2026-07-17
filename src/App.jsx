@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
-import { Upload, Search, FileSpreadsheet, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Sun, Moon } from 'lucide-react';
+import { createProductHtmlString } from './utils/htmlExporter';
+import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Sun, Moon } from 'lucide-react';
 import './index.css';
 import './custom.css';
 
@@ -207,6 +208,45 @@ function App() {
     } catch (err) {
       console.error('Excelエクスポートエラー:', err);
       showToast(err.message || 'Excelファイルの生成に失敗しました', 'error');
+    }
+  };
+
+  /**
+   * 現在表示されている（検索・フィルターで絞り込まれた）商品データをHTMLファイルとして生成し、ダウンロードする。
+   * 
+   * @returns {Promise<void>}
+   */
+  const handleExportHtml = async () => {
+    if (!filteredData || filteredData.length === 0) {
+      showToast('出力するデータがありません', 'error');
+      return;
+    }
+
+    showToast('HTMLファイルを生成中...画像点数により時間がかかる場合があります', 'info');
+
+    try {
+      const htmlString = await createProductHtmlString(filteredData, fileName, dirHandle);
+
+      const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
+      const today = new Date();
+      const fileDateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+      const exportFileName = `${cleanCompanyName}_商品一覧_${fileDateStr}.html`;
+
+      const blob = new Blob([htmlString], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('HTMLファイルをエクスポートしました', 'success');
+    } catch (err) {
+      console.error('HTMLエクスポートエラー:', err);
+      showToast(err.message || 'HTMLファイルの生成に失敗しました', 'error');
     }
   };
 
@@ -624,6 +664,14 @@ function App() {
                 >
                   <FileSpreadsheet size={16} />
                   Excel出力
+                </button>
+                <button
+                  onClick={handleExportHtml}
+                  className="amazon-btn amazon-btn-primary html-export-btn"
+                  title="商品一覧をHTML出力（単価・印刷代なし）"
+                >
+                  <FileCode size={16} />
+                  HTML出力
                 </button>
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="amazon-sort-select" aria-label="並び替え">
                   <option value="">並び替え</option>
