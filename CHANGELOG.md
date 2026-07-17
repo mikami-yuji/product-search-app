@@ -22,6 +22,11 @@
   - テストおよびメンテナンス性を考慮し、データ構築用ロジックを [excelExporter.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.js) に分離・カプセル化し、[excelExporter.test.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/utils/excelExporter.test.js) にて単体テスト（2件）を追加。
 
 ### Fixed
+- **本番環境における Excel 解析時の Worker 起動エラーの修正**
+  - プロダクションビルド環境（Vercel）において、Vite が Web Worker 内の SheetJS 依存関係を正しく解決できずに `Worker infrastructure error` でクラッシュしていた問題を修正。
+  - Web Worker への依存を廃止し、[useProductData.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/hooks/useProductData.js) にて直接 SheetJS のパースを実行する形に移行。
+  - 解析処理を `Promise` & `setTimeout` を用いた非同期マイクロタスクで実行することで、解析中の UI フリーズを回避し、接続中の進捗状態が確実に描画されるよう改善。
+  - 不要になった `src/workers/excelWorker.js` をプロジェクトから削除。
 - **エクスポートされたExcel内での画像アスペクト比の維持と中央寄せ配置の修正**
   - エクスポートしたExcelファイル内で、商品画像が一律正方形（72x72px）に縮小されて歪んでしまう問題を修正。
   - 画像Blobからサイズ情報を非同期で解析する `getImageDimensions` ヘルパーを新設し、元のアスペクト比を保ったまま最大 `72px` ボックス内に縮小するロジックを実装。

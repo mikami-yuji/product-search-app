@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
-import ExcelWorker from '../workers/excelWorker?worker&inline';
-
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
 
@@ -169,53 +167,55 @@ export const useProductData = () => {
 
             console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
 
-            // Create worker for heavy processing (inlined to avoid path issues with relative build base)
-            const worker = new ExcelWorker();
+            // Workerを使わずメインスレッドで直接パースを行う (UIフリーズ防止のため非同期マクロタスク内で実行)
+            const parseExcelDirectly = () => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            const DO_NOT_PROCESS = { cellStyles: false, cellFormula: false, cellHTML: false, cellNF: false, cellText: false };
+                            const workbook = XLSX.read(buffer, { type: 'array', dense: true, ...DO_NOT_PROCESS });
 
-            worker.onmessage = (e) => {
-                const { type, data: parsedData, error: errorMsg, details } = e.data;
+                            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                                throw new Error('シートが見つかりません');
+                            }
 
-                if (type === 'success') {
-                    try {
-                        validateData(parsedData);
-                        setData(parsedData);
-                        set('productData', parsedData);
-                        set('fileName', file.name);
-                        set('lastModified', file.lastModified);
-                        setError(null);
-                    } catch (validationErr) {
-                        setError(validationErr.message);
-                        setData([]);
-                    }
+                            const wsname = workbook.SheetNames[0];
+                            const ws = workbook.Sheets[wsname];
+                            const jsonData = XLSX.utils.sheet_to_json(ws);
+                            
+                            resolve(jsonData);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    }, 0);
+                });
+            };
+
+            try {
+                const parsedData = await parseExcelDirectly();
+                validateData(parsedData);
+                setData(parsedData);
+                set('productData', parsedData);
+                set('fileName', file.name);
+                set('lastModified', file.lastModified);
+                setError(null);
+            } catch (err) {
+                console.error('Parsing failed:', err);
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                let userMsg = `エラーが発生しました (File: ${sizeMB}MB)`;
+
+                if (err.message && err.message.includes('Bad compressed size')) {
+                    userMsg = `ファイルが破損しているか、ダウンロードが完了していません。\n(Bad compressed size)\n\nスマホの場合は、iCloud/Google Driveから「このiPhone内」に保存してから再度お試しください。`;
+                } else if (err.message && err.message.includes('Password')) {
+                    userMsg = 'パスワード保護されたファイルは読み込めません。';
                 } else {
-                    console.error('Worker error:', errorMsg, details);
-
-                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                    let userMsg = `エラーが発生しました (File: ${sizeMB}MB)`;
-
-                    if (errorMsg && errorMsg.includes('Bad compressed size')) {
-                        userMsg = `ファイルが破損しているか、ダウンロードが完了していません。\n(Bad compressed size)\n\nスマホの場合は、iCloud/Google Driveから「このiPhone内」に保存してから再度お試しください。`;
-                    } else if (errorMsg && errorMsg.includes('Password')) {
-                        userMsg = 'パスワード保護されたファイルは読み込めません。';
-                    } else {
-                        userMsg = `ファイルの解析に失敗しました: ${errorMsg}`;
-                    }
-                    setError(userMsg);
-                    setData([]);
+                    userMsg = `ファイルの解析に失敗しました: ${err.message}`;
                 }
-
+                setError(userMsg);
+                setData([]);
+            } finally {
                 setIsLoading(false);
-                worker.terminate();
-            };
-
-            worker.onerror = (err) => {
-                console.error('Worker infrastructure error:', err);
-                setError('解析プロセスの起動に失敗しました。');
-                setIsLoading(false);
-                worker.terminate();
-            };
-
-            worker.postMessage({ data: buffer, fileName: file.name }, [buffer]);
+            }
 
         } catch (err) {
             console.error('File processing error:', err);
