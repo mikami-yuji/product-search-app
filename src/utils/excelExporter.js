@@ -9,6 +9,7 @@ import { fetchProductImageBlob } from './imageLoader';
  */
 const getImageDimensions = (blob) => {
   return new Promise((resolve, reject) => {
+    // Node.js環境（テスト環境等）でImageオブジェクトが存在しない場合のフォールバック
     if (typeof Image === 'undefined') {
       resolve({ width: 0, height: 0 });
       return;
@@ -61,17 +62,17 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   worksheet.mergeCells('A1:M1');
   const titleCell = worksheet.getCell('A1');
   titleCell.value = `【${companyName} 様】 取扱商品一覧`;
-  titleCell.font = { name: 'MS PGothic', size: 16, bold: true, color: { argb: 'FF1E40AF' } };
+  titleCell.font = { name: 'Yu Gothic', size: 18, bold: true, color: { argb: 'FF0F172A' } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-  worksheet.getRow(1).height = 40;
+  worksheet.getRow(1).height = 50;
 
   // 2. 出力日
   worksheet.mergeCells('A2:M2');
   const dateCell = worksheet.getCell('A2');
   dateCell.value = `出力日: ${dateStr}`;
-  dateCell.font = { name: 'MS PGothic', size: 10, italic: true };
+  dateCell.font = { name: 'Yu Gothic', size: 10, italic: true, color: { argb: 'FF475569' } };
   dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
-  worksheet.getRow(2).height = 20;
+  worksheet.getRow(2).height = 25;
 
   // 3. 空行
   worksheet.addRow([]);
@@ -95,21 +96,21 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   ];
   
   const headerRow = worksheet.addRow(headers);
-  headerRow.height = 30;
+  headerRow.height = 35;
 
-  // ヘッダースタイルの適用
+  // ヘッダースタイルの適用 (游ゴシック、ミッドナイトブルー背景)
   headerRow.eachCell((cell) => {
-    cell.font = { name: 'MS PGothic', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.font = { name: 'Yu Gothic', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF1E40AF' } // アサヒパックのイメージカラーである青
+      fgColor: { argb: 'FF1E293B' } // 落ち着いたミッドナイトブルー
     };
     cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
     cell.border = {
-      top: { style: 'medium', color: { argb: 'FF1E293B' } },
+      top: { style: 'medium', color: { argb: 'FF0F172A' } },
       left: { style: 'thin', color: { argb: 'FF475569' } },
-      bottom: { style: 'medium', color: { argb: 'FF1E293B' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
       right: { style: 'thin', color: { argb: 'FF475569' } }
     };
   });
@@ -121,8 +122,12 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   for (let i = 0; i < products.length; i++) {
     const item = products[i];
     const displayName = item['種別'] === '既製品' ? item['商品名'] : item['タイトル'];
-    const price = item['単価'] ? Number(item['単価']) : null;
-    const printingCost = item['印刷代'] ? Number(item['印刷代']) : null;
+    const price = item['単価'] && !isNaN(Number(item['単価'])) ? Number(item['単価']) : null;
+    const printingCost = item['印刷代'] && !isNaN(Number(item['印刷代'])) ? Number(item['印刷代']) : null;
+
+    // 日付フォーマットを YYYY/MM/DD に統一
+    const rawDate = item['最新受注日'] || '';
+    const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, '/') : '';
 
     const rowData = [
       i + 1,
@@ -137,22 +142,31 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
       price,
       printingCost,
       item['JANコード'] || '',
-      item['最新受注日'] || ''
+      formattedDate
     ];
 
     const row = worksheet.addRow(rowData);
     row.height = 80; // 画像が綺麗に収まる高さ
 
     const currentRowIndex = startRowIndex + i;
+    
+    // 1行おきに薄い背景色を設定 (ゼブラ柄)
+    const isEven = (i % 2 === 1);
+    const rowBgColor = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
 
     // データ行の各セルにスタイルと配置を適用
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      cell.font = { name: 'MS PGothic', size: 10 };
+      cell.font = { name: 'Yu Gothic', size: 10 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: rowBgColor }
+      };
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, // 柔らかい極細罫線
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
 
       // 水平・垂直方向の整列
@@ -208,13 +222,13 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
               }
             }
           } catch {
-            // 寸法取得失敗時はスキップしてデフォルト（正方形）で描画
+            // 寸法取得失敗時はデフォルトで描画
           }
 
-          // セル（B列: 幅約96px, 高さ80px）の中央寄せ計算 (1px = 9525 EMU)
+          // セル（B列: 幅112px [col width 14], 高さ80px）の中央寄せ計算 (1px = 9525 EMU)
           const EMU_PER_PX = 9525;
-          const cellWidthPx = 96; // col width 12 is approx 96px
-          const cellHeightPx = 80; // row height 80px
+          const cellWidthPx = 112; 
+          const cellHeightPx = 80; 
 
           const colOff = Math.max(0, Math.floor((cellWidthPx - destWidth) / 2)) * EMU_PER_PX;
           const rowOff = Math.max(0, Math.floor((cellHeightPx - destHeight) / 2)) * EMU_PER_PX;
@@ -235,14 +249,14 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
     }
   }
 
-  // 6. 列幅の自動調整
+  // 6. 列幅の自動調整 (余白を十分に確保する)
   worksheet.columns.forEach((col, colIdx) => {
     if (colIdx === 0) {
-      col.width = 6;
+      col.width = 8; // No.
       return;
     }
     if (colIdx === 1) {
-      col.width = 12;
+      col.width = 14; // 商品画像列 (画像72px=約9文字幅に対し、余白をつけて14)
       return;
     }
 
@@ -259,7 +273,7 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
       }
     });
 
-    col.width = maxLen + 3;
+    col.width = maxLen + 5; // 余白を+5文字分確保
   });
 
   return workbook;
