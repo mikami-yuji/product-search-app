@@ -81,7 +81,21 @@ export const useProductData = () => {
                         files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
                         setCustomerFiles(files);
                     } else {
-                        setCustomerPermissionGranted(false);
+                        // コメント: パーミッションが一時的に切れていても、以前取得したファイル名一覧のキャッシュがあれば表示を維持する
+                        const cachedCustomerFilesList = await get('customerFilesListCache');
+                        if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
+                            setCustomerFiles(cachedCustomerFilesList);
+                            setCustomerPermissionGranted(true);
+                        } else {
+                            setCustomerPermissionGranted(false);
+                        }
+                    }
+                } else if (!isFileSystemSupported) {
+                    // コメント: モバイル環境などの場合は、IndexedDBに保存されたファイル名およびFileオブジェクトのリストを復元する
+                    const cachedCustomerFiles = await get('customerFilesCache');
+                    if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
+                        setCustomerFiles(cachedCustomerFiles);
+                        setCustomerPermissionGranted(true);
                     }
                 }
             } catch (err) {
@@ -286,6 +300,8 @@ export const useProductData = () => {
                     const files = await getExcelFilesFromDir(customerDirHandle);
                     files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
                     setCustomerFiles(files);
+                    // コメント: ファイル名リストをキャッシュに保存する（リロード時の表示用）
+                    await set('customerFilesListCache', files.map(f => ({ name: f.name })));
                     setError(null);
                     return;
                 }
@@ -299,6 +315,8 @@ export const useProductData = () => {
             setCustomerFiles(files);
             setError(null);
             await set('customerDirHandle', handle);
+            // コメント: ファイル名リストをキャッシュに保存する（リロード時の表示用）
+            await set('customerFilesListCache', files.map(f => ({ name: f.name })));
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error selecting customer folder:', err);
@@ -310,9 +328,9 @@ export const useProductData = () => {
     /**
      * Handle multiple customer files upload from input on mobile.
      * @param {React.ChangeEvent<HTMLInputElement>} e
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    const handleCustomerFilesSelect = (e) => {
+    const handleCustomerFilesSelect = async (e) => {
         const files = Array.from(e.target.files).filter(
             file => file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
         );
@@ -324,6 +342,12 @@ export const useProductData = () => {
         setCustomerFiles(mappedFiles);
         setCustomerPermissionGranted(files.length > 0);
         setError(null);
+        // コメント: モバイル等の環境向けに、選択されたファイルをIndexedDBに丸ごとキャッシュする
+        try {
+            await set('customerFilesCache', mappedFiles);
+        } catch (err) {
+            console.error('Failed to cache customer files:', err);
+        }
     };
 
     /**
@@ -335,8 +359,20 @@ export const useProductData = () => {
         try {
             let file;
             if (isFileSystemSupported && customerDirHandle) {
-                const fileHandle = await customerDirHandle.getFileHandle(name);
-                file = await fileHandle.getFile();
+                // コメント: PC環境でリロード後などにパーミッションが切れている場合、オンデマンドでパーミッションを要求する
+                const options = { mode: 'read' };
+                let permission = await customerDirHandle.queryPermission(options);
+                if (permission !== 'granted') {
+                    permission = await customerDirHandle.requestPermission(options);
+                }
+
+                if (permission === 'granted') {
+                    setCustomerPermissionGranted(true);
+                    const fileHandle = await customerDirHandle.getFileHandle(name);
+                    file = await fileHandle.getFile();
+                } else {
+                    throw new Error('フォルダへのアクセス権限がありません');
+                }
             } else {
                 const found = customerFiles.find(f => f.name === name);
                 if (found && found.file) {

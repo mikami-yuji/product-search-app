@@ -39,7 +39,11 @@ const CacheManager = ({ onClose }) => {
             await del('productData');
             await del('fileName');
             await del('lastModified');
-            alert('商品データを削除しました。\n反映するにはページを再読み込みしてください。');
+            // コメント: 追加した顧客フォルダ・ファイルキャッシュも削除
+            await del('customerDirHandle');
+            await del('customerFilesCache');
+            await del('customerFilesListCache');
+            alert('商品データおよび顧客接続キャッシュを削除しました。\n反映するにはページを再読み込みしてください。');
             window.location.reload();
         } catch (err) {
             console.error(err);
