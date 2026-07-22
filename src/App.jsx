@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
@@ -68,6 +68,9 @@ function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
 
+  // Direct shipping search state
+  const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = useState('');
+
   // Sidebar Accordion Open States
   const [openFilters, setOpenFilters] = useState({
     '種別': true,
@@ -94,9 +97,22 @@ function App() {
     handleFolderSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
-    loadCustomerFile,
+    loadCustomerFile: originalLoadCustomerFile,
     clearError,
   } = useProductData();
+
+  /**
+   * 顧客ファイルをロードし、直送先検索キーワードをリセットする。
+   * 
+   * @param {string} name - ロードするファイル名
+   * @returns {Promise<void>}
+   */
+  const loadCustomerFile = useMemo(() => {
+    return async (name) => {
+      await originalLoadCustomerFile(name);
+      setDirectShippingSearchKeyword('');
+    };
+  }, [originalLoadCustomerFile]);
 
   // Trigger mobile file input click
   const triggerCustomerFilesSelect = () => {
@@ -105,6 +121,8 @@ function App() {
 
   // Customer search state
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState('');
+  
+  // Reset direct shipping search keyword handled in loadCustomerFile wrapper
   
   // Cart bounce state
   const [cartBouncing, setCartBouncing] = useState(false);
@@ -132,6 +150,14 @@ function App() {
     clearFilterKey,
     clearFilters,
   } = useProductFilters(data);
+
+  // Filter direct shipping destinations based on search keyword
+  const filteredDirectShippings = useMemo(() => {
+    const list = uniqueValues['直送先名称'] || [];
+    if (!directShippingSearchKeyword.trim()) return list;
+    const kw = directShippingSearchKeyword.toLowerCase().trim();
+    return list.filter(name => name.toLowerCase().includes(kw));
+  }, [uniqueValues, directShippingSearchKeyword]);
   const {
     cart,
     showCart,
@@ -560,6 +586,60 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* 直送先選択セクション */}
+            {customerPermissionGranted && (
+              <div className="amazon-sidebar-section customer-section direct-shipping-section">
+                <div className="customer-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h2>直送先選択</h2>
+                  {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); clearFilterKey('直送先名称'); }} 
+                      className="amazon-clear-btn" 
+                      title="直送先選択をクリア"
+                    >
+                      <FilterX size={14} />
+                      クリア
+                    </button>
+                  )}
+                </div>
+                <div className="customer-select-controls">
+                  <div className="customer-search-box">
+                    <Search size={16} className="customer-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="直送先名で検索..."
+                      value={directShippingSearchKeyword}
+                      onChange={e => setDirectShippingSearchKeyword(e.target.value)}
+                      className="customer-search-input"
+                    />
+                  </div>
+                  
+                  {filteredDirectShippings.length > 0 ? (
+                    <div className="customer-list-container">
+                      <ul className="customer-list">
+                        {filteredDirectShippings.map(shipping => {
+                          const isSelected = filters['直送先名称'].includes(shipping);
+                          return (
+                            <li 
+                              key={shipping} 
+                              className={`customer-item ${isSelected ? 'active' : ''}`}
+                              onClick={() => handleFilterChange('直送先名称', shipping)}
+                            >
+                              <span className="customer-name" title={shipping}>
+                                {shipping}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="no-customers-text">該当する直送先が見つかりません</p>
+                  )}
+                </div>
+              </div>
+            )}
             
             <hr className="sidebar-divider" />
 
@@ -570,13 +650,21 @@ function App() {
                   {isFilterOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); clearFilters(); }} className="amazon-clear-btn" title="すべてのフィルターをクリア">
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  clearFilters(); 
+                  setDirectShippingSearchKeyword(''); 
+                }} 
+                className="amazon-clear-btn" 
+                title="すべてのフィルターをクリア"
+              >
                 <FilterX size={16} />
                 クリア
               </button>
             </div>
             <div className="amazon-sidebar-content">
-              {Object.keys(filters).map(key => {
+              {Object.keys(filters).filter(key => key !== '直送先名称').map(key => {
                 const isOpen = openFilters[key];
                 const activeCount = filters[key].length;
                 return (
