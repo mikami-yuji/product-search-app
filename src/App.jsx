@@ -170,10 +170,10 @@ function App() {
       return;
     }
 
-    showToast('Excelファイルを生成中...画像点数により時間がかかる場合があります', 'info');
+    showToast('Excelファイルを生成中...', 'info');
 
     try {
-      const wb = await createProductExcelWorkbook(filteredData, fileName, dirHandle);
+      const wb = await createProductExcelWorkbook(filteredData, fileName);
 
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
       const today = new Date();

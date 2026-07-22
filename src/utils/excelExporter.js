@@ -1,45 +1,15 @@
 import ExcelJS from 'exceljs';
-import { fetchProductImageBlob } from './imageLoader';
 
-/**
- * 画像Blobからアスペクト比計算用のサイズ（幅と高さ）を非同期で取得する。
- * 
- * @param {Blob} blob - 画像のBlobデータ
- * @returns {Promise<{width: number, height: number}>} 画像の幅と高さ
- */
-const getImageDimensions = (blob) => {
-  return new Promise((resolve, reject) => {
-    // Node.js環境（テスト環境等）でImageオブジェクトが存在しない場合のフォールバック
-    if (typeof Image === 'undefined') {
-      resolve({ width: 0, height: 0 });
-      return;
-    }
-
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      const dimensions = { width: img.naturalWidth, height: img.naturalHeight };
-      URL.revokeObjectURL(url);
-      resolve(dimensions);
-    };
-    img.onerror = (err) => {
-      URL.revokeObjectURL(url);
-      reject(err);
-    };
-    img.src = url;
-  });
-};
 
 /**
  * 商品データを元に、お客様提出用の高クオリティなExcelワークブックオブジェクトを作成する。
- * 画像取得、罫線、整列、およびスタイリングを含みます。
+ * 罫線、整列、およびスタイリングを含みます。
  * 
  * @param {import('../types/product').Product[]} products - 絞り込まれた商品データの配列
  * @param {string} [fileName] - 顧客ファイル名
- * @param {FileSystemDirectoryHandle} [dirHandle] - 画像フォルダのディレクトリハンドル
  * @returns {Promise<ExcelJS.Workbook>} 作成されたExcelワークブックオブジェクト
  */
-export const createProductExcelWorkbook = async (products, fileName, dirHandle) => {
+export const createProductExcelWorkbook = async (products, fileName) => {
   if (!products || products.length === 0) {
     throw new Error('出力するデータがありません');
   }
@@ -59,7 +29,7 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   worksheet.views = [{ showGridLines: true }];
 
   // 1. タイトル
-  worksheet.mergeCells('A1:M1');
+  worksheet.mergeCells('A1:L1');
   const titleCell = worksheet.getCell('A1');
   titleCell.value = `【${companyName} 様】 取扱商品一覧`;
   titleCell.font = { name: 'Yu Gothic', size: 18, bold: true, color: { argb: 'FF0F172A' } };
@@ -67,7 +37,7 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   worksheet.getRow(1).height = 50;
 
   // 2. 出力日
-  worksheet.mergeCells('A2:M2');
+  worksheet.mergeCells('A2:L2');
   const dateCell = worksheet.getCell('A2');
   dateCell.value = `出力日: ${dateStr}`;
   dateCell.font = { name: 'Yu Gothic', size: 10, italic: true, color: { argb: 'FF475569' } };
@@ -81,7 +51,6 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
   // 4. テーブルヘッダー
   const headers = [
     "No.",
-    "商品画像",
     "受注№",
     "商品コード",
     "品名",
@@ -115,8 +84,7 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
     };
   });
 
-  // データ開始行のインデックス
-  const startRowIndex = 5;
+
 
   // 5. データ行の追加
   for (let i = 0; i < products.length; i++) {
@@ -131,7 +99,6 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
 
     const rowData = [
       i + 1,
-      "", // 商品画像 (B列) は後から addImage で挿入
       item['受注№'] || '',
       item['商品コード'] || '',
       displayName || '',
@@ -146,9 +113,7 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
     ];
 
     const row = worksheet.addRow(rowData);
-    row.height = 80; // 画像が綺麗に収まる高さ
-
-    const currentRowIndex = startRowIndex + i;
+    row.height = 25; // 游ゴシックの文字が綺麗に収まる高さ
     
     // 1行おきに薄い背景色を設定 (ゼブラ柄)
     const isEven = (i % 2 === 1);
@@ -170,93 +135,25 @@ export const createProductExcelWorkbook = async (products, fileName, dirHandle) 
       };
 
       // 水平・垂直方向の整列
-      if ([1, 2, 3, 4, 6, 7, 8, 9, 13].includes(colNumber)) {
+      if ([1, 2, 3, 5, 6, 7, 8, 12].includes(colNumber)) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      } else if ([10, 11].includes(colNumber)) {
+      } else if ([9, 10].includes(colNumber)) {
         cell.alignment = { vertical: 'middle', horizontal: 'right' };
       } else {
         cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
       }
 
       // 数値フォーマットの設定
-      if ([10, 11].includes(colNumber) && cell.value !== null) {
+      if ([9, 10].includes(colNumber) && cell.value !== null) {
         cell.numFmt = '"¥"#,##0';
       }
     });
-
-    // 商品画像の非同期取得と埋め込み
-    const filename = item['受注№'];
-    if (filename) {
-      try {
-        const imageBlob = await fetchProductImageBlob(filename, dirHandle);
-        if (imageBlob) {
-          const arrayBuffer = await imageBlob.arrayBuffer();
-          
-          let extension = 'png';
-          if (imageBlob.type === 'image/jpeg' || imageBlob.type === 'image/jpg') {
-            extension = 'jpeg';
-          }
-
-          const imageId = workbook.addImage({
-            buffer: arrayBuffer,
-            extension: extension
-          });
-
-          // アスペクト比を考慮したサイズ調整 (最大 72px)
-          const maxBoxSize = 72;
-          let destWidth = maxBoxSize;
-          let destHeight = maxBoxSize;
-
-          try {
-            const { width, height } = await getImageDimensions(imageBlob);
-            if (width > 0 && height > 0) {
-              const aspectRatio = width / height;
-              if (aspectRatio > 1) {
-                // 横長画像
-                destWidth = maxBoxSize;
-                destHeight = maxBoxSize / aspectRatio;
-              } else {
-                // 縦長画像
-                destHeight = maxBoxSize;
-                destWidth = maxBoxSize * aspectRatio;
-              }
-            }
-          } catch {
-            // 寸法取得失敗時はデフォルトで描画
-          }
-
-          // セル（B列: 幅112px [col width 14], 高さ80px）の中央寄せ計算 (1px = 9525 EMU)
-          const EMU_PER_PX = 9525;
-          const cellWidthPx = 112; 
-          const cellHeightPx = 80; 
-
-          const colOff = Math.max(0, Math.floor((cellWidthPx - destWidth) / 2)) * EMU_PER_PX;
-          const rowOff = Math.max(0, Math.floor((cellHeightPx - destHeight) / 2)) * EMU_PER_PX;
-
-          worksheet.addImage(imageId, {
-            tl: { 
-              col: 1, 
-              row: currentRowIndex - 1,
-              colOff: colOff,
-              rowOff: rowOff
-            },
-            ext: { width: destWidth, height: destHeight }
-          });
-        }
-      } catch (err) {
-        console.error(`Failed to embed image for ${filename}:`, err);
-      }
-    }
   }
 
   // 6. 列幅の自動調整 (余白を十分に確保する)
   worksheet.columns.forEach((col, colIdx) => {
     if (colIdx === 0) {
       col.width = 8; // No.
-      return;
-    }
-    if (colIdx === 1) {
-      col.width = 14; // 商品画像列 (画像72px=約9文字幅に対し、余白をつけて14)
       return;
     }
 
