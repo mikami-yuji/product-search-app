@@ -199,29 +199,59 @@
 
     /* Products grid - Fixed 2 columns auto-scaled to fit exact screen width */
     .amazon-products-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-        width: 100%;
-        box-sizing: border-box;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .amazon-products-grid > * {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .amazon-product-card {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .amazon-card-image-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
     }
 
     .amazon-card-image {
-        height: 140px;
-        width: 100%;
-        object-fit: contain;
+        height: 130px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
     }
 
     .amazon-card-content {
-        padding: 0.5rem;
-        gap: 0.25rem;
-        width: 100%;
-        box-sizing: border-box;
+        padding: 0.5rem !important;
+        gap: 0.25rem !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .amazon-card-title,
+    .amazon-card-meta,
+    .amazon-card-details,
+    .amazon-detail-value,
+    .amazon-card-order-no,
+    .amazon-card-code {
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+        white-space: normal !important;
     }
 
     .amazon-card-title {
