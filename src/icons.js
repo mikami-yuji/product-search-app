@@ -22,6 +22,7 @@ import Plus from 'lucide-react/dist/esm/icons/plus.js';
 import Database from 'lucide-react/dist/esm/icons/database.js';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
 import FileX from 'lucide-react/dist/esm/icons/file-x.js';
+import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw.js';
 
 export {
   Upload,
@@ -48,5 +49,6 @@ export {
   Plus,
   Database,
   RefreshCw,
-  FileX
+  FileX,
+  RotateCcw
 };

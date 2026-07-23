@@ -6,6 +6,10 @@
 - **PWAのリソース404エラーおよびスクリプト実行拒否エラーの修正**
   - デプロイ環境（Vercel）等で `/registerSW.js` および `/manifest.webmanifest` が404エラーとなりスクリプト実行が拒否される問題を解消。
   - [public/manifest.webmanifest](file:///c:/gemini_cli/得意先別商品検索ツール/public/manifest.webmanifest) および [public/registerSW.js](file:///c:/gemini_cli/得意先別商品検索ツール/public/registerSW.js) を新規作成し、[index.html](file:///c:/gemini_cli/得意先別商品検索ツール/index.html) に適切なマニフェストリンクと登録処理を設定。
+- **PWAの古くなったキャッシュ保持（Cache-First）問題の修正と更新機能の追加**
+  - Service Worker（[public/service-worker.js](file:///c:/gemini_cli/得意先別商品検索ツール/public/service-worker.js)）のキャッシュ戦略を従来の Cache-First から **Network-First** に変更。これによりオンライン時は常に最新のコード（HTML/JS/CSS）をサーバーから取得し、キャッシュを動的更新。
+  - Vercelの設定（[vercel.json](file:///c:/gemini_cli/得意先別商品検索ツール/vercel.json)）に `Cache-Control: no-cache, no-store, must-revalidate` を追加し、HTML/SWファイルのCDNキャッシュによる停滞を完全に防止。
+  - キャッシュ管理画面（[CacheManager.jsx](file:///c:/gemini_cli/得意先別商品検索ツール/src/CacheManager.jsx)）に「最新版に強制更新（全キャッシュ削除）」ボタンを追加。ワンクリックでService Worker登録解除・Cache Storage全削除・IndexedDB削除を一括実行し最新状態に更新可能に改善。
 
 ### Performance
 - **ビルドプロセスの最適化と高速化**

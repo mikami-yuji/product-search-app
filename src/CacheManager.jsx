@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Trash2, RefreshCw, FileX } from 'lucide-react';
+import { Database, Trash2, RefreshCw, FileX, RotateCcw } from './icons';
 import { getCacheStats, clearImageCache } from './utils/imageCache';
 import { del } from 'idb-keyval';
 
@@ -52,6 +52,41 @@ const CacheManager = ({ onClose }) => {
         }
     };
 
+    const handleForceUpdateApp = async () => {
+        if (!confirm('アプリの全キャッシュ（Service Worker・全画像・データ）をクリアして最新版に更新しますか？')) return;
+
+        setIsClearing(true);
+        try {
+            // Unregister Service Workers
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+            // Clear Cache Storage
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            }
+            // Clear IndexedDB / Image cache
+            await clearImageCache();
+            await del('productData');
+            await del('fileName');
+            await del('lastModified');
+            await del('customerDirHandle');
+            await del('customerFilesCache');
+            await del('customerFilesListCache');
+
+            alert('すべてのキャッシュを削除しました。最新版に再読み込みします。');
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to force update app:', err);
+            alert('更新処理中にエラーが発生しました');
+            setIsClearing(false);
+        }
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="cache-manager-modal" onClick={(e) => e.stopPropagation()}>
@@ -72,6 +107,22 @@ const CacheManager = ({ onClose }) => {
                     </div>
 
                     <div className="cache-actions-group">
+                        <h3>アプリ更新</h3>
+                        <div className="cache-actions">
+                            <button
+                                onClick={handleForceUpdateApp}
+                                className="cache-btn cache-btn-primary"
+                                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                                disabled={isClearing}
+                            >
+                                <RotateCcw size={18} />
+                                最新版に強制更新（全キャッシュ削除）
+                            </button>
+                            <p className="cache-desc">
+                                古いバージョンのキャッシュが残っている場合に、Service Workerと全キャッシュを破棄して最新版に強制アップデートします。
+                            </p>
+                        </div>
+
                         <h3>データ管理</h3>
                         <div className="cache-actions">
                             <button
