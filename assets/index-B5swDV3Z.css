@@ -799,8 +799,8 @@ html, body {
 
   .amazon-products-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 0.25rem !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
@@ -2988,22 +2988,163 @@ html, body {
 
 /* Mobile & Tablet Layout Fixes (max-width: 768px) */
 @media (max-width: 768px) {
+    html, body, #root, .amazon-app, .amazon-main, .amazon-content, .amazon-sidebar {
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
     .amazon-main {
-        grid-template-columns: 1fr;
-        padding: 0.75rem;
-        gap: 1rem;
-        width: 100%;
-        box-sizing: border-box;
+        grid-template-columns: 1fr !important;
+        padding: 0.5rem !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
-    .amazon-header {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
+    .amazon-header,
     .amazon-header-content {
-        width: 100%;
-        box-sizing: border-box;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Sidebar, Customer Select, Direct Ship Select, Filters Full-Width Fitting */
+    .amazon-sidebar,
+    .amazon-sidebar-section,
+    .customer-section,
+    .direct-ship-section,
+    .empty-customer-select {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .customer-search-box,
+    .direct-ship-search-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-search-input,
+    .direct-ship-search-input,
+    .amazon-filter-select,
+    .amazon-sort-select {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-list-container,
+    .direct-ship-list-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .customer-list,
+    .customer-item,
+    .direct-ship-item {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-item-main,
+    .customer-name-text,
+    .direct-ship-name-text {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    /* Products grid - Fixed 2 columns auto-scaled to fit exact 100% screen width */
+    .amazon-products-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .amazon-products-grid > * {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .amazon-product-card {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .amazon-card-image-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        background-color: #FAFAFA;
+    }
+
+    .amazon-card-image {
+        height: 140px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
+    }
+
+    .amazon-card-content {
+        padding: 0.5rem !important;
+        gap: 0.25rem !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .amazon-card-title,
+    .amazon-card-meta,
+    .amazon-card-details,
+    .amazon-detail-value,
+    .amazon-card-order-no,
+    .amazon-card-code {
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+        white-space: normal !important;
+    }
+
+    .amazon-card-title {
+        font-size: 0.82rem !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        color: var(--color-text);
+    }
+
+    .amazon-card-meta,
+    .amazon-detail-row {
+        font-size: 0.72rem !important;
+    }
+
+    .amazon-card-price {
+        font-size: 0.95rem !important;
+        color: var(--color-primary);
+        font-weight: 700;
+    }
+
+    .amazon-add-to-cart-btn {
+        padding: 0.5rem 0.35rem !important;
+        font-size: 0.8rem !important;
+        gap: 0.25rem !important;
+        border-radius: var(--rounded-md) !important;
+        background-color: var(--color-primary);
+        color: var(--color-surface);
     }
 }
 
