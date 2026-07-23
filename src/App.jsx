@@ -4,7 +4,6 @@ import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
 import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin } from './icons';
 import './index.css';
-import './custom.css';
 
 // Components
 import ProductImage from './ProductImage';

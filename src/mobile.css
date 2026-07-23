@@ -81,6 +81,13 @@
         box-sizing: border-box !important;
     }
 
+    .amazon-sidebar {
+        position: static !important;
+        top: 0 !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
     /* Sidebar, Customer Select, Direct Ship Select, Filters Full-Width Fitting */
     .amazon-sidebar,
     .amazon-sidebar-section,
