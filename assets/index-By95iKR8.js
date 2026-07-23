@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as Check, k as MapPin, l as FunnelX, m as ChevronUp, n as ChevronDown, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-Jg6Xo3NW.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as ChevronUp, k as ChevronDown, l as Check, m as MapPin, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-B1qRZBu8.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -2158,6 +2158,12 @@ function App() {
     }
     return true;
   });
+  const [isCustomerSectionOpen, setIsCustomerSectionOpen] = reactExports.useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth > 480;
+    }
+    return true;
+  });
   reactExports.useEffect(() => {
     if (typeof window !== "undefined") {
       document.body.classList.remove("dark-mode");
@@ -2544,148 +2550,173 @@ function App() {
     ] }) }),
     data.length > 0 || isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `amazon-sidebar ${isFilterOpen ? "open" : ""}`, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
-            isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択"
-          ] }) }),
-          !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
-                className: "amazon-btn amazon-btn-primary customer-connect-btn",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
-                  " ",
-                  isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
-                ]
-              }
-            )
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  type: "text",
-                  placeholder: "顧客名で検索...",
-                  value: customerSearchKeyword,
-                  onChange: (e) => setCustomerSearchKeyword(e.target.value),
-                  className: "customer-search-input"
-                }
-              ),
-              customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  className: "search-clear-btn",
-                  onClick: () => setCustomerSearchKeyword(""),
-                  title: "検索をクリア",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                }
-              )
-            ] }),
-            filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
-              const isCurrent = fileName === file.name;
-              const rawName = file.name.replace(/\.xlsx?$/, "");
-              const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
-              const codeBadge = match ? match[1] : null;
-              const displayName = match ? match[2] : rawName;
-              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "li",
-                {
-                  className: `customer-item ${isCurrent ? "active" : ""}`,
-                  onClick: () => {
-                    if (!isCurrent) {
-                      loadCustomerFile(file.name);
-                    }
-                  },
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                      codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
-                    ] }),
-                    isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
-                  ]
-                },
-                file.name
-              );
-            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
-          ] })
-        ] }),
-        customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section direct-shipping-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-section-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 18, className: "section-title-icon" }),
-              "直送先選択"
-            ] }),
-            filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: (e) => {
-                  e.stopPropagation();
-                  clearFilterKey("直送先名称");
-                },
-                className: "amazon-clear-btn",
-                title: "直送先選択をクリア",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
-                  "クリア (",
-                  filters["直送先名称"].length,
-                  ")"
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  type: "text",
-                  placeholder: "直送先名で検索...",
-                  value: directShippingSearchKeyword,
-                  onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
-                  className: "customer-search-input"
-                }
-              ),
-              directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  className: "search-clear-btn",
-                  onClick: () => setDirectShippingSearchKeyword(""),
-                  title: "検索をクリア",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                }
-              )
-            ] }),
-            filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
-              const isSelected = filters["直送先名称"].includes(shipping);
-              return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "li",
-                {
-                  className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
-                  onClick: () => handleFilterChange("直送先名称", shipping),
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        type: "checkbox",
-                        checked: isSelected,
-                        readOnly: true,
-                        className: "shipping-checkbox"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section customer-shipping-combined-section", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "customer-section-header clickable-header",
+              onClick: () => setIsCustomerSectionOpen(!isCustomerSectionOpen),
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
+                    isFileSystemSupported2 ? "顧客・直送先選択" : "顧客ファイル・直送先選択"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isCustomerSectionOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
+                ] }),
+                !isCustomerSectionOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "section-summary-badges", children: [
+                  fileName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "selected-summary-badge", title: fileName, children: fileName.replace(/\.xlsx?$/, "") }),
+                  filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "selected-summary-badge", children: [
+                    "直送先: ",
+                    filters["直送先名称"].length,
+                    "件"
                   ] })
-                },
-                shipping
-              );
-            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
+                ] })
+              ]
+            }
+          ),
+          isCustomerSectionOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-shipping-combined-body", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-subsection", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "subsection-title", children: isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択" }),
+              !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
+                    className: "amazon-btn amazon-btn-primary customer-connect-btn",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
+                      " ",
+                      isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
+                    ]
+                  }
+                )
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "顧客名で検索...",
+                      value: customerSearchKeyword,
+                      onChange: (e) => setCustomerSearchKeyword(e.target.value),
+                      className: "customer-search-input"
+                    }
+                  ),
+                  customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "search-clear-btn",
+                      onClick: () => setCustomerSearchKeyword(""),
+                      title: "検索をクリア",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                    }
+                  )
+                ] }),
+                filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
+                  const isCurrent = fileName === file.name;
+                  const rawName = file.name.replace(/\.xlsx?$/, "");
+                  const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+                  const codeBadge = match ? match[1] : null;
+                  const displayName = match ? match[2] : rawName;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "li",
+                    {
+                      className: `customer-item ${isCurrent ? "active" : ""}`,
+                      onClick: () => {
+                        if (!isCurrent) {
+                          loadCustomerFile(file.name);
+                        }
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                          codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
+                        ] }),
+                        isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
+                      ]
+                    },
+                    file.name
+                  );
+                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
+              ] })
+            ] }),
+            customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-subsection direct-shipping-subsection", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "subsection-header", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "subsection-title", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 16, className: "section-title-icon" }),
+                  "直送先選択"
+                ] }),
+                filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      clearFilterKey("直送先名称");
+                    },
+                    className: "amazon-clear-btn",
+                    title: "直送先選択をクリア",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
+                      "クリア (",
+                      filters["直送先名称"].length,
+                      ")"
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "直送先名で検索...",
+                      value: directShippingSearchKeyword,
+                      onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
+                      className: "customer-search-input"
+                    }
+                  ),
+                  directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "search-clear-btn",
+                      onClick: () => setDirectShippingSearchKeyword(""),
+                      title: "検索をクリア",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                    }
+                  )
+                ] }),
+                filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
+                  const isSelected = filters["直送先名称"].includes(shipping);
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "li",
+                    {
+                      className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
+                      onClick: () => handleFilterChange("直送先名称", shipping),
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            type: "checkbox",
+                            checked: isSelected,
+                            readOnly: true,
+                            className: "shipping-checkbox"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+                      ] })
+                    },
+                    shipping
+                  );
+                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
+              ] })
+            ] })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section filter-panel-section", children: [
