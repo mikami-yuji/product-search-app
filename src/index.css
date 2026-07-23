@@ -779,7 +779,10 @@ html, body {
   }
 
   .amazon-products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -795,8 +798,10 @@ html, body {
   }
 
   .amazon-products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .amazon-toolbar {
