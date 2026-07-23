@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
-import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin } from './icons';
 import './index.css';
 import './custom.css';
 
@@ -386,6 +386,23 @@ function App() {
     }
   }, []);
 
+  const activeChips = useMemo(() => {
+    const chips = [];
+    Object.keys(filters).forEach(key => {
+      filters[key].forEach(val => {
+        chips.push({ key, val, label: `${key}: ${val}` });
+      });
+    });
+    return chips;
+  }, [filters]);
+
+  const categoryIcons = {
+    '種別': <Tag size={16} className="filter-category-icon" />,
+    '重量': <Scale size={16} className="filter-category-icon" />,
+    '材質名称': <Layers size={16} className="filter-category-icon" />,
+    '総色数': <Palette size={16} className="filter-category-icon" />,
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -525,12 +542,14 @@ function App() {
       {data.length > 0 || isLoading ? (
         <div className="amazon-main">
           {/* Sidebar Filters */}
-          {/* Sidebar Filters */}
           <aside className={`amazon-sidebar ${isFilterOpen ? 'open' : ''}`}>
             {/* 顧客選択セクション */}
             <div className="amazon-sidebar-section customer-section">
               <div className="customer-section-header">
-                <h2>{isFileSystemSupported ? '顧客選択' : '顧客ファイル選択'}</h2>
+                <h2>
+                  <Users size={18} className="section-title-icon" />
+                  {isFileSystemSupported ? '顧客選択' : '顧客ファイル選択'}
+                </h2>
               </div>
               {!customerPermissionGranted ? (
                 <div className="customer-connect-prompt">
@@ -555,6 +574,16 @@ function App() {
                       onChange={e => setCustomerSearchKeyword(e.target.value)}
                       className="customer-search-input"
                     />
+                    {customerSearchKeyword && (
+                      <button 
+                        type="button" 
+                        className="search-clear-btn" 
+                        onClick={() => setCustomerSearchKeyword('')} 
+                        title="検索をクリア"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                   
                   {filteredCustomerFiles.length > 0 ? (
@@ -562,6 +591,11 @@ function App() {
                       <ul className="customer-list">
                         {filteredCustomerFiles.map(file => {
                           const isCurrent = fileName === file.name;
+                          const rawName = file.name.replace(/\.xlsx?$/, '');
+                          const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+                          const codeBadge = match ? match[1] : null;
+                          const displayName = match ? match[2] : rawName;
+
                           return (
                             <li 
                               key={file.name} 
@@ -572,9 +606,13 @@ function App() {
                                 }
                               }}
                             >
-                              <span className="customer-name" title={file.name}>
-                                {file.name.replace(/\.xlsx?$/, '')}
-                              </span>
+                              <div className="customer-item-main">
+                                {codeBadge && <span className="customer-code-badge">{codeBadge}</span>}
+                                <span className="customer-name-text" title={rawName}>
+                                  {displayName}
+                                </span>
+                              </div>
+                              {isCurrent && <Check size={16} className="active-check-icon" />}
                             </li>
                           );
                         })}
@@ -591,7 +629,10 @@ function App() {
             {customerPermissionGranted && (
               <div className="amazon-sidebar-section customer-section direct-shipping-section">
                 <div className="customer-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h2>直送先選択</h2>
+                  <h2>
+                    <MapPin size={18} className="section-title-icon" />
+                    直送先選択
+                  </h2>
                   {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); clearFilterKey('直送先名称'); }} 
@@ -599,7 +640,7 @@ function App() {
                       title="直送先選択をクリア"
                     >
                       <FilterX size={14} />
-                      クリア
+                      クリア ({filters['直送先名称'].length})
                     </button>
                   )}
                 </div>
@@ -613,6 +654,16 @@ function App() {
                       onChange={e => setDirectShippingSearchKeyword(e.target.value)}
                       className="customer-search-input"
                     />
+                    {directShippingSearchKeyword && (
+                      <button 
+                        type="button" 
+                        className="search-clear-btn" 
+                        onClick={() => setDirectShippingSearchKeyword('')} 
+                        title="検索をクリア"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                   
                   {filteredDirectShippings.length > 0 ? (
@@ -623,12 +674,20 @@ function App() {
                           return (
                             <li 
                               key={shipping} 
-                              className={`customer-item ${isSelected ? 'active' : ''}`}
+                              className={`customer-item shipping-item ${isSelected ? 'active' : ''}`}
                               onClick={() => handleFilterChange('直送先名称', shipping)}
                             >
-                              <span className="customer-name" title={shipping}>
-                                {shipping}
-                              </span>
+                              <div className="customer-item-main">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  readOnly
+                                  className="shipping-checkbox"
+                                />
+                                <span className="customer-name-text" title={shipping}>
+                                  {shipping}
+                                </span>
+                              </div>
                             </li>
                           );
                         })}
@@ -641,80 +700,110 @@ function App() {
               </div>
             )}
             
-            <hr className="sidebar-divider" />
-
-            <div className="amazon-sidebar-header" onClick={() => setIsFilterOpen(!isFilterOpen)}>
-              <div className="sidebar-header-title">
-                <h2>フィルター</h2>
-                <div className="sidebar-toggle-icon">
-                  {isFilterOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </div>
-              </div>
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  clearFilters(); 
-                  setDirectShippingSearchKeyword(''); 
-                }} 
-                className="amazon-clear-btn" 
-                title="すべてのフィルターをクリア"
-              >
-                <FilterX size={16} />
-                クリア
-              </button>
-            </div>
-            <div className="amazon-sidebar-content">
-              {Object.keys(filters).filter(key => key !== '直送先名称').map(key => {
-                const isOpen = openFilters[key];
-                const activeCount = filters[key].length;
-                return (
-                  <div key={key} className={`amazon-filter-group-accordion ${isOpen ? 'open' : ''}`}>
-                    <div className="filter-group-header" onClick={() => toggleFilterSection(key)}>
-                      <span className="filter-group-title">
-                        {key}
-                        {activeCount > 0 && <span className="active-filter-badge">{activeCount}</span>}
-                      </span>
-                      <span className="accordion-arrow">
-                        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </span>
-                    </div>
-                    {isOpen && (
-                      <div className="filter-group-body">
-                        {activeCount > 0 && (
-                          <button 
-                            className="clear-group-filter-btn" 
-                            onClick={(e) => { e.stopPropagation(); clearFilterKey(key); }}
-                          >
-                            このフィルターをクリア
-                          </button>
-                        )}
-                        <div className="filter-checkbox-list">
-                          {uniqueValues[key].map(val => {
-                            const count = facetCounts[key]?.[val] ?? 0;
-                            const isChecked = filters[key].includes(String(val));
-                            const isDisabled = count === 0 && !isChecked;
-                            return (
-                              <label 
-                                key={val} 
-                                className={`filter-checkbox-label ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  disabled={isDisabled}
-                                  onChange={() => handleFilterChange(key, String(val))}
-                                />
-                                <span className="filter-value-text" title={val}>{val}</span>
-                                <span className="filter-count">({count})</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+            <div className="amazon-sidebar-section filter-panel-section">
+              <div className="amazon-sidebar-header" onClick={() => setIsFilterOpen(!isFilterOpen)}>
+                <div className="sidebar-header-title">
+                  <h2>フィルター</h2>
+                  <div className="sidebar-toggle-icon">
+                    {isFilterOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </div>
-                );
-              })}
+                </div>
+                {activeChips.length > 0 && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      clearFilters(); 
+                      setDirectShippingSearchKeyword(''); 
+                    }} 
+                    className="amazon-clear-btn active" 
+                    title="すべてのフィルターをクリア"
+                  >
+                    <FilterX size={14} />
+                    全クリア ({activeChips.length})
+                  </button>
+                )}
+              </div>
+
+              {/* アクティブフィルタータグ（チップ）表示エリア */}
+              {activeChips.length > 0 && (
+                <div className="active-filter-chips-container">
+                  <div className="active-chips-label">選択中の条件:</div>
+                  <div className="active-chips-list">
+                    {activeChips.map((chip, idx) => (
+                      <span key={`${chip.key}-${chip.val}-${idx}`} className="filter-chip">
+                        <span className="chip-text">{chip.val}</span>
+                        <button 
+                          type="button" 
+                          className="chip-remove-btn" 
+                          onClick={() => handleFilterChange(chip.key, chip.val)}
+                          title="条件を解除"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isFilterOpen && (
+                <div className="amazon-sidebar-content">
+                  {Object.keys(filters).filter(key => key !== '直送先名称').map(key => {
+                    const isOpen = openFilters[key];
+                    const activeCount = filters[key].length;
+                    return (
+                      <div key={key} className={`amazon-filter-group-accordion ${isOpen ? 'open' : ''}`}>
+                        <div className="filter-group-header" onClick={() => toggleFilterSection(key)}>
+                          <span className="filter-group-title">
+                            {categoryIcons[key] || <Tag size={16} className="filter-category-icon" />}
+                            <span>{key}</span>
+                            {activeCount > 0 && <span className="active-filter-badge">{activeCount}</span>}
+                          </span>
+                          <span className="accordion-arrow">
+                            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </span>
+                        </div>
+                        {isOpen && (
+                          <div className="filter-group-body">
+                            {activeCount > 0 && (
+                              <button 
+                                className="clear-group-filter-btn" 
+                                onClick={(e) => { e.stopPropagation(); clearFilterKey(key); }}
+                              >
+                                この項目をクリア
+                              </button>
+                            )}
+                            <div className="filter-checkbox-list">
+                              {uniqueValues[key].map(val => {
+                                const count = facetCounts[key]?.[val] ?? 0;
+                                const isChecked = filters[key].includes(String(val));
+                                const isDisabled = count === 0 && !isChecked;
+                                return (
+                                  <label 
+                                    key={val} 
+                                    className={`filter-checkbox-label ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}`}
+                                  >
+                                    <div className="checkbox-label-left">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        disabled={isDisabled}
+                                        onChange={() => handleFilterChange(key, String(val))}
+                                      />
+                                      <span className="filter-value-text" title={val}>{val}</span>
+                                    </div>
+                                    <span className="filter-count">({count})</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </aside>
 

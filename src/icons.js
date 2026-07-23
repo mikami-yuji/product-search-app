@@ -23,6 +23,13 @@ import Database from 'lucide-react/dist/esm/icons/database.js';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
 import FileX from 'lucide-react/dist/esm/icons/file-x.js';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw.js';
+import Tag from 'lucide-react/dist/esm/icons/tag.js';
+import Scale from 'lucide-react/dist/esm/icons/scale.js';
+import Layers from 'lucide-react/dist/esm/icons/layers.js';
+import Palette from 'lucide-react/dist/esm/icons/palette.js';
+import Check from 'lucide-react/dist/esm/icons/check.js';
+import MapPin from 'lucide-react/dist/esm/icons/map-pin.js';
+import Users from 'lucide-react/dist/esm/icons/users.js';
 
 export {
   Upload,
@@ -50,5 +57,12 @@ export {
   Database,
   RefreshCw,
   FileX,
-  RotateCcw
+  RotateCcw,
+  Tag,
+  Scale,
+  Layers,
+  Palette,
+  Check,
+  MapPin,
+  Users
 };
