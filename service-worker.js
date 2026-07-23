@@ -1,9 +1,7 @@
-// Simple Service Worker for offline support and image caching
+// Service Worker with Network-First strategy for app assets
+const CACHE_NAME = 'blazing-andromeda-cache-v2';
+const IMAGE_CACHE = 'blazing-andromeda-images-v2';
 
-const CACHE_NAME = 'blazing-andromeda-cache-v1';
-const IMAGE_CACHE = 'blazing-andromeda-images';
-
-// Files to pre-cache (core assets)
 const PRECACHE_URLS = [
     './',
     './index.html',
@@ -37,25 +35,34 @@ self.addEventListener('fetch', (event) => {
 
     if (request.method !== 'GET') return;
 
-    // Image caching (network first, then cache)
-    if (request.destination === 'image' || /\.(png|jpe?g|webp|svg)$/i.test(url.pathname)) {
+    // Image caching (network first, then fallback to cache)
+    if (request.destination === 'image' || /\.(png|jpe?g|webp|svg|ico)$/i.test(url.pathname)) {
         event.respondWith(
-            caches.open(IMAGE_CACHE).then((cache) => {
-                return fetch(request)
-                    .then((networkResponse) => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    })
-                    .catch(() => cache.match(request));
-            })
+            fetch(request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(IMAGE_CACHE).then((cache) => cache.put(request, responseClone));
+                    }
+                    return networkResponse;
+                })
+                .catch(() => caches.match(request))
         );
         return;
     }
 
-    // Pre-cached assets (cache-first)
-    if (PRECACHE_URLS.includes(url.pathname) || url.origin === location.origin) {
+    // App HTML / JS / CSS (Network-First: fetch latest from server, fallback to cache if offline)
+    if (url.origin === location.origin) {
         event.respondWith(
-            caches.match(request).then((cachedResponse) => cachedResponse || fetch(request))
+            fetch(request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+                    }
+                    return networkResponse;
+                })
+                .catch(() => caches.match(request))
         );
     }
 });

@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, F as FileX, R as RefreshCw, d as FileSpreadsheet, e as Clock, f as Search, g as FolderOpen, U as Upload, h as FunnelX, i as ChevronUp, j as ChevronDown, k as FileCode, L as LayoutGrid, l as List } from "./vendor-lucide-gJUXmK5q.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as FunnelX, j as ChevronUp, k as ChevronDown, l as FileCode, L as LayoutGrid, m as List } from "./vendor-lucide-ZlcvXg0l.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -1451,6 +1451,35 @@ const CacheManager = ({ onClose }) => {
       setIsClearing(false);
     }
   };
+  const handleForceUpdateApp = async () => {
+    if (!confirm("アプリの全キャッシュ（Service Worker・全画像・データ）をクリアして最新版に更新しますか？")) return;
+    setIsClearing(true);
+    try {
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      if ("caches" in window) {
+        const keys2 = await caches.keys();
+        await Promise.all(keys2.map((key) => caches.delete(key)));
+      }
+      await clearImageCache();
+      await del("productData");
+      await del("fileName");
+      await del("lastModified");
+      await del("customerDirHandle");
+      await del("customerFilesCache");
+      await del("customerFilesListCache");
+      alert("すべてのキャッシュを削除しました。最新版に再読み込みします。");
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to force update app:", err);
+      alert("更新処理中にエラーが発生しました");
+      setIsClearing(false);
+    }
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-overlay", onClick: onClose, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cache-manager-modal", onClick: (e) => e.stopPropagation(), children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cache-manager-header", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
@@ -1470,6 +1499,23 @@ const CacheManager = ({ onClose }) => {
         ] })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cache-actions-group", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "アプリ更新" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cache-actions", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: handleForceUpdateApp,
+              className: "cache-btn cache-btn-primary",
+              style: { backgroundColor: "#2563eb", color: "#ffffff" },
+              disabled: isClearing,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, { size: 18 }),
+                "最新版に強制更新（全キャッシュ削除）"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "cache-desc", children: "古いバージョンのキャッシュが残っている場合に、Service Workerと全キャッシュを破棄して最新版に強制アップデートします。" })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "データ管理" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cache-actions", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
