@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [Unreleased] - 2026-07-23
+
+### Fixed
+- **PWAのリソース404エラーおよびスクリプト実行拒否エラーの修正**
+  - デプロイ環境（Vercel）等で `/registerSW.js` および `/manifest.webmanifest` が404エラーとなりスクリプト実行が拒否される問題を解消。
+  - [public/manifest.webmanifest](file:///c:/gemini_cli/得意先別商品検索ツール/public/manifest.webmanifest) および [public/registerSW.js](file:///c:/gemini_cli/得意先別商品検索ツール/public/registerSW.js) を新規作成し、[index.html](file:///c:/gemini_cli/得意先別商品検索ツール/index.html) に適切なマニフェストリンクと登録処理を設定。
+
+### Performance
+- **ビルドプロセスの最適化と高速化**
+  - `lucide-react` の全アイコンバレルインポートによるビルド時のモジュール数膨大化（1717モジュール）およびWindows上でのメモリクラッシュを改善。
+  - 個別アイコンインポートを集約した [src/icons.js](file:///c:/gemini_cli/得意先別商品検索ツール/src/icons.js) を新設し、[vite.config.js](file:///c:/gemini_cli/得意先別商品検索ツール/vite.config.js) にてエイリアスおよび `vendor-exceljs`, `vendor-xlsx`, `vendor-react` などの `manualChunks` 分割設定を構築。ビルド時間を約3.5秒に短縮。
+
 ## [Unreleased] - 2026-07-22
 
 ### Changed
