@@ -821,6 +821,15 @@ html, body {
     overflow: hidden !important;
   }
 
+  .amazon-card-image-container,
+  .amazon-card-image {
+    height: 120px !important;
+    max-height: 120px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    object-fit: contain !important;
+  }
+
   .amazon-toolbar {
     flex-direction: column;
     align-items: stretch;
