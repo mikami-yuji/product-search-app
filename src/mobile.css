@@ -60,6 +60,7 @@
     /* Header improvements */
     .amazon-header {
         padding: 0.75rem 0.5rem;
+        background-color: var(--color-dark);
     }
 
     .amazon-header-content {
@@ -71,10 +72,12 @@
     .amazon-logo {
         text-align: center;
         width: 100%;
+        color: var(--color-surface);
     }
 
     .amazon-logo h1 {
         font-size: 1.2rem;
+        font-weight: 700;
         justify-content: center;
     }
 
@@ -87,12 +90,16 @@
     .amazon-search-input {
         padding: 0.625rem 0.75rem 0.625rem 2.5rem;
         font-size: 1rem;
+        border-radius: var(--rounded-sm);
+        background-color: var(--color-surface);
+        color: var(--color-text);
     }
 
     .amazon-search-bar .search-icon {
         left: 0.75rem;
         width: 18px;
         height: 18px;
+        color: var(--color-text-light);
     }
 
     .amazon-header-actions {
@@ -106,22 +113,31 @@
     .amazon-btn {
         padding: 0.5rem 0.75rem;
         font-size: 0.85rem;
+        border-radius: var(--rounded-md);
         flex: 1 0 auto;
         justify-content: center;
         min-width: auto;
+        transition: var(--transition-smooth);
+    }
+
+    .amazon-btn:active {
+        transform: scale(0.97);
+        background-color: var(--color-button-hover);
     }
 
     /* Main content */
     .amazon-main {
-        padding: 1rem;
+        padding: 0.75rem;
         gap: 1rem;
     }
 
     /* Sidebar */
     .amazon-sidebar {
         padding: 0.75rem;
-        background-color: white;
-        border-radius: 8px;
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--rounded-md);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         margin-bottom: 1rem;
         gap: 1rem;
     }
@@ -132,17 +148,21 @@
 
     .amazon-filter-label {
         font-size: 0.8rem;
+        color: var(--color-text-light);
     }
 
     .amazon-filter-select {
         padding: 0.5rem 1.75rem 0.5rem 0.625rem;
         font-size: 0.8rem;
+        border-radius: var(--rounded-sm);
+        border: 1px solid var(--color-border);
     }
 
     .amazon-filter-clear-btn {
         width: 24px;
         height: 24px;
         font-size: 1rem;
+        border-radius: 50%;
     }
 
     /* Products grid */
@@ -162,10 +182,12 @@
 
     .amazon-card-title {
         font-size: 0.85rem;
+        color: var(--color-text);
     }
 
     .amazon-card-meta {
         font-size: 0.7rem;
+        color: var(--color-text-light);
     }
 
     .amazon-detail-row {
@@ -174,11 +196,22 @@
 
     .amazon-card-price {
         font-size: 1.1rem;
+        color: var(--color-primary);
+        font-weight: 700;
     }
 
     .amazon-add-to-cart-btn {
         padding: 0.625rem;
         font-size: 0.85rem;
+        border-radius: var(--rounded-md);
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+        transition: var(--transition-smooth);
+    }
+
+    .amazon-add-to-cart-btn:active {
+        background-color: var(--color-button-hover);
+        transform: scale(0.97);
     }
 
     /* Toolbar */
@@ -229,24 +262,31 @@
     /* Modals */
     .modal-overlay {
         padding: 1rem;
+        background-color: rgba(15, 23, 42, 0.7);
     }
 
     .modal-close-btn {
         width: 36px;
         height: 36px;
         font-size: 1.5rem;
+        border-radius: 50%;
     }
 
     .cart-modal-content {
         max-height: 85vh;
+        border-radius: var(--rounded-lg);
+        background-color: var(--color-surface);
     }
 
     .cart-header {
         padding: 1rem;
+        background-color: var(--color-dark);
+        color: var(--color-surface);
     }
 
     .cart-header h2 {
         font-size: 1.1rem;
+        font-weight: 600;
     }
 
     .cart-items {
@@ -257,6 +297,8 @@
         flex-direction: column;
         gap: 0.75rem;
         padding: 0.75rem;
+        border-radius: var(--rounded-md);
+        border: 1px solid var(--color-border);
     }
 
     .cart-item-controls {
@@ -266,24 +308,41 @@
 
     .cart-footer {
         padding: 1rem;
+        border-top: 1px solid var(--color-border);
     }
 
     .cart-total {
         font-size: 1rem;
+        color: var(--color-text);
     }
 
     .cart-total-price {
         font-size: 1.25rem;
+        color: var(--color-primary);
+        font-weight: 700;
     }
 
     .cart-actions {
         flex-direction: column;
+        gap: 0.5rem;
     }
 
     .cart-checkout-btn,
     .cart-print-btn {
         padding: 0.875rem;
         font-size: 0.95rem;
+        border-radius: var(--rounded-md);
+        transition: var(--transition-smooth);
+    }
+
+    .cart-checkout-btn {
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+    }
+
+    .cart-checkout-btn:active {
+        background-color: var(--color-button-hover);
+        transform: scale(0.98);
     }
 }
 
