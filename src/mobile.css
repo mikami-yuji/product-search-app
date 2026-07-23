@@ -197,11 +197,11 @@
         border-radius: 50%;
     }
 
-    /* Products grid - Fixed 2 columns auto-scaled to fit exact screen width */
+    /* Products grid - Fixed 3 columns auto-scaled to fit exact screen width */
     .amazon-products-grid {
         display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 0.5rem !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.25rem !important;
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
@@ -220,24 +220,26 @@
         max-width: 100% !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
+        padding: 0 !important;
     }
 
     .amazon-card-image-container {
         width: 100% !important;
         max-width: 100% !important;
         overflow: hidden !important;
+        background-color: #FAFAFA;
     }
 
     .amazon-card-image {
-        height: 130px !important;
+        height: 95px !important;
         width: 100% !important;
         max-width: 100% !important;
         object-fit: contain !important;
     }
 
     .amazon-card-content {
-        padding: 0.5rem !important;
-        gap: 0.25rem !important;
+        padding: 0.35rem !important;
+        gap: 0.2rem !important;
         width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
@@ -255,8 +257,38 @@
     }
 
     .amazon-card-title {
-        font-size: 0.85rem;
+        font-size: 0.72rem !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
         color: var(--color-text);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .amazon-card-meta {
+        font-size: 0.65rem !important;
+        color: var(--color-text-light);
+    }
+
+    .amazon-detail-row {
+        font-size: 0.65rem !important;
+    }
+
+    .amazon-card-price {
+        font-size: 0.85rem !important;
+        color: var(--color-primary);
+        font-weight: 700;
+    }
+
+    .amazon-add-to-cart-btn {
+        padding: 0.35rem 0.2rem !important;
+        font-size: 0.7rem !important;
+        gap: 0.25rem !important;
+        border-radius: var(--rounded-sm) !important;
+        background-color: var(--color-primary);
+        color: var(--color-surface);
     }
 
     .amazon-card-meta {
