@@ -7,6 +7,7 @@
   - `:root` に公式トークン (`--color-primary`, `--color-dark`, `--rounded-md`, `--spacing-md` 等) を定義し、アプリ全体のCSS変数を統合。
   - ヘッダー・検索バー・プライマリーボタン・カード・モーダル・バッジのスタイルを `DESIGN.md` 仕様へ完全準拠。
   - **モバイルUIの全面リニューアル**: モバイルヘッダー、検索バー、モバイルカード、タッチ時のアクティブフィードバック、モバイル用カート・ダイアログに `DESIGN.md` のトークンとアニメーションを適用。
+  - **モバイル個体画面サイズ・画角への完全対応**: Dynamic Viewport Height (`100dvh`), `viewport-fit=cover`, Safe Area Insets (`env(safe-area-inset-*)`), iPhoneのノッチ・画面下部ホームバー・ブラウザ可変バーへの自動フィッティング構造を導入。
   - 各CSS (`custom.css`, `mobile.css`, `mobile-table.css`, `product-details-modal.css`) および JSX コンポーネント内の直書きカラーコードをデザインシステム変数へリファクタリング。
 - **サイドバー全域のUI/UXリニューアルと操作性の向上**
   - セクション全体を丸みのあるモダンな白カードパネル（角丸 `12px` ＋ シャドウ ＋ 薄いボーダー）で再構築。
