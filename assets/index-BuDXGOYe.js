@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as FunnelX, j as ChevronUp, k as ChevronDown, l as FileCode, L as LayoutGrid, m as List } from "./vendor-lucide-ZlcvXg0l.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as Check, k as MapPin, l as FunnelX, m as ChevronUp, n as ChevronDown, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-Jg6Xo3NW.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -2396,6 +2396,21 @@ function App() {
       navigator.serviceWorker.register(swUrl).catch((err) => console.error("SW registration failed:", err));
     }
   }, []);
+  const activeChips = reactExports.useMemo(() => {
+    const chips = [];
+    Object.keys(filters).forEach((key) => {
+      filters[key].forEach((val) => {
+        chips.push({ key, val, label: `${key}: ${val}` });
+      });
+    });
+    return chips;
+  }, [filters]);
+  const categoryIcons = {
+    "種別": /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { size: 16, className: "filter-category-icon" }),
+    "重量": /* @__PURE__ */ jsxRuntimeExports.jsx(Scale, { size: 16, className: "filter-category-icon" }),
+    "材質名称": /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { size: 16, className: "filter-category-icon" }),
+    "総色数": /* @__PURE__ */ jsxRuntimeExports.jsx(Palette, { size: 16, className: "filter-category-icon" })
+  };
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -2530,7 +2545,10 @@ function App() {
     data.length > 0 || isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `amazon-sidebar ${isFilterOpen ? "open" : ""}`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
+            isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択"
+          ] }) }),
           !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -2557,11 +2575,25 @@ function App() {
                   onChange: (e) => setCustomerSearchKeyword(e.target.value),
                   className: "customer-search-input"
                 }
+              ),
+              customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "search-clear-btn",
+                  onClick: () => setCustomerSearchKeyword(""),
+                  title: "検索をクリア",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
               )
             ] }),
             filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
               const isCurrent = fileName === file.name;
-              return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              const rawName = file.name.replace(/\.xlsx?$/, "");
+              const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+              const codeBadge = match ? match[1] : null;
+              const displayName = match ? match[2] : rawName;
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "li",
                 {
                   className: `customer-item ${isCurrent ? "active" : ""}`,
@@ -2570,7 +2602,13 @@ function App() {
                       loadCustomerFile(file.name);
                     }
                   },
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name", title: file.name, children: file.name.replace(/\.xlsx?$/, "") })
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                      codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
+                    ] }),
+                    isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
+                  ]
                 },
                 file.name
               );
@@ -2579,7 +2617,10 @@ function App() {
         ] }),
         customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section direct-shipping-section", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-section-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "直送先選択" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 18, className: "section-title-icon" }),
+              "直送先選択"
+            ] }),
             filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
@@ -2591,7 +2632,9 @@ function App() {
                 title: "直送先選択をクリア",
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
-                  "クリア"
+                  "クリア (",
+                  filters["直送先名称"].length,
+                  ")"
                 ]
               }
             )
@@ -2608,6 +2651,16 @@ function App() {
                   onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
                   className: "customer-search-input"
                 }
+              ),
+              directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "search-clear-btn",
+                  onClick: () => setDirectShippingSearchKeyword(""),
+                  title: "検索をクリア",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
               )
             ] }),
             filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
@@ -2615,93 +2668,126 @@ function App() {
               return /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "li",
                 {
-                  className: `customer-item ${isSelected ? "active" : ""}`,
+                  className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
                   onClick: () => handleFilterChange("直送先名称", shipping),
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name", title: shipping, children: shipping })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: isSelected,
+                        readOnly: true,
+                        className: "shipping-checkbox"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+                  ] })
                 },
                 shipping
               );
             }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("hr", { className: "sidebar-divider" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-header", onClick: () => setIsFilterOpen(!isFilterOpen), children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "フィルター" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isFilterOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 20 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 20 }) })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              onClick: (e) => {
-                e.stopPropagation();
-                clearFilters();
-                setDirectShippingSearchKeyword("");
-              },
-              className: "amazon-clear-btn",
-              title: "すべてのフィルターをクリア",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 16 }),
-                "クリア"
-              ]
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "amazon-sidebar-content", children: Object.keys(filters).filter((key) => key !== "直送先名称").map((key) => {
-          const isOpen = openFilters[key];
-          const activeCount = filters[key].length;
-          return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `amazon-filter-group-accordion ${isOpen ? "open" : ""}`, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "filter-group-header", onClick: () => toggleFilterSection(key), children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "filter-group-title", children: [
-                key,
-                activeCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "active-filter-badge", children: activeCount })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "accordion-arrow", children: isOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 16 }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section filter-panel-section", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-header", onClick: () => setIsFilterOpen(!isFilterOpen), children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "フィルター" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isFilterOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
             ] }),
-            isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "filter-group-body", children: [
-              activeCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            activeChips.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  clearFilters();
+                  setDirectShippingSearchKeyword("");
+                },
+                className: "amazon-clear-btn active",
+                title: "すべてのフィルターをクリア",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
+                  "全クリア (",
+                  activeChips.length,
+                  ")"
+                ]
+              }
+            )
+          ] }),
+          activeChips.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "active-filter-chips-container", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "active-chips-label", children: "選択中の条件:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "active-chips-list", children: activeChips.map((chip, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "filter-chip", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "chip-text", children: chip.val }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {
-                  className: "clear-group-filter-btn",
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    clearFilterKey(key);
-                  },
-                  children: "このフィルターをクリア"
+                  type: "button",
+                  className: "chip-remove-btn",
+                  onClick: () => handleFilterChange(chip.key, chip.val),
+                  title: "条件を解除",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 12 })
                 }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "filter-checkbox-list", children: uniqueValues[key].map((val) => {
-                const count = facetCounts[key]?.[val] ?? 0;
-                const isChecked = filters[key].includes(String(val));
-                const isDisabled = count === 0 && !isChecked;
-                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "label",
+              )
+            ] }, `${chip.key}-${chip.val}-${idx}`)) })
+          ] }),
+          isFilterOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "amazon-sidebar-content", children: Object.keys(filters).filter((key) => key !== "直送先名称").map((key) => {
+            const isOpen = openFilters[key];
+            const activeCount = filters[key].length;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `amazon-filter-group-accordion ${isOpen ? "open" : ""}`, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "filter-group-header", onClick: () => toggleFilterSection(key), children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "filter-group-title", children: [
+                  categoryIcons[key] || /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { size: 16, className: "filter-category-icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: key }),
+                  activeCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "active-filter-badge", children: activeCount })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "accordion-arrow", children: isOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 16 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 16 }) })
+              ] }),
+              isOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "filter-group-body", children: [
+                activeCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
                   {
-                    className: `filter-checkbox-label ${isChecked ? "checked" : ""} ${isDisabled ? "disabled" : ""}`,
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "input",
-                        {
-                          type: "checkbox",
-                          checked: isChecked,
-                          disabled: isDisabled,
-                          onChange: () => handleFilterChange(key, String(val))
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "filter-value-text", title: val, children: val }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "filter-count", children: [
-                        "(",
-                        count,
-                        ")"
-                      ] })
-                    ]
-                  },
-                  val
-                );
-              }) })
-            ] })
-          ] }, key);
-        }) })
+                    className: "clear-group-filter-btn",
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      clearFilterKey(key);
+                    },
+                    children: "この項目をクリア"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "filter-checkbox-list", children: uniqueValues[key].map((val) => {
+                  const count = facetCounts[key]?.[val] ?? 0;
+                  const isChecked = filters[key].includes(String(val));
+                  const isDisabled = count === 0 && !isChecked;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "label",
+                    {
+                      className: `filter-checkbox-label ${isChecked ? "checked" : ""} ${isDisabled ? "disabled" : ""}`,
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "checkbox-label-left", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "input",
+                            {
+                              type: "checkbox",
+                              checked: isChecked,
+                              disabled: isDisabled,
+                              onChange: () => handleFilterChange(key, String(val))
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "filter-value-text", title: val, children: val })
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "filter-count", children: [
+                          "(",
+                          count,
+                          ")"
+                        ] })
+                      ]
+                    },
+                    val
+                  );
+                }) })
+              ] })
+            ] }, key);
+          }) })
+        ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "amazon-content", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-toolbar", children: [

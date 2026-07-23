@@ -3528,6 +3528,365 @@ body {
     justify-content: center;
     gap: 0.5rem;
 }
+
+/* ==========================================================================
+   Sidebar UI/UX Overhaul & Aesthetics
+   ========================================================================== */
+
+.amazon-sidebar {
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-right: 0.5rem;
+}
+
+/* Card-style Sections */
+.amazon-sidebar-section {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.amazon-sidebar-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
+}
+
+.customer-section-header h2,
+.sidebar-header-title h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.section-title-icon {
+    color: var(--amazon-orange, #e07900);
+}
+
+/* Search Box & Clear Button */
+.customer-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.customer-search-input {
+    width: 100%;
+    padding: 0.55rem 2.25rem 0.55rem 2.25rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    outline: none;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.customer-search-input:focus {
+    background-color: #ffffff;
+    border-color: var(--amazon-orange, #e07900);
+    box-shadow: 0 0 0 3px rgba(224, 121, 0, 0.15);
+}
+
+.customer-search-icon {
+    position: absolute;
+    left: 10px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 8px;
+    background: #e2e8f0;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-clear-btn:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+/* Customer & Direct Shipping List Container */
+.customer-list-container {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.customer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.customer-item {
+    padding: 0.65rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    transition: background-color 0.15s ease;
+}
+
+.customer-item:last-child {
+    border-bottom: none;
+}
+
+.customer-item:hover {
+    background-color: #f8fafc;
+}
+
+.customer-item.active {
+    background-color: #fff8f0;
+    border-left: 4px solid var(--amazon-orange, #e07900);
+}
+
+.customer-item-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.customer-code-badge {
+    display: inline-block;
+    background-color: #f1f5f9;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    font-family: monospace;
+    flex-shrink: 0;
+}
+
+.customer-item.active .customer-code-badge {
+    background-color: #ffedd5;
+    color: #c2410c;
+    border-color: #fed7aa;
+}
+
+.customer-name-text {
+    font-size: 0.85rem;
+    color: #1e293b;
+    word-break: break-all;
+    line-height: 1.35;
+    font-weight: 500;
+}
+
+.customer-item.active .customer-name-text {
+    color: #c2410c;
+    font-weight: 700;
+}
+
+.active-check-icon {
+    color: var(--amazon-orange, #e07900);
+    flex-shrink: 0;
+}
+
+.shipping-checkbox {
+    accent-color: var(--amazon-orange, #e07900);
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* Active Filter Chips Bar */
+.active-filter-chips-container {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.active-chips-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.active-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.chip-remove-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.chip-remove-btn:hover {
+    color: #ef4444;
+}
+
+/* Clear Buttons */
+.amazon-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.amazon-clear-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.amazon-clear-btn.active {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+.amazon-clear-btn.active:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+}
+
+/* Accordion Custom Styling */
+.filter-panel-section {
+    padding: 1rem;
+}
+
+.amazon-filter-group-accordion {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.amazon-filter-group-accordion:last-child {
+    border-bottom: none;
+}
+
+.filter-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.25rem;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+.filter-group-header:hover {
+    color: var(--amazon-orange, #e07900);
+}
+
+.filter-group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.filter-category-icon {
+    color: #64748b;
+}
+
+.active-filter-badge {
+    background-color: var(--amazon-orange, #e07900);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    border-radius: 10px;
+    margin-left: 0.25rem;
+}
+
+.filter-checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.3rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.filter-checkbox-label:hover:not(.disabled) {
+    background-color: #f8fafc;
+}
+
+.checkbox-label-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.filter-value-text {
+    color: #334155;
+    word-break: break-all;
+}
+
+.filter-count {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    background: #f1f5f9;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
 /* Order Sheet Styles for Print */
 @media print {
     @page {
