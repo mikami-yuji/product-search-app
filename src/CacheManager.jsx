@@ -112,7 +112,7 @@ const CacheManager = ({ onClose }) => {
                             <button
                                 onClick={handleForceUpdateApp}
                                 className="cache-btn cache-btn-primary"
-                                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-surface)' }}
                                 disabled={isClearing}
                             >
                                 <RotateCcw size={18} />

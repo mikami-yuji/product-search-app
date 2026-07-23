@@ -1,17 +1,50 @@
-/* Corporate-Style Business UI */
+/* Corporate-Style Business UI - DESIGN.md Design System v1.0.0 */
 :root {
-  --amazon-orange: #2B4C7E;     /* 彩度を落としたスレートインディゴ（メインカラー） */
-  --amazon-dark: #1E293B;       /* ダークチャコール（ヘッダー背景などの黒みを和らげる） */
-  --amazon-light: #334155;      /* ミディアムチャコール */
-  --amazon-blue: #4B6A9B;       /* スモーキーブルー */
-  --amazon-hover: #F8FAFC;      /* 非常に薄いブルーグレー */
-  --amazon-border: #E2E8F0;     /* 柔らかい境界線 */
-  --amazon-text: #1E293B;       /* 本文テキスト（コントラストを抑えたダークグレー） */
-  --amazon-text-light: #64748B;  /* ミディアムスレートテキスト */
-  --primary-blue: #2B4C7E;      /* スレートインディゴ */
-  --primary-blue-hover: #1E365C;/* ディープスレートインディゴ */
-  --badge-ready: #059669;       /* 彩度を抑えたグリーン */
-  --badge-custom: #D97706;      /* 彩度を抑えたアンバー */
+  /* Colors */
+  --color-primary: #2B4C7E;
+  --color-primary-hover: #1E365C;
+  --color-dark: #1E293B;
+  --color-light: #334155;
+  --color-accent-blue: #4B6A9B;
+  --color-bg: #F1F5F9;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text: #1E293B;
+  --color-text-light: #64748B;
+  --color-badge-ready: #059669;
+  --color-badge-custom: #D97706;
+  --color-button-hover: #F08804;
+
+  /* Legacy Aliases for Backward Compatibility */
+  --amazon-orange: var(--color-primary);
+  --amazon-dark: var(--color-dark);
+  --amazon-light: var(--color-light);
+  --amazon-blue: var(--color-accent-blue);
+  --amazon-hover: #F8FAFC;
+  --amazon-border: var(--color-border);
+  --amazon-text: var(--color-text);
+  --amazon-text-light: var(--color-text-light);
+  --primary-blue: var(--color-primary);
+  --primary-blue-hover: var(--color-primary-hover);
+  --badge-ready: var(--color-badge-ready);
+  --badge-custom: var(--color-badge-custom);
+
+  /* Rounded Tokens */
+  --rounded-sm: 4px;
+  --rounded-md: 8px;
+  --rounded-lg: 12px;
+
+  /* Spacing Tokens */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  /* Typography */
+  --font-family: 'Amazon Ember', Arial, sans-serif;
+
+  /* Transitions & Animations */
+  --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {

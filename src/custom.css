@@ -39,12 +39,12 @@
 }
 
 .cache-btn-warning {
-    background-color: #ff9900;
+    background-color: var(--color-badge-custom);
     color: white;
 }
 
 .cache-btn-warning:hover:not(:disabled) {
-    background-color: #e68a00;
+    background-color: #B45309;
 }
 
 /* Adjust existing styles for consistency */

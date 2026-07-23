@@ -1007,18 +1007,18 @@ function App() {
                 />
               </div>
               {filteredCustomerFiles.length > 0 ? (
-                <div className="customer-list-container" style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '0.75rem', background: '#fff', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' }}>
+                <div className="customer-list-container" style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--rounded-md)', marginTop: '0.75rem', background: 'var(--color-surface)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' }}>
                   <ul className="customer-list" style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left' }}>
                     {filteredCustomerFiles.map(file => (
                       <li
                         key={file.name}
                         className="customer-item"
-                        style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', transition: 'background-color 0.2s' }}
+                        style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', transition: 'background-color 0.2s' }}
                         onClick={() => loadCustomerFile(file.name)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--amazon-hover)'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
-                        <span className="customer-name" style={{ color: '#111', fontSize: '0.9rem', fontWeight: 500 }}>
+                        <span className="customer-name" style={{ color: 'var(--color-text)', fontSize: '0.9rem', fontWeight: 500 }}>
                           {file.name.replace(/\.xlsx?$/, '')}
                         </span>
                       </li>

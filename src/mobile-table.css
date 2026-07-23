@@ -117,12 +117,12 @@
     }
 
     .mobile-card-btn-primary {
-        background-color: var(--amazon-orange);
-        color: var(--amazon-dark);
+        background-color: var(--color-primary);
+        color: var(--color-surface);
     }
 
     .mobile-card-btn-primary:active {
-        background-color: #F08804;
+        background-color: var(--color-button-hover);
     }
 
     .mobile-card-btn-secondary {
