@@ -1,0 +1,17 @@
+{
+  "name": "得意先別商品検索ツール",
+  "short_name": "商品検索",
+  "description": "得意先別商品検索ツール",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "./pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
