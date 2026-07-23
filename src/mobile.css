@@ -242,6 +242,44 @@
         color: var(--color-surface);
         margin-top: auto !important;
     }
+
+    /* Toolbar - Export buttons text fitting */
+    .amazon-toolbar {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0.5rem 0 !important;
+        gap: 0.5rem !important;
+    }
+
+    .amazon-toolbar-controls {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.35rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .excel-export-btn,
+    .html-export-btn {
+        padding: 0.45rem 0.6rem !important;
+        font-size: 0.75rem !important;
+        gap: 0.3rem !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        min-width: fit-content !important;
+        flex-shrink: 0 !important;
+    }
+
+    .amazon-sort-select {
+        font-size: 0.78rem !important;
+        padding: 0.45rem 1.8rem 0.45rem 0.5rem !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .amazon-view-toggle {
+        flex-shrink: 0 !important;
+    }
 }
 
 /* Smartphone Layout Fixes (max-width: 480px) */
