@@ -123,24 +123,6 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
       }
     }
 
-    if (typeof targetHandle.values === 'function') {
-      try {
-        // @ts-ignore
-        for await (const entry of targetHandle.values()) {
-          if (entry && entry.kind === 'file' && entry.name) {
-            const entryNameLower = entry.name.toLowerCase();
-            for (const base of baseNames) {
-              if (entryNameLower.startsWith(base.toLowerCase())) {
-                return entry;
-              }
-            }
-          }
-        }
-      } catch {
-        // スキップ
-      }
-    }
-
     return null;
   };
 
