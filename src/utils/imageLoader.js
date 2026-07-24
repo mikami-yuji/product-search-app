@@ -112,7 +112,7 @@ export const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
  * @param {string} [customerFileName] - 顧客ファイル名（例: "16152_トーベイ（株）.xlsx"）
  * @returns {Promise<FileSystemFileHandle|null>} 発見した FileHandle
  */
-export const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
+export const findImageFileHandle = async (dirHandle, rawFilename) => {
   if (!dirHandle || !rawFilename) return null;
 
   const rawStr = String(rawFilename).trim();
@@ -141,53 +141,17 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     }
   }
 
-  const searchInDirectory = async (targetHandle) => {
-    if (!targetHandle || typeof targetHandle.getFileHandle !== 'function') return null;
+  if (typeof dirHandle.getFileHandle !== 'function') return null;
 
-    for (const prefix of prefixes) {
-      for (const ext of extensions) {
-        try {
-          const fileHandle = await targetHandle.getFileHandle(`${prefix}${ext}`);
-          if (fileHandle) return fileHandle;
-        } catch {
-          // 未検出時は次へ
-        }
+  for (const prefix of prefixes) {
+    for (const ext of extensions) {
+      try {
+        const fileHandle = await dirHandle.getFileHandle(`${prefix}${ext}`);
+        if (fileHandle) return fileHandle;
+      } catch {
+        // 未検出時は次へ
       }
     }
-
-    return null;
-  };
-
-  // 1. ルートディレクトリ直下の探索（PC用：画像フォルダ内に全画像が一括で入っている場合）
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-    // 次へ
-  }
-
-  // 2. 顧客専用サブディレクトリ内の探索（顧客サブフォルダ用）
-  if (customerFileName) {
-    try {
-      const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
-      if (subDirHandle) {
-        const foundSub = await searchInDirectory(subDirHandle);
-        if (foundSub) return foundSub;
-      }
-    } catch {
-      // スキップ
-    }
-  }
-
-  // 3. すべてのサブディレクトリ内を一括ピンポイント探索（どのサブフォルダにあるか不明な場合の救済）
-  try {
-    const subDirs = await getAllSubDirectories(dirHandle);
-    for (const subHandle of subDirs) {
-      const foundInAnySub = await searchInDirectory(subHandle);
-      if (foundInAnySub) return foundInAnySub;
-    }
-  } catch {
-    // スキップ
   }
 
   return null;
@@ -202,7 +166,7 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
  * @param {string} [customerFileName] - 顧客ファイル名
  * @returns {Promise<Blob|null>} 取得した画像のBlob、見つからない場合はnull
  */
-export const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
+export const fetchProductImageBlob = async (filename, dirHandle) => {
   if (!filename) return null;
 
   // 1. キャッシュからロード
@@ -233,7 +197,7 @@ export const fetchProductImageBlob = async (filename, dirHandle, customerFileNam
   // 3. ローカルの画像フォルダからロード（PCの一括直下＆スマホのサブフォルダ両対応）
   if (dirHandle) {
     try {
-      const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
+      const fileHandle = await findImageFileHandle(dirHandle, filename);
       if (fileHandle) {
         const file = await fileHandle.getFile();
         if (file) return file;

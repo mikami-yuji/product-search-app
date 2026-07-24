@@ -98,9 +98,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
 
             const searchKeys = Array.from(new Set([
                 cleanKey(filename),
-                cleanKey(productCode),
-                String(filename || '').trim(),
-                String(productCode || '').trim()
+                String(filename || '').trim()
             ])).filter(Boolean);
 
             // 0. メモリ内のファイルマップ (スマホ・インプット選択用RAM節約型) から超高速探索
@@ -234,7 +232,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
             if (dirHandle) {
                 for (const key of searchKeys) {
                     try {
-                        const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
+                        const fileHandle = await findImageFileHandle(dirHandle, key);
                         if (isCancelled) return;
 
                         if (fileHandle) {
