@@ -260,19 +260,21 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
     return subDirHandleCache.get(cacheKey) || null;
   }
   try {
-    const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
-    if (subHandle) {
-      subDirHandleCache.set(cacheKey, subHandle);
-      return subHandle;
+    if (typeof dirHandle.getDirectoryHandle === "function") {
+      const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
+      if (subHandle) {
+        subDirHandleCache.set(cacheKey, subHandle);
+        return subHandle;
+      }
     }
   } catch {
   }
   const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
-  if (match) {
+  if (match && typeof dirHandle.values === "function") {
     const customerCode = match[1];
     try {
       for await (const entry of dirHandle.values()) {
-        if (entry.kind === "directory" && entry.name.startsWith(customerCode)) {
+        if (entry && entry.kind === "directory" && entry.name && entry.name.startsWith(customerCode)) {
           subDirHandleCache.set(cacheKey, entry);
           return entry;
         }
@@ -287,32 +289,37 @@ const findImageFileHandle = async (dirHandle, filename, customerFileName) => {
   if (!dirHandle || !filename) return null;
   const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
   if (customerFileName) {
-    const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
-    if (subDirHandle) {
-      for (const ext of extensions) {
-        try {
-          const fileHandle = await subDirHandle.getFileHandle(`${filename}${ext}`);
-          if (fileHandle) return fileHandle;
-        } catch {
-        }
-        try {
-          const fileHandle = await subDirHandle.getFileHandle(`${filename}A${ext}`);
-          if (fileHandle) return fileHandle;
-        } catch {
+    try {
+      const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
+      if (subDirHandle && typeof subDirHandle.getFileHandle === "function") {
+        for (const ext of extensions) {
+          try {
+            const fileHandle = await subDirHandle.getFileHandle(`${filename}${ext}`);
+            if (fileHandle) return fileHandle;
+          } catch {
+          }
+          try {
+            const fileHandle = await subDirHandle.getFileHandle(`${filename}A${ext}`);
+            if (fileHandle) return fileHandle;
+          } catch {
+          }
         }
       }
+    } catch {
     }
   }
-  for (const ext of extensions) {
-    try {
-      const fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
-      if (fileHandle) return fileHandle;
-    } catch {
-    }
-    try {
-      const fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
-      if (fileHandle) return fileHandle;
-    } catch {
+  if (typeof dirHandle.getFileHandle === "function") {
+    for (const ext of extensions) {
+      try {
+        const fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
+        if (fileHandle) return fileHandle;
+      } catch {
+      }
+      try {
+        const fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
+        if (fileHandle) return fileHandle;
+      } catch {
+      }
     }
   }
   return null;
@@ -2208,12 +2215,7 @@ function App() {
     }
     return true;
   });
-  const [isCustomerSectionOpen, setIsCustomerSectionOpen] = reactExports.useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth > 480;
-    }
-    return true;
-  });
+  const [isCustomerSectionOpen, setIsCustomerSectionOpen] = reactExports.useState(true);
   reactExports.useEffect(() => {
     if (typeof window !== "undefined") {
       document.body.classList.remove("dark-mode");
