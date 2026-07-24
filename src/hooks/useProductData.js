@@ -337,7 +337,7 @@ export const useProductData = () => {
             console.warn('showDirectoryPicker failed or unavailable, falling back to file input:', err);
         }
 
-        const input = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
+        const input = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
         if (input) {
             input.click();
         }
@@ -363,10 +363,10 @@ export const useProductData = () => {
             }
         } catch (err) {
             if (err.name === 'AbortError') return;
-            console.warn('showDirectoryPicker failed for customer folder, falling back to file input:', err);
+            console.warn('showDirectoryPicker failed for customer folder, falling back to folder input:', err);
         }
 
-        const input = document.getElementById('customer-files-input');
+        const input = document.getElementById('customer-folder-input') || document.getElementById('customer-files-input');
         if (input) {
             input.click();
         }
