@@ -2092,12 +2092,18 @@ const useProductData = () => {
     try {
       if (isFileSystemSupported) {
         if (dirHandle) {
-          const options = { mode: "read" };
-          const permission = await dirHandle.requestPermission(options);
-          if (permission === "granted") {
-            setPermissionGranted(true);
-            setError(null);
-            return;
+          try {
+            const options = { mode: "read" };
+            let permission = await dirHandle.queryPermission(options);
+            if (permission !== "granted") {
+              permission = await dirHandle.requestPermission(options);
+            }
+            if (permission === "granted") {
+              setPermissionGranted(true);
+              setError(null);
+              return;
+            }
+          } catch {
           }
         }
         const handle = await window.showDirectoryPicker();
@@ -2109,7 +2115,7 @@ const useProductData = () => {
       }
       document.getElementById("image-files-input")?.click();
     } catch (err) {
-      if (err.name !== "AbortError") {
+      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
         console.error("Error selecting folder, falling back:", err);
         document.getElementById("image-files-input")?.click();
       }
@@ -2119,16 +2125,22 @@ const useProductData = () => {
     if (!isFileSystemSupported) return;
     try {
       if (customerDirHandle) {
-        const options = { mode: "read" };
-        const permission = await customerDirHandle.requestPermission(options);
-        if (permission === "granted") {
-          setCustomerPermissionGranted(true);
-          const files2 = await getExcelFilesFromDir(customerDirHandle);
-          files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-          setCustomerFiles(files2);
-          await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
-          setError(null);
-          return;
+        try {
+          const options = { mode: "read" };
+          let permission = await customerDirHandle.queryPermission(options);
+          if (permission !== "granted") {
+            permission = await customerDirHandle.requestPermission(options);
+          }
+          if (permission === "granted") {
+            setCustomerPermissionGranted(true);
+            const files2 = await getExcelFilesFromDir(customerDirHandle);
+            files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+            setCustomerFiles(files2);
+            await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
+            setError(null);
+            return;
+          }
+        } catch {
         }
       }
       const handle = await window.showDirectoryPicker();
@@ -2141,7 +2153,7 @@ const useProductData = () => {
       await set("customerDirHandle", handle);
       await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
     } catch (err) {
-      if (err.name !== "AbortError") {
+      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
         console.error("Error selecting customer folder:", err);
         setError("顧客フォルダの選択に失敗しました");
       }
