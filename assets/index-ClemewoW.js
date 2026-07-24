@@ -1738,23 +1738,37 @@ const useProductData = () => {
         if (cachedDirHandle && isFileSystemSupported) {
           setDirHandle(cachedDirHandle);
           const options = { mode: "read" };
-          const permission = await cachedDirHandle.queryPermission(options);
-          if (permission === "granted") {
-            setPermissionGranted(true);
-          } else {
+          try {
+            const permission = await cachedDirHandle.queryPermission(options);
+            if (permission === "granted") {
+              setPermissionGranted(true);
+            } else {
+              setPermissionGranted(false);
+            }
+          } catch {
             setPermissionGranted(false);
           }
         }
         if (cachedCustomerDirHandle && isFileSystemSupported) {
           setCustomerDirHandle(cachedCustomerDirHandle);
           const options = { mode: "read" };
-          const permission = await cachedCustomerDirHandle.queryPermission(options);
-          if (permission === "granted") {
-            setCustomerPermissionGranted(true);
-            const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
-            files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-            setCustomerFiles(files);
-          } else {
+          try {
+            const permission = await cachedCustomerDirHandle.queryPermission(options);
+            if (permission === "granted") {
+              setCustomerPermissionGranted(true);
+              const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
+              files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+              setCustomerFiles(files);
+            } else {
+              const cachedCustomerFilesList = await get("customerFilesListCache");
+              if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
+                setCustomerFiles(cachedCustomerFilesList);
+                setCustomerPermissionGranted(true);
+              } else {
+                setCustomerPermissionGranted(false);
+              }
+            }
+          } catch {
             const cachedCustomerFilesList = await get("customerFilesListCache");
             if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
               setCustomerFiles(cachedCustomerFilesList);
@@ -1771,118 +1785,78 @@ const useProductData = () => {
           }
         }
       } catch (err) {
-        console.error("Error loading cache:", err);
-        setError("キャッシュの読み込みに失敗しました");
+        console.error("Error loading cached data:", err);
       } finally {
         setIsLoading(false);
       }
     };
     loadCachedData();
   }, []);
-  const validateData = (jsonData) => {
-    if (!jsonData || jsonData.length === 0) {
-      throw new Error("データが空です");
+  const processRawData = async (jsonData, sourceFileName) => {
+    if (jsonData.length === 0) {
+      throw new Error("ファイルにデータが含まれていません");
     }
-    const firstRow = jsonData[0];
-    const missingColumns = REQUIRED_COLUMNS.filter((col) => !(col in firstRow));
+    const headers = Object.keys(jsonData[0]);
+    const missingColumns = REQUIRED_COLUMNS.filter((col) => !headers.includes(col));
     if (missingColumns.length > 0) {
       throw new Error(`必須列が見つかりません: ${missingColumns.join(", ")}`);
     }
-    return true;
+    const processedData = jsonData.map((row, index) => {
+      const cleanRow = {};
+      Object.keys(row).forEach((key) => {
+        const cleanKey = key.trim();
+        cleanRow[cleanKey] = row[key] !== void 0 && row[key] !== null ? String(row[key]).trim() : "";
+      });
+      cleanRow._id = `${sourceFileName}_${cleanRow["受注№"] || index}`;
+      return cleanRow;
+    });
+    setData(processedData);
+    setFileName(sourceFileName);
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    setLastModified(now);
+    await set("productData", processedData);
+    await set("fileName", sourceFileName);
+    await set("lastModified", now);
   };
   const processExcelFile = async (file) => {
     setIsLoading(true);
     setError(null);
-    setFileName(file.name);
-    setLastModified(file.lastModified);
-    if (file.size === 0) {
-      console.log("File size is 0. Attempting to wake up cloud file...");
-    }
-    const readWithRetry = async (attempt = 1) => {
-      const MAX_RETRIES = 3;
-      const RETRY_DELAY = 1500;
-      if (file.size === 0) {
-        setError(`クラウドからデータを取得中... (${attempt}/${MAX_RETRIES})`);
-      }
-      return new Promise((resolve, reject) => {
+    try {
+      await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onerror = () => {
-          reject(new Error(`Read failed (Code: ${reader.error?.code})`));
-        };
-        reader.onload = (evt) => {
-          const buffer = evt.target.result;
-          if (buffer.byteLength === 0 && attempt <= MAX_RETRIES) {
-            console.warn(`Attempt ${attempt}: Read 0 bytes. Retrying...`);
-            setTimeout(() => readWithRetry(attempt + 1).then(resolve).catch(reject), RETRY_DELAY);
-          } else {
-            resolve(buffer);
+        reader.onload = (e) => {
+          try {
+            const data2 = new Uint8Array(e.target.result);
+            const workbook = readSync(data2, { type: "array" });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = utils.sheet_to_json(worksheet, { defval: "" });
+            resolve(jsonData);
+          } catch (err) {
+            reject(err);
           }
         };
+        reader.onerror = (err) => reject(err);
         reader.readAsArrayBuffer(file);
+      }).then(async (jsonData) => {
+        await processRawData(jsonData, file.name);
       });
-    };
-    try {
-      if (file.size === 0) {
-        setError("クラウドからデータを取得中... (これには数秒かかる場合があります)");
-      }
-      const buffer = await readWithRetry();
-      if (buffer.byteLength === 0) {
-        throw new Error("File is empty after retries");
-      }
-      console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
-      const parseExcelDirectly = () => {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            try {
-              const DO_NOT_PROCESS = { cellStyles: false, cellFormula: false, cellHTML: false, cellNF: false, cellText: false };
-              const workbook = readSync(buffer, { type: "array", dense: true, ...DO_NOT_PROCESS });
-              if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                throw new Error("シートが見つかりません");
-              }
-              const wsname = workbook.SheetNames[0];
-              const ws = workbook.Sheets[wsname];
-              const jsonData = utils.sheet_to_json(ws);
-              resolve(jsonData);
-            } catch (err) {
-              reject(err);
-            }
-          }, 0);
-        });
-      };
-      try {
-        const parsedData = await parseExcelDirectly();
-        validateData(parsedData);
-        setData(parsedData);
-        set("productData", parsedData);
-        set("fileName", file.name);
-        set("lastModified", file.lastModified);
-        setError(null);
-      } catch (err) {
-        console.error("Parsing failed:", err);
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        let userMsg = `エラーが発生しました (File: ${sizeMB}MB)`;
-        if (err.message && err.message.includes("Bad compressed size")) {
+    } catch (err) {
+      console.error("Error processing Excel file:", err);
+      let userMsg = "Excelファイルの読み込みに失敗しました";
+      if (err.message) {
+        if (err.message.includes("Bad compressed size")) {
           userMsg = `ファイルが破損しているか、ダウンロードが完了していません。
 (Bad compressed size)
 
 スマホの場合は、iCloud/Google Driveから「このiPhone内」に保存してから再度お試しください。`;
-        } else if (err.message && err.message.includes("Password")) {
-          userMsg = "パスワード保護されたファイルは読み込めません。";
         } else {
-          userMsg = `ファイルの解析に失敗しました: ${err.message}`;
+          userMsg = err.message;
         }
-        setError(userMsg);
-        setData([]);
-      } finally {
-        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("File processing error:", err);
-      if (file.size === 0) {
-        setError("ファイルの取得に失敗しました。クラウドからダウンロードされていない可能性があります。\n一度「ファイル」アプリで開いてから再度お試しください。");
-      } else {
-        setError("ファイルの読み込みに失敗しました。");
-      }
+      setError(userMsg);
+      throw err;
+    } finally {
       setIsLoading(false);
     }
   };
@@ -1891,24 +1865,30 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
-  const isPickerActiveRef = reactExports.useRef(false);
   const handleFolderSelect = async () => {
-    if (isPickerActiveRef.current) return;
-    isPickerActiveRef.current = true;
     try {
+      if (dirHandle && !permissionGranted) {
+        const options = { mode: "read" };
+        try {
+          const permission = await dirHandle.requestPermission(options);
+          if (permission === "granted") {
+            setPermissionGranted(true);
+            setError(null);
+            return;
+          }
+        } catch {
+        }
+      }
       const handle = await window.showDirectoryPicker();
       setDirHandle(handle);
       setPermissionGranted(true);
       setError(null);
       await set("imageDirHandle", handle);
     } catch (err) {
-      const isAlreadyActive = err.message && err.message.includes("already active");
-      if (err.name !== "AbortError" && !isAlreadyActive) {
+      if (err.name !== "AbortError" && !err.message?.includes("already active")) {
         console.error("Error selecting folder:", err);
         setError("フォルダの選択に失敗しました");
       }
-    } finally {
-      isPickerActiveRef.current = false;
     }
   };
   const handleImageFilesSelect = async (e) => {
@@ -1933,9 +1913,24 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
-    if (!isFileSystemSupported || isPickerActiveRef.current) return;
-    isPickerActiveRef.current = true;
+    if (!isFileSystemSupported) return;
     try {
+      if (customerDirHandle && !customerPermissionGranted) {
+        const options = { mode: "read" };
+        try {
+          const permission = await customerDirHandle.requestPermission(options);
+          if (permission === "granted") {
+            setCustomerPermissionGranted(true);
+            const files2 = await getExcelFilesFromDir(customerDirHandle);
+            files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+            setCustomerFiles(files2);
+            await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
+            setError(null);
+            return;
+          }
+        } catch {
+        }
+      }
       const handle = await window.showDirectoryPicker();
       setCustomerDirHandle(handle);
       setCustomerPermissionGranted(true);
@@ -1946,13 +1941,10 @@ const useProductData = () => {
       await set("customerDirHandle", handle);
       await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
     } catch (err) {
-      const isAlreadyActive = err.message && err.message.includes("already active");
-      if (err.name !== "AbortError" && !isAlreadyActive) {
+      if (err.name !== "AbortError" && !err.message?.includes("already active")) {
         console.error("Error selecting customer folder:", err);
         setError("顧客フォルダの選択に失敗しました");
       }
-    } finally {
-      isPickerActiveRef.current = false;
     }
   };
   const handleCustomerFilesSelect = async (e) => {
