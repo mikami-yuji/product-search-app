@@ -2016,6 +2016,7 @@ const useProductData = () => {
     }
   };
   const loadCustomerFile = async (name) => {
+    setIsLoading(true);
     try {
       let file;
       if (isFileSystemSupported && customerDirHandle) {
@@ -2045,6 +2046,8 @@ const useProductData = () => {
     } catch (err) {
       console.error("Error loading customer file:", err);
       setError(`顧客ファイル「${name}」の読み込みに失敗しました`);
+    } finally {
+      setIsLoading(false);
     }
   };
   return {
