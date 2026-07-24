@@ -2091,21 +2091,6 @@ const useProductData = () => {
   const handleFolderSelect = async () => {
     try {
       if (isFileSystemSupported) {
-        if (dirHandle) {
-          try {
-            const options = { mode: "read" };
-            let permission = await dirHandle.queryPermission(options);
-            if (permission !== "granted") {
-              permission = await dirHandle.requestPermission(options);
-            }
-            if (permission === "granted") {
-              setPermissionGranted(true);
-              setError(null);
-              return;
-            }
-          } catch {
-          }
-        }
         const handle = await window.showDirectoryPicker();
         setDirHandle(handle);
         setPermissionGranted(true);
@@ -2115,34 +2100,14 @@ const useProductData = () => {
       }
       document.getElementById("image-files-input")?.click();
     } catch (err) {
-      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
-        console.error("Error selecting folder, falling back:", err);
-        document.getElementById("image-files-input")?.click();
+      if (err.name !== "AbortError") {
+        console.error("Error selecting image folder:", err);
       }
     }
   };
   const handleCustomerFolderSelect = async () => {
     if (!isFileSystemSupported) return;
     try {
-      if (customerDirHandle) {
-        try {
-          const options = { mode: "read" };
-          let permission = await customerDirHandle.queryPermission(options);
-          if (permission !== "granted") {
-            permission = await customerDirHandle.requestPermission(options);
-          }
-          if (permission === "granted") {
-            setCustomerPermissionGranted(true);
-            const files2 = await getExcelFilesFromDir(customerDirHandle);
-            files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-            setCustomerFiles(files2);
-            await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
-            setError(null);
-            return;
-          }
-        } catch {
-        }
-      }
       const handle = await window.showDirectoryPicker();
       setCustomerDirHandle(handle);
       setCustomerPermissionGranted(true);
@@ -2153,9 +2118,8 @@ const useProductData = () => {
       await set("customerDirHandle", handle);
       await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
     } catch (err) {
-      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
+      if (err.name !== "AbortError") {
         console.error("Error selecting customer folder:", err);
-        setError("顧客フォルダの選択に失敗しました");
       }
     }
   };
@@ -2814,7 +2778,7 @@ function App() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
           permissionGranted ? "画像接続済" : "画像フォルダ"
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "file-input", className: "amazon-btn amazon-btn-primary", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => document.getElementById("file-input")?.click(), className: "amazon-btn amazon-btn-primary", title: "Excelファイルを直接開く", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
           fileName || "ファイル選択"
         ] }),
