@@ -6,6 +6,7 @@ import { findImageFileHandle } from './utils/imageLoader';
 /**
  * @typedef {Object} ProductImageProps
  * @property {FileSystemDirectoryHandle} [dirHandle] - ディレクトリハンドル
+ * @property {Map<string, File>} [imageFilesMap] - メモリ上の画像ファイルマップ（スマホ用）
  * @property {string} filename - 画像ファイル名（通常は受注№）
  * @property {string} [customerFileName] - 顧客ファイル名（例: "16152_トーベイ（株）.xlsx"）
  * @property {string} [productCode] - 商品コード
@@ -20,7 +21,7 @@ import { findImageFileHandle } from './utils/imageLoader';
  * @param {ProductImageProps} props - プロパティ
  * @returns {React.ReactElement} - レンダリング要素
  */
-const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, productCode, className, onClick }) => {
     /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
@@ -100,6 +101,34 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
                 String(filename || '').trim(),
                 String(productCode || '').trim()
             ])).filter(Boolean);
+
+            // 0. メモリ内のファイルマップ (スマホ・インプット選択用RAM節約型) から超高速探索
+            if (imageFilesMap && imageFilesMap.size > 0) {
+                const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, '').trim().toLowerCase() : '';
+                for (const key of searchKeys) {
+                    const kLower = key.toLowerCase();
+                    const candidates = [
+                        kLower,
+                        `${kLower}a`,
+                        `${kLower}_1`,
+                        `${customerPrefix}/${kLower}`,
+                        `${customerPrefix}/${kLower}a`
+                    ];
+                    for (const cand of candidates) {
+                        const file = imageFilesMap.get(cand);
+                        if (file) {
+                            const objectUrl = URL.createObjectURL(file);
+                            if (isCancelled) {
+                                URL.revokeObjectURL(objectUrl);
+                                return;
+                            }
+                            updateImageUrl(objectUrl);
+                            setError(false);
+                            return;
+                        }
+                    }
+                }
+            }
 
             // 1. キャッシュから読み込みを試みる
             for (const key of searchKeys) {
@@ -206,7 +235,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
         return () => {
             isCancelled = true;
         };
-    }, [dirHandle, filename, customerFileName, productCode, isVisible]);
+    }, [dirHandle, imageFilesMap, filename, customerFileName, productCode, isVisible]);
 
     if (!isVisible) {
         return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;

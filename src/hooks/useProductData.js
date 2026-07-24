@@ -253,34 +253,78 @@ export const useProductData = () => {
         processExcelFile(file);
     };
 
+    /** @type {[Map<string, File>, React.Dispatch<React.SetStateAction<Map<string, File>>>]} */
+    const [imageFilesMap, setImageFilesMap] = useState(new Map());
+
+    /**
+     * スマホ等のファイルインプット選択時に画像ファイル群をマップ化して登録（RAM節約超軽量インデックス）
+     * @param {React.ChangeEvent<HTMLInputElement>} e
+     */
+    const handleImageFilesSelect = (e) => {
+        const files = Array.from(e.target.files).filter(
+            file => file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+        );
+
+        if (files.length === 0) return;
+
+        const newMap = new Map(imageFilesMap);
+
+        for (const file of files) {
+            const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
+            const cleanedRawName = rawName
+                .replace(/,/g, '')
+                .replace(/\.0+$/, '')
+                .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+
+            newMap.set(rawName.toLowerCase(), file);
+            newMap.set(cleanedRawName.toLowerCase(), file);
+            newMap.set(file.name.toLowerCase(), file);
+
+            if (file.webkitRelativePath) {
+                const parts = file.webkitRelativePath.split('/');
+                if (parts.length > 1) {
+                    const folderName = parts[parts.length - 2];
+                    newMap.set(`${folderName}/${rawName}`.toLowerCase(), file);
+                    newMap.set(`${folderName}/${cleanedRawName}`.toLowerCase(), file);
+                }
+            }
+        }
+
+        setImageFilesMap(newMap);
+        setPermissionGranted(true);
+        setError(null);
+    };
+
     /**
      * Handle image folder selection and connection.
      * @returns {Promise<void>}
      */
     const handleFolderSelect = async () => {
         try {
-            // コメント: すでに保存されたハンドルがあり、かつパーミッション未付与の場合、再度パーミッションを要求する
-            if (dirHandle) {
-                const options = { mode: 'read' };
-                const permission = await dirHandle.requestPermission(options);
-                if (permission === 'granted') {
-                    setPermissionGranted(true);
-                    setError(null);
-                    return;
+            if (isFileSystemSupported) {
+                if (dirHandle) {
+                    const options = { mode: 'read' };
+                    const permission = await dirHandle.requestPermission(options);
+                    if (permission === 'granted') {
+                        setPermissionGranted(true);
+                        setError(null);
+                        return;
+                    }
                 }
+
+                const handle = await window.showDirectoryPicker();
+                setDirHandle(handle);
+                setPermissionGranted(true);
+                setError(null);
+                await set('imageDirHandle', handle);
+                return;
             }
 
-            // コメント: ハンドルがない、またはパーミッション要求が拒否された場合は新しくフォルダ選択ピッカーを開く
-            const handle = await window.showDirectoryPicker();
-            setDirHandle(handle);
-            setPermissionGranted(true);
-            setError(null);
-            // コメント: 選択したディレクトリハンドルをIndexedDBにキャッシュ保存する
-            await set('imageDirHandle', handle);
+            document.getElementById('image-files-input')?.click();
         } catch (err) {
             if (err.name !== 'AbortError') {
-                console.error('Error selecting folder:', err);
-                setError('フォルダの選択に失敗しました');
+                console.error('Error selecting folder, falling back:', err);
+                document.getElementById('image-files-input')?.click();
             }
         }
     };
@@ -396,6 +440,7 @@ export const useProductData = () => {
         fileName,
         lastModified,
         dirHandle,
+        imageFilesMap,
         permissionGranted,
         customerDirHandle,
         customerPermissionGranted,
@@ -405,6 +450,7 @@ export const useProductData = () => {
         isFileSystemSupported,
         handleFileUpload,
         handleFolderSelect,
+        handleImageFilesSelect,
         handleCustomerFolderSelect,
         handleCustomerFilesSelect,
         loadCustomerFile,
