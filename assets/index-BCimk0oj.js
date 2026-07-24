@@ -287,22 +287,27 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
 };
 const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
   if (!dirHandle || !rawFilename) return null;
-  const filename = String(rawFilename).trim().replace(
+  const trimmed = String(rawFilename).trim().replace(
     /[Ａ-Ｚａ-ｚ０-９]/g,
     (s) => String.fromCharCode(s.charCodeAt(0) - 65248)
   );
+  const unpadded = trimmed.replace(/^0+/, "");
+  const baseNames = Array.from(/* @__PURE__ */ new Set([trimmed, unpadded])).filter(Boolean);
   const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
-  const prefixes = [
-    `${filename}`,
-    `${filename}A`,
-    `${filename}a`,
-    `${filename}_1`,
-    `${filename}_A`,
-    `${filename}_a`,
-    `${filename}-1`,
-    `${filename}-A`,
-    `${filename}-a`
-  ];
+  const prefixes = [];
+  for (const base of baseNames) {
+    prefixes.push(
+      base,
+      `${base}A`,
+      `${base}a`,
+      `${base}_1`,
+      `${base}_A`,
+      `${base}_a`,
+      `${base}-1`,
+      `${base}-A`,
+      `${base}-a`
+    );
+  }
   const searchInDirectory = async (targetHandle) => {
     if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
     for (const prefix of prefixes) {
@@ -319,9 +324,10 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
         for await (const entry of targetHandle.values()) {
           if (entry && entry.kind === "file" && entry.name) {
             const entryNameLower = entry.name.toLowerCase();
-            const fnLower = filename.toLowerCase();
-            if (entryNameLower.startsWith(fnLower)) {
-              return entry;
+            for (const base of baseNames) {
+              if (entryNameLower.startsWith(base.toLowerCase())) {
+                return entry;
+              }
             }
           }
         }
@@ -690,7 +696,7 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
-const ProductImage = ({ dirHandle, filename, customerFileName, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -706,7 +712,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
           }
         });
       },
-      { rootMargin: "50px" }
+      { rootMargin: "100px" }
     );
     if (imgRef.current) {
       observer.observe(imgRef.current);
@@ -739,45 +745,47 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
     let isCancelled = false;
     const loadImage = async () => {
       setError(false);
-      try {
-        const variants = [
-          filename,
-          `${filename}A`,
-          `${filename}a`,
-          `${filename}_1`,
-          `${filename}_A`,
-          `${filename}-1`,
-          `${filename}-A`
-        ];
-        for (const variant of variants) {
-          const cachedBlob = await getCachedImage(variant);
-          if (isCancelled) return;
-          if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
-            const objectUrl = URL.createObjectURL(cachedBlob);
-            if (isCancelled) {
-              URL.revokeObjectURL(objectUrl);
+      const searchKeys = Array.from(/* @__PURE__ */ new Set([filename, productCode])).filter(Boolean);
+      for (const key of searchKeys) {
+        try {
+          const variants = [
+            key,
+            `${key}A`,
+            `${key}a`,
+            `${key}_1`,
+            `${key}_A`,
+            `${key}-1`,
+            `${key}-A`
+          ];
+          for (const variant of variants) {
+            const cachedBlob = await getCachedImage(variant);
+            if (isCancelled) return;
+            if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
+              const objectUrl = URL.createObjectURL(cachedBlob);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+              updateImageUrl(objectUrl);
+              setError(false);
               return;
             }
-            updateImageUrl(objectUrl);
-            setError(false);
-            return;
           }
+        } catch (err) {
+          console.error("Error loading cached image:", err);
         }
-      } catch (err) {
-        console.error("Error loading cached image:", err);
       }
-      if (filename) {
+      for (const key of searchKeys) {
         try {
-          const response = await fetch(`/_local_images/${filename}`);
+          const response = await fetch(`/_local_images/${key}`);
           if (isCancelled) return;
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.startsWith("image/")) {
               const blob = await response.blob();
               try {
-                await cacheImage(filename, blob);
-              } catch (err) {
-                console.error("Failed to cache dev server image:", err);
+                await cacheImage(key, blob);
+              } catch {
               }
               if (isCancelled) return;
               const objectUrl = URL.createObjectURL(blob);
@@ -788,36 +796,21 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
               updateImageUrl(objectUrl);
               setError(false);
               return;
-            } else {
-              console.log(`Local dev server response for ${filename} is not an image. Content-Type:`, contentType);
             }
           }
-        } catch (err) {
-          console.log("Local dev server image not available, falling back:", err.message);
+        } catch {
         }
       }
-      if (dirHandle && filename) {
-        try {
-          let hasPermission = false;
-          if (typeof dirHandle.queryPermission === "function") {
-            try {
-              const permission = await dirHandle.queryPermission({ mode: "read" });
-              hasPermission = permission === "granted";
-            } catch {
-              hasPermission = false;
-            }
-          } else {
-            hasPermission = true;
-          }
-          if (hasPermission) {
-            const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
+      if (dirHandle) {
+        for (const key of searchKeys) {
+          try {
+            const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
             if (isCancelled) return;
             if (fileHandle) {
               const file = await fileHandle.getFile();
               try {
-                await cacheImage(filename, file);
-              } catch (err) {
-                console.error("Failed to cache image:", err);
+                await cacheImage(key, file);
+              } catch {
               }
               if (isCancelled) return;
               const objectUrl = URL.createObjectURL(file);
@@ -829,9 +822,9 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
               setError(false);
               return;
             }
+          } catch (err) {
+            console.error("Error loading local image from dirHandle:", err);
           }
-        } catch (err) {
-          console.error("Error loading local image:", err);
         }
       }
       if (!isCancelled) {
@@ -842,7 +835,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, filename, customerFileName, isVisible]);
+  }, [dirHandle, filename, customerFileName, productCode, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -859,11 +852,11 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
         "img",
         {
           src: imageUrl,
-          alt: filename,
+          alt: filename || productCode,
           className: `product-thumbnail image-fade-in ${isLoaded ? "loaded" : ""}`,
           onLoad: () => setIsLoaded(true),
           onError: () => {
-            console.error(`Failed to load image: ${imageUrl}`);
+            console.error(`Failed to load image for ${filename || productCode}`);
             setError(true);
           }
         }
