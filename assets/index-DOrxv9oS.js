@@ -213,6 +213,11 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
     }
     return null;
   };
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
+  }
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
@@ -222,11 +227,6 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
       }
     } catch {
     }
-  }
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
   }
   return null;
 };
