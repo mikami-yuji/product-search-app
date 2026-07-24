@@ -123,7 +123,106 @@ const getCacheStats = async () => {
     return { count: 0, totalSize: 0, totalSizeMB: "0.00", entries: [] };
   }
 };
-const fetchProductImageBlob = async (filename, dirHandle) => {
+const subDirHandleCache = /* @__PURE__ */ new Map();
+const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
+  if (!dirHandle || !customerFileName) return null;
+  const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, "").trim();
+  if (!rawCustomerName) return null;
+  const cacheKey = `${dirHandle.name || "root"}:${rawCustomerName}`;
+  if (subDirHandleCache.has(cacheKey)) {
+    return subDirHandleCache.get(cacheKey);
+  }
+  try {
+    if (typeof dirHandle.getDirectoryHandle === "function") {
+      const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
+      if (subHandle) {
+        subDirHandleCache.set(cacheKey, subHandle);
+        return subHandle;
+      }
+    }
+  } catch {
+  }
+  const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
+  if (match && typeof dirHandle.values === "function") {
+    const customerCode = match[1];
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (entry && entry.kind === "directory" && entry.name && (entry.name.startsWith(customerCode) || entry.name.includes(customerCode))) {
+          subDirHandleCache.set(cacheKey, entry);
+          return entry;
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
+};
+const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
+  if (!dirHandle || !rawFilename) return null;
+  const cleaned = String(rawFilename).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+  const unpadded = cleaned.replace(/^0+/, "");
+  const baseNames = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, String(rawFilename).trim()])).filter(Boolean);
+  const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
+  const prefixes = [];
+  for (const base of baseNames) {
+    prefixes.push(
+      base,
+      `${base}A`,
+      `${base}a`,
+      `${base}_1`,
+      `${base}_A`,
+      `${base}_a`,
+      `${base}-1`,
+      `${base}-A`,
+      `${base}-a`
+    );
+  }
+  const searchInDirectory = async (targetHandle) => {
+    if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
+    for (const prefix of prefixes) {
+      for (const ext of extensions) {
+        try {
+          const fileHandle = await targetHandle.getFileHandle(`${prefix}${ext}`);
+          if (fileHandle) return fileHandle;
+        } catch {
+        }
+      }
+    }
+    if (typeof targetHandle.values === "function") {
+      try {
+        for await (const entry of targetHandle.values()) {
+          if (entry && entry.kind === "file" && entry.name) {
+            const entryNameLower = entry.name.toLowerCase();
+            for (const base of baseNames) {
+              if (entryNameLower.startsWith(base.toLowerCase())) {
+                return entry;
+              }
+            }
+          }
+        }
+      } catch {
+      }
+    }
+    return null;
+  };
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
+  }
+  if (customerFileName) {
+    try {
+      const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
+      if (subDirHandle) {
+        const foundSub = await searchInDirectory(subDirHandle);
+        if (foundSub) return foundSub;
+      }
+    } catch {
+    }
+  }
+  return null;
+};
+const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
   if (!filename) return null;
   if (typeof indexedDB !== "undefined") {
     try {
@@ -146,21 +245,13 @@ const fetchProductImageBlob = async (filename, dirHandle) => {
   } catch {
   }
   if (dirHandle) {
-    const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-    const candidates = [];
-    for (const ext of extensions) {
-      candidates.push(`${filename}${ext}`);
-      candidates.push(`${filename}A${ext}`);
-    }
-    for (const name of candidates) {
-      try {
-        const fileHandle = await dirHandle.getFileHandle(name);
-        if (fileHandle) {
-          const file = await fileHandle.getFile();
-          if (file) return file;
-        }
-      } catch {
+    try {
+      const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
+      if (fileHandle) {
+        const file = await fileHandle.getFile();
+        if (file) return file;
       }
+    } catch {
     }
   }
   return null;
@@ -663,7 +754,7 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
-const ProductImage = ({ dirHandle, filename, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -679,7 +770,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
           }
         });
       },
-      { rootMargin: "50px" }
+      { rootMargin: "100px" }
     );
     if (imgRef.current) {
       observer.observe(imgRef.current);
@@ -711,36 +802,57 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     if (!isVisible) return;
     let isCancelled = false;
     const loadImage = async () => {
-      try {
-        const cachedBlob = await getCachedImage(filename);
-        if (isCancelled) return;
-        if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
-          const objectUrl = URL.createObjectURL(cachedBlob);
-          if (isCancelled) {
-            URL.revokeObjectURL(objectUrl);
-            return;
-          }
-          updateImageUrl(objectUrl);
-          setError(false);
-          return;
-        } else if (cachedBlob) {
-          console.warn(`Invalid cached image detected for ${filename}. Cached item is not a valid image Blob.`, cachedBlob);
-        }
-      } catch (err) {
-        console.error("Error loading cached image:", err);
-      }
-      if (filename) {
+      setError(false);
+      const cleanKey = (val) => {
+        if (!val) return "";
+        return String(val).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      };
+      const searchKeys = Array.from(/* @__PURE__ */ new Set([
+        cleanKey(filename),
+        cleanKey(productCode),
+        String(filename || "").trim(),
+        String(productCode || "").trim()
+      ])).filter(Boolean);
+      for (const key of searchKeys) {
         try {
-          const response = await fetch(`/_local_images/${filename}`);
+          const variants = [
+            key,
+            `${key}A`,
+            `${key}a`,
+            `${key}_1`,
+            `${key}_A`,
+            `${key}-1`,
+            `${key}-A`
+          ];
+          for (const variant of variants) {
+            const cachedBlob = await getCachedImage(variant);
+            if (isCancelled) return;
+            if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
+              const objectUrl = URL.createObjectURL(cachedBlob);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+              updateImageUrl(objectUrl);
+              setError(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error loading cached image:", err);
+        }
+      }
+      for (const key of searchKeys) {
+        try {
+          const response = await fetch(`/_local_images/${key}`);
           if (isCancelled) return;
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.startsWith("image/")) {
               const blob = await response.blob();
               try {
-                await cacheImage(filename, blob);
-              } catch (err) {
-                console.error("Failed to cache dev server image:", err);
+                await cacheImage(key, blob);
+              } catch {
               }
               if (isCancelled) return;
               const objectUrl = URL.createObjectURL(blob);
@@ -751,54 +863,35 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
               updateImageUrl(objectUrl);
               setError(false);
               return;
-            } else {
-              console.log(`Local dev server response for ${filename} is not an image. Content-Type:`, contentType);
             }
           }
-        } catch (err) {
-          console.log("Local dev server image not available, falling back:", err.message);
+        } catch {
         }
       }
-      if (dirHandle && filename) {
-        try {
-          const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-          let fileHandle = null;
-          for (const ext of extensions) {
+      if (dirHandle) {
+        for (const key of searchKeys) {
+          try {
+            const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
             if (isCancelled) return;
-            try {
+            if (fileHandle) {
+              const file = await fileHandle.getFile();
               try {
-                fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
-                if (fileHandle) break;
+                await cacheImage(key, file);
               } catch {
               }
-              try {
-                fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
-                if (fileHandle) break;
-              } catch {
+              if (isCancelled) return;
+              const objectUrl = URL.createObjectURL(file);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
               }
-            } catch {
-            }
-          }
-          if (isCancelled) return;
-          if (fileHandle) {
-            const file = await fileHandle.getFile();
-            try {
-              await cacheImage(filename, file);
-            } catch (err) {
-              console.error("Failed to cache image:", err);
-            }
-            if (isCancelled) return;
-            const objectUrl = URL.createObjectURL(file);
-            if (isCancelled) {
-              URL.revokeObjectURL(objectUrl);
+              updateImageUrl(objectUrl);
+              setError(false);
               return;
             }
-            updateImageUrl(objectUrl);
-            setError(false);
-            return;
+          } catch (err) {
+            console.error("Error loading local image from dirHandle:", err);
           }
-        } catch (err) {
-          console.error("Error loading local image:", err);
         }
       }
       if (!isCancelled) {
@@ -809,7 +902,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, filename, isVisible]);
+  }, [dirHandle, filename, customerFileName, productCode, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -826,11 +919,11 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
         "img",
         {
           src: imageUrl,
-          alt: filename,
+          alt: filename || productCode,
           className: `product-thumbnail image-fade-in ${isLoaded ? "loaded" : ""}`,
           onLoad: () => setIsLoaded(true),
           onError: () => {
-            console.error(`Failed to load image: ${imageUrl}`);
+            console.error(`Failed to load image for ${filename || productCode}`);
             setError(true);
           }
         }
@@ -1368,7 +1461,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, customerFileName, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1390,6 +1483,7 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
         dirHandle,
         filename: product["受注№"],
         productCode: product["商品コード"],
+        customerFileName,
         className: "amazon-card-image"
       }
     ) }),
@@ -1441,7 +1535,7 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
   ] });
 };
 const ProductCard$1 = React.memo(ProductCard, (prevProps, nextProps) => {
-  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle;
+  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle && prevProps.customerFileName === nextProps.customerFileName;
 });
 const Toast = ({ message, type = "success", isVisible, onClose }) => {
   reactExports.useEffect(() => {
@@ -2941,6 +3035,7 @@ function App() {
           {
             product,
             dirHandle,
+            customerFileName: fileName,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
             keyword
@@ -2949,7 +3044,7 @@ function App() {
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -2963,7 +3058,7 @@ function App() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-id", children: row["商品コード"] })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-body", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-field", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-label", children: "受注№" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-value", children: row["受注№"] })
