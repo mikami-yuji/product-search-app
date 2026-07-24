@@ -1,15 +1,32 @@
 import ExcelJS from 'exceljs';
+import { fetchProductImageBlob } from './imageLoader';
 
+/**
+ * ArrayBuffer または Blob から画像の拡張子(png/jpeg)を判定する
+ * @param {Blob|Uint8Array} blob
+ * @returns {'png'|'jpeg'}
+ */
+const getImageExtension = (blob) => {
+  if (blob && blob.type && blob.type.includes('png')) {
+    return 'png';
+  }
+  return 'jpeg';
+};
 
 /**
  * 商品データを元に、お客様提出用の高クオリティなExcelワークブックオブジェクトを作成する。
- * 罫線、整列、およびスタイリングを含みます。
+ * 罫線、整列、およびスタイリングを含みます。画像埋め込みオプション対応。
  * 
  * @param {import('../types/product').Product[]} products - 絞り込まれた商品データの配列
  * @param {string} [fileName] - 顧客ファイル名
+ * @param {Object} [options] - オプション
+ * @param {boolean} [options.includeImages=false] - 画像を含めるかどうか
+ * @param {FileSystemDirectoryHandle} [options.dirHandle=null] - 画像フォルダハンドル
  * @returns {Promise<ExcelJS.Workbook>} 作成されたExcelワークブックオブジェクト
  */
-export const createProductExcelWorkbook = async (products, fileName) => {
+export const createProductExcelWorkbook = async (products, fileName, options = {}) => {
+  const { includeImages = false, dirHandle = null } = options;
+
   if (!products || products.length === 0) {
     throw new Error('出力するデータがありません');
   }
@@ -26,10 +43,10 @@ export const createProductExcelWorkbook = async (products, fileName) => {
   const worksheet = workbook.addWorksheet('商品一覧');
 
   // グリッド線の表示設定
-  worksheet.views = [{ showGridLines: true }];
+  const lastColLetter = includeImages ? 'M' : 'L';
 
   // 1. タイトル
-  worksheet.mergeCells('A1:L1');
+  worksheet.mergeCells(`A1:${lastColLetter}1`);
   const titleCell = worksheet.getCell('A1');
   titleCell.value = `【${companyName} 様】 取扱商品一覧`;
   titleCell.font = { name: 'Yu Gothic', size: 18, bold: true, color: { argb: 'FF0F172A' } };
@@ -37,7 +54,7 @@ export const createProductExcelWorkbook = async (products, fileName) => {
   worksheet.getRow(1).height = 50;
 
   // 2. 出力日
-  worksheet.mergeCells('A2:L2');
+  worksheet.mergeCells(`A2:${lastColLetter}2`);
   const dateCell = worksheet.getCell('A2');
   dateCell.value = `出力日: ${dateStr}`;
   dateCell.font = { name: 'Yu Gothic', size: 10, italic: true, color: { argb: 'FF475569' } };
@@ -49,7 +66,21 @@ export const createProductExcelWorkbook = async (products, fileName) => {
   worksheet.getRow(3).height = 15;
 
   // 4. テーブルヘッダー
-  const headers = [
+  const headers = includeImages ? [
+    "No.",
+    "画像",
+    "受注№",
+    "商品コード",
+    "品名",
+    "種別",
+    "形状",
+    "材質",
+    "重量",
+    "単価",
+    "印刷代",
+    "JANコード",
+    "最新受注日"
+  ] : [
     "No.",
     "受注№",
     "商品コード",
@@ -84,8 +115,6 @@ export const createProductExcelWorkbook = async (products, fileName) => {
     };
   });
 
-
-
   // 5. データ行の追加
   for (let i = 0; i < products.length; i++) {
     const item = products[i];
@@ -97,7 +126,21 @@ export const createProductExcelWorkbook = async (products, fileName) => {
     const rawDate = item['最新受注日'] || '';
     const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, '/') : '';
 
-    const rowData = [
+    const rowData = includeImages ? [
+      i + 1,
+      '', // 画像セル（埋め込み用プレースホルダー）
+      item['受注№'] || '',
+      item['商品コード'] || '',
+      displayName || '',
+      item['種別'] || '',
+      item['形状'] || '',
+      item['材質名称'] || '',
+      item['重量'] || '',
+      price,
+      printingCost,
+      item['JANコード'] || '',
+      formattedDate
+    ] : [
       i + 1,
       item['受注№'] || '',
       item['商品コード'] || '',
@@ -113,7 +156,8 @@ export const createProductExcelWorkbook = async (products, fileName) => {
     ];
 
     const row = worksheet.addRow(rowData);
-    row.height = 25; // 游ゴシックの文字が綺麗に収まる高さ
+    const currentRowNumber = row.number;
+    row.height = includeImages ? 60 : 25; // 画像あり時は高さを確保
     
     // 1行おきに薄い背景色を設定 (ゼブラ柄)
     const isEven = (i % 2 === 1);
@@ -128,32 +172,63 @@ export const createProductExcelWorkbook = async (products, fileName) => {
         fgColor: { argb: rowBgColor }
       };
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, // 柔らかい極細罫線
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
 
       // 水平・垂直方向の整列
-      if ([1, 2, 3, 5, 6, 7, 8, 12].includes(colNumber)) {
+      const centerCols = includeImages ? [1, 2, 3, 4, 6, 7, 8, 9, 13] : [1, 2, 3, 5, 6, 7, 8, 12];
+      const rightCols = includeImages ? [10, 11] : [9, 10];
+
+      if (centerCols.includes(colNumber)) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      } else if ([9, 10].includes(colNumber)) {
+      } else if (rightCols.includes(colNumber)) {
         cell.alignment = { vertical: 'middle', horizontal: 'right' };
       } else {
         cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
       }
 
       // 数値フォーマットの設定
-      if ([9, 10].includes(colNumber) && cell.value !== null) {
+      if (rightCols.includes(colNumber) && cell.value !== null) {
         cell.numFmt = '"¥"#,##0';
       }
     });
+
+    // 画像埋め込み処理
+    if (includeImages && item['受注№']) {
+      try {
+        const imageBlob = await fetchProductImageBlob(item['受注№'], dirHandle, fileName);
+        if (imageBlob && imageBlob instanceof Blob) {
+          const arrayBuffer = await imageBlob.arrayBuffer();
+          const ext = getImageExtension(imageBlob);
+
+          const imageId = workbook.addImage({
+            buffer: arrayBuffer,
+            extension: ext,
+          });
+
+          worksheet.addImage(imageId, {
+            tl: { col: 1.1, row: currentRowNumber - 1 + 0.1 },
+            br: { col: 1.9, row: currentRowNumber - 0.1 },
+            editAs: 'oneCell'
+          });
+        }
+      } catch (err) {
+        console.error(`Excel画像埋め込みエラー (${item['受注№']}):`, err);
+      }
+    }
   }
 
   // 6. 列幅の自動調整 (余白を十分に確保する)
   worksheet.columns.forEach((col, colIdx) => {
     if (colIdx === 0) {
       col.width = 8; // No.
+      return;
+    }
+    if (includeImages && colIdx === 1) {
+      col.width = 14; // 画像列
       return;
     }
 

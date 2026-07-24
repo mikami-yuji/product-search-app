@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
-import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin } from './icons';
+import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin, ImageIcon } from './icons';
 import './index.css';
 
 // Components
@@ -69,6 +69,7 @@ function App() {
 
   // Direct shipping search state
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = useState('');
+  const [showExcelModal, setShowExcelModal] = useState(false);
 
   // Sidebar Accordion Open States
   const [openFilters, setOpenFilters] = useState({
@@ -187,23 +188,27 @@ function App() {
   /**
    * 現在表示されている（検索・フィルターで絞り込まれた）商品データをExcelファイルとして生成し、ダウンロードする。
    * 
+   * @param {Object} [options]
+   * @param {boolean} [options.includeImages=false] - 画像を含めるかどうか
    * @returns {Promise<void>}
    */
-  const handleExportExcel = async () => {
+  const handleExportExcel = async (options = { includeImages: false }) => {
     if (!filteredData || filteredData.length === 0) {
       showToast('出力するデータがありません', 'error');
       return;
     }
 
-    showToast('Excelファイルを生成中...', 'info');
+    const { includeImages = false } = options;
+    showToast(includeImages ? '画像付きExcelファイルを生成中...' : 'Excelファイルを生成中...', 'info');
 
     try {
-      const wb = await createProductExcelWorkbook(filteredData, fileName);
+      const wb = await createProductExcelWorkbook(filteredData, fileName, { includeImages, dirHandle });
 
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
       const today = new Date();
       const fileDateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-      const exportFileName = `${cleanCompanyName}_商品一覧_${fileDateStr}.xlsx`;
+      const imageSuffix = includeImages ? "_画像あり" : "";
+      const exportFileName = `${cleanCompanyName}_商品一覧${imageSuffix}_${fileDateStr}.xlsx`;
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -217,7 +222,7 @@ function App() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showToast('Excelファイルをエクスポートしました', 'success');
+      showToast(`Excelファイル(${includeImages ? '画像付き' : '画像なし'})をエクスポートしました`, 'success');
     } catch (err) {
       console.error('Excelエクスポートエラー:', err);
       showToast(err.message || 'Excelファイルの生成に失敗しました', 'error');
@@ -815,7 +820,7 @@ function App() {
               </div>
               <div className="amazon-toolbar-controls">
                 <button
-                  onClick={handleExportExcel}
+                  onClick={() => setShowExcelModal(true)}
                   className="amazon-btn amazon-btn-primary excel-export-btn"
                   title="商品一覧をExcel出力"
                 >
@@ -1040,6 +1045,64 @@ function App() {
       )}
       {showCacheManager && (
         <CacheManager onClose={() => setShowCacheManager(false)} />
+      )}
+
+      {/* Excel出力形式選択モーダル */}
+      {showExcelModal && (
+        <div className="cart-modal-overlay" onClick={() => setShowExcelModal(false)}>
+          <div className="excel-export-modal" onClick={e => e.stopPropagation()}>
+            <div className="excel-modal-header">
+              <h3>
+                <FileSpreadsheet size={20} className="modal-title-icon" />
+                Excel出力形式の選択
+              </h3>
+              <button className="cart-modal-close" onClick={() => setShowExcelModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="excel-modal-body">
+              <p className="excel-modal-desc">
+                出力するExcelファイルの形式を選択してください。
+              </p>
+              
+              <div className="excel-option-cards">
+                <button
+                  className="excel-option-card"
+                  onClick={() => {
+                    setShowExcelModal(false);
+                    handleExportExcel({ includeImages: false });
+                  }}
+                >
+                  <div className="option-icon text-only-icon">
+                    <FileSpreadsheet size={32} />
+                  </div>
+                  <div className="option-info">
+                    <h4>画像なしで出力（テキストのみ）</h4>
+                    <span className="option-badge fast-badge">高速</span>
+                    <p>データ一覧の集計・保存に最適です。一瞬で軽量なファイルが出力されます。</p>
+                  </div>
+                </button>
+
+                <button
+                  className="excel-option-card image-option-card"
+                  onClick={() => {
+                    setShowExcelModal(false);
+                    handleExportExcel({ includeImages: true });
+                  }}
+                >
+                  <div className="option-icon image-rich-icon">
+                    <ImageIcon size={32} />
+                  </div>
+                  <div className="option-info">
+                    <h4>画像付きで出力（商品画像入り）</h4>
+                    <span className="option-badge rich-badge">画像入り</span>
+                    <p>各行に商品画像を埋め込んだ見栄えの良いExcelを出力します。提案書やカタログに最適です。</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <Toast message={toast.message} type={toast.type} isVisible={toast.show} onClose={hideToast} />
