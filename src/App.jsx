@@ -897,6 +897,7 @@ function App() {
                     key={idx}
                     product={product}
                     dirHandle={dirHandle}
+                    customerFileName={fileName}
                     onClick={() => setSelectedProduct(product)}
                     onAddToCart={addToCart}
                     keyword={keyword}
@@ -916,7 +917,7 @@ function App() {
                         {columns.map(col => (
                           <td key={col}>
                             {col === '画像' ? (
-                              <ProductImage dirHandle={dirHandle} filename={row['受注№']} productCode={row['商品コード']} onClick={url => setModalImage(url)} />
+                              <ProductImage dirHandle={dirHandle} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} onClick={url => setModalImage(url)} />
                             ) : (
                               <HighlightText text={row[col]} keyword={keyword} />
                             )}
@@ -947,7 +948,7 @@ function App() {
                       
                       <div className="mobile-card-body">
                         <div className="mobile-card-field" style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-                          <ProductImage dirHandle={dirHandle} filename={row['受注№']} productCode={row['商品コード']} onClick={url => setModalImage(url)} />
+                          <ProductImage dirHandle={dirHandle} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} onClick={url => setModalImage(url)} />
                         </div>
                         
                         <div className="mobile-card-field">

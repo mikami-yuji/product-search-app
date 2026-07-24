@@ -1,25 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { getCachedImage, cacheImage } from './utils/imageCache';
+import { findImageFileHandle } from './utils/imageLoader';
 
 /**
  * @typedef {Object} ProductImageProps
  * @property {FileSystemDirectoryHandle} [dirHandle] - ディレクトリハンドル
- * @property {string} filename - 画像ファイル名
+ * @property {string} filename - 画像ファイル名（通常は受注№）
+ * @property {string} [customerFileName] - 顧客ファイル名（例: "16152_トーベイ（株）.xlsx"）
  * @property {string} [productCode] - 商品コード
- * @property {string} [productType] - 商品種別
- * @property {string} [materialName] - 材質名称
  * @property {string} [className] - CSSクラス名
  * @property {function} [onClick] - クリック時のコールバック
  */
 
 /**
  * 商品画像を表示するコンポーネント。キャッシュ、ローカルサーバー、File System APIからの非同期ロードを処理します。
+ * PCの一括フォルダ画像とスマホの顧客別サブフォルダ画像の両方に最適化されています。
  * 
  * @param {ProductImageProps} props - プロパティ
  * @returns {React.ReactElement} - レンダリング要素
  */
-const ProductImage = ({ dirHandle, filename, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
     /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
@@ -42,7 +43,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                     }
                 });
             },
-            { rootMargin: '50px' }
+            { rootMargin: '100px' }
         );
 
         if (imgRef.current) {
@@ -55,12 +56,6 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     }, []);
 
     // imageUrl の更新時に古い blob URL を安全に破棄するカスタム関数
-    /**
-     * 画像URLステートを更新し、古い blob: URL があれば適切に解放します。
-     * 
-     * @param {string|null} newUrl - 新しい画像URL
-     * @returns {void}
-     */
     const updateImageUrl = (newUrl) => {
         setIsLoaded(false);
         setImageUrl((prevUrl) => {
@@ -88,50 +83,70 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
 
         let isCancelled = false;
 
-        /**
-         * 各種ソースから画像を非同期でロードします。
-         * 
-         * @returns {Promise<void>}
-         */
         const loadImage = async () => {
-            // 1. キャッシュから読み込みを試みる (オフライン対応)
-            try {
-                const cachedBlob = await getCachedImage(filename);
-                if (isCancelled) return;
+            setError(false);
+            const cleanKey = (val) => {
+                if (!val) return '';
+                return String(val)
+                    .trim()
+                    .replace(/,/g, '')
+                    .replace(/\.0+$/, '')
+                    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+            };
 
-                // キャッシュデータの健全性チェック (画像データであること)
-                if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith('image/')) {
-                    const objectUrl = URL.createObjectURL(cachedBlob);
-                    if (isCancelled) {
-                        URL.revokeObjectURL(objectUrl);
-                        return;
+            const searchKeys = Array.from(new Set([
+                cleanKey(filename),
+                cleanKey(productCode),
+                String(filename || '').trim(),
+                String(productCode || '').trim()
+            ])).filter(Boolean);
+
+            // 1. キャッシュから読み込みを試みる
+            for (const key of searchKeys) {
+                try {
+                    const variants = [
+                        key,
+                        `${key}A`,
+                        `${key}a`,
+                        `${key}_1`,
+                        `${key}_A`,
+                        `${key}-1`,
+                        `${key}-A`
+                    ];
+                    for (const variant of variants) {
+                        const cachedBlob = await getCachedImage(variant);
+                        if (isCancelled) return;
+
+                        if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith('image/')) {
+                            const objectUrl = URL.createObjectURL(cachedBlob);
+                            if (isCancelled) {
+                                URL.revokeObjectURL(objectUrl);
+                                return;
+                            }
+                            updateImageUrl(objectUrl);
+                            setError(false);
+                            return;
+                        }
                     }
-                    updateImageUrl(objectUrl);
-                    setError(false);
-                    return;
-                } else if (cachedBlob) {
-                    console.warn(`Invalid cached image detected for ${filename}. Cached item is not a valid image Blob.`, cachedBlob);
+                } catch (err) {
+                    console.error("Error loading cached image:", err);
                 }
-            } catch (err) {
-                console.error("Error loading cached image:", err);
             }
 
-            // 2. Viteローカル開発サーバーからの自動配信を試みる
-            if (filename) {
+            // 2. ローカル開発サーバーからの自動配信を試みる
+            for (const key of searchKeys) {
                 try {
-                    const response = await fetch(`/_local_images/${filename}`);
+                    const response = await fetch(`/_local_images/${key}`);
                     if (isCancelled) return;
 
                     if (response.ok) {
-                        // 本番環境での SPA rewrite による HTML データ誤認を防ぐため Content-Type を厳格に確認
                         const contentType = response.headers.get('content-type');
                         if (contentType && contentType.startsWith('image/')) {
                             const blob = await response.blob();
-                            // オフライン用にキャッシュを保存
                             try {
-                                await cacheImage(filename, blob);
-                            } catch (err) {
-                                console.error("Failed to cache dev server image:", err);
+                                await cacheImage(key, blob);
+                            } catch {
+                                // スキップ
                             }
                             if (isCancelled) return;
 
@@ -143,66 +158,41 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
                             updateImageUrl(objectUrl);
                             setError(false);
                             return;
-                        } else {
-                            console.log(`Local dev server response for ${filename} is not an image. Content-Type:`, contentType);
                         }
                     }
-                } catch (err) {
-                    console.log("Local dev server image not available, falling back:", err.message);
+                } catch {
+                    // スキップ
                 }
             }
 
-            // 3. ローカルの画像フォルダ (File System Access API) からの読み込みを試みる
-            if (dirHandle && filename) {
-                try {
-                    const extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'];
-                    let fileHandle = null;
-
-                    for (const ext of extensions) {
-                        if (isCancelled) return;
-                        try {
-                            try {
-                                fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
-                                if (fileHandle) break;
-                            } catch {
-                                // ファイルが見つからない場合はスキップ
-                            }
-
-                            try {
-                                fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
-                                if (fileHandle) break;
-                            } catch {
-                                // ファイルが見つからない場合はスキップ
-                            }
-                        } catch {
-                            // 例外は無視して次の候補を試す
-                        }
-                    }
-
-                    if (isCancelled) return;
-
-                    if (fileHandle) {
-                        const file = await fileHandle.getFile();
-
-                        // オフライン用にキャッシュを保存
-                        try {
-                            await cacheImage(filename, file);
-                        } catch (err) {
-                            console.error("Failed to cache image:", err);
-                        }
+            // 3. ローカルの画像フォルダ (File System Access API) から探索（PC直下一括＆スマホ顧客サブフォルダ両対応）
+            if (dirHandle) {
+                for (const key of searchKeys) {
+                    try {
+                        const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
                         if (isCancelled) return;
 
-                        const objectUrl = URL.createObjectURL(file);
-                        if (isCancelled) {
-                            URL.revokeObjectURL(objectUrl);
+                        if (fileHandle) {
+                            const file = await fileHandle.getFile();
+                            try {
+                                await cacheImage(key, file);
+                            } catch {
+                                // スキップ
+                            }
+                            if (isCancelled) return;
+
+                            const objectUrl = URL.createObjectURL(file);
+                            if (isCancelled) {
+                                URL.revokeObjectURL(objectUrl);
+                                return;
+                            }
+                            updateImageUrl(objectUrl);
+                            setError(false);
                             return;
                         }
-                        updateImageUrl(objectUrl);
-                        setError(false);
-                        return;
+                    } catch (err) {
+                        console.error("Error loading local image from dirHandle:", err);
                     }
-                } catch (err) {
-                    console.error("Error loading local image:", err);
                 }
             }
 
@@ -216,7 +206,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
         return () => {
             isCancelled = true;
         };
-    }, [dirHandle, filename, isVisible]);
+    }, [dirHandle, filename, customerFileName, productCode, isVisible]);
 
     if (!isVisible) {
         return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;
@@ -234,11 +224,11 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
         >
             <img
                 src={imageUrl}
-                alt={filename}
+                alt={filename || productCode}
                 className={`product-thumbnail image-fade-in ${isLoaded ? 'loaded' : ''}`}
                 onLoad={() => setIsLoaded(true)}
                 onError={() => {
-                    console.error(`Failed to load image: ${imageUrl}`);
+                    console.error(`Failed to load image for ${filename || productCode}`);
                     setError(true);
                 }}
             />
@@ -246,5 +236,4 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     );
 };
 
-// Memoize to prevent unnecessary re-renders when props haven't changed
 export default React.memo(ProductImage);

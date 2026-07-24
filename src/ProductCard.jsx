@@ -3,7 +3,7 @@ import { ShoppingCart } from 'lucide-react';
 import ProductImage from './ProductImage';
 import HighlightText from './HighlightText';
 
-const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, customerFileName, onClick, onAddToCart, keyword }) => {
     const getAgeColorClass = (dateStr) => {
         if (!dateStr) return '';
         const orderDate = new Date(dateStr);
@@ -29,6 +29,7 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
                     dirHandle={dirHandle}
                     filename={product['受注№']}
                     productCode={product['商品コード']}
+                    customerFileName={customerFileName}
                     className="amazon-card-image"
                 />
             </div>
@@ -88,6 +89,7 @@ export default React.memo(ProductCard, (prevProps, nextProps) => {
     return (
         prevProps.product['受注№'] === nextProps.product['受注№'] &&
         prevProps.keyword === nextProps.keyword &&
-        prevProps.dirHandle === nextProps.dirHandle
+        prevProps.dirHandle === nextProps.dirHandle &&
+        prevProps.customerFileName === nextProps.customerFileName
     );
 });
