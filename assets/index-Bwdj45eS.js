@@ -2090,7 +2090,7 @@ const useProductData = () => {
   };
   const handleFolderSelect = async () => {
     try {
-      if (isFileSystemSupported) {
+      if (isFileSystemSupported && window.showDirectoryPicker) {
         const handle = await window.showDirectoryPicker();
         setDirHandle(handle);
         setPermissionGranted(true);
@@ -2098,29 +2098,36 @@ const useProductData = () => {
         await set("imageDirHandle", handle);
         return;
       }
-      document.getElementById("image-files-input")?.click();
     } catch (err) {
-      if (err.name !== "AbortError") {
-        console.error("Error selecting image folder:", err);
-      }
+      if (err.name === "AbortError") return;
+      console.warn("showDirectoryPicker failed or unavailable, falling back to file input:", err);
+    }
+    const input = document.getElementById("image-files-input") || document.getElementById("image-folder-input");
+    if (input) {
+      input.click();
     }
   };
   const handleCustomerFolderSelect = async () => {
-    if (!isFileSystemSupported) return;
     try {
-      const handle = await window.showDirectoryPicker();
-      setCustomerDirHandle(handle);
-      setCustomerPermissionGranted(true);
-      const files = await getExcelFilesFromDir(handle);
-      files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-      setCustomerFiles(files);
-      setError(null);
-      await set("customerDirHandle", handle);
-      await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        console.error("Error selecting customer folder:", err);
+      if (isFileSystemSupported && window.showDirectoryPicker) {
+        const handle = await window.showDirectoryPicker();
+        setCustomerDirHandle(handle);
+        setCustomerPermissionGranted(true);
+        const files = await getExcelFilesFromDir(handle);
+        files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+        setCustomerFiles(files);
+        setError(null);
+        await set("customerDirHandle", handle);
+        await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
+        return;
       }
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      console.warn("showDirectoryPicker failed for customer folder, falling back to file input:", err);
+    }
+    const input = document.getElementById("customer-files-input");
+    if (input) {
+      input.click();
     }
   };
   const handleCustomerFilesSelect = async (e) => {
