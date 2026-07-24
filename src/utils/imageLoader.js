@@ -4,8 +4,45 @@ import { getCachedImage } from './imageCache';
 /** @type {Map<string, FileSystemDirectoryHandle>} */
 const subDirHandleCache = new Map();
 
+/** @type {FileSystemDirectoryHandle[] | null} */
+let cachedSubDirList = null;
+
 /**
- * 顧客名に対応するサブディレクトリハンドルを取得します（PC用）。
+ * dirHandle直下のすべてのサブフォルダハンドルを取得・キャッシュします。
+ * @param {FileSystemDirectoryHandle} dirHandle
+ * @returns {Promise<FileSystemDirectoryHandle[]>}
+ */
+export const getAllSubDirectories = async (dirHandle) => {
+  if (!dirHandle) return [];
+  if (cachedSubDirList) return cachedSubDirList;
+
+  const list = [];
+  try {
+    if (typeof dirHandle.values === 'function') {
+      // @ts-ignore
+      for await (const entry of dirHandle.values()) {
+        if (entry && entry.kind === 'directory') {
+          list.push(entry);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error scanning subdirectories:', err);
+  }
+  cachedSubDirList = list;
+  return list;
+};
+
+/**
+ * キャッシュをクリアします（ディレクトリ変更時等）
+ */
+export const clearImageLoaderCache = () => {
+  subDirHandleCache.clear();
+  cachedSubDirList = null;
+};
+
+/**
+ * 顧客名に対応するサブディレクトリハンドルを取得します（PC用・スマホ用）。
  * 
  * @param {FileSystemDirectoryHandle} dirHandle - ルートのディレクトリハンドル
  * @param {string} [customerFileName] - 顧客ファイル名（例: "16152_トーベイ（株）.xlsx"）
@@ -49,24 +86,18 @@ export const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   const codeMatch = cleanedCustomerName.match(/^([0-9a-z]+)/i);
   const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
 
-  if (typeof dirHandle.values === 'function') {
-    try {
-      // @ts-ignore - FileSystemDirectoryHandle iteration
-      for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === 'directory' && entry.name) {
-          const entryCleaned = cleanString(entry.name);
-          if (
-            (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode))) ||
-            entryCleaned.includes(cleanedCustomerName) ||
-            cleanedCustomerName.includes(entryCleaned)
-          ) {
-            subDirHandleCache.set(cacheKey, entry);
-            return entry;
-          }
-        }
+  const subDirs = await getAllSubDirectories(dirHandle);
+  for (const entry of subDirs) {
+    if (entry && entry.name) {
+      const entryCleaned = cleanString(entry.name);
+      if (
+        (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode))) ||
+        entryCleaned.includes(cleanedCustomerName) ||
+        cleanedCustomerName.includes(entryCleaned)
+      ) {
+        subDirHandleCache.set(cacheKey, entry);
+        return entry;
       }
-    } catch {
-      // エラー時はスキップ
     }
   }
 
@@ -135,7 +166,7 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     // 次へ
   }
 
-  // 2. 顧客専用サブディレクトリ内の探索（スマホ・顧客サブフォルダ用）
+  // 2. 顧客専用サブディレクトリ内の探索（顧客サブフォルダ用）
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
@@ -146,6 +177,17 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     } catch {
       // スキップ
     }
+  }
+
+  // 3. すべてのサブディレクトリ内を一括ピンポイント探索（どのサブフォルダにあるか不明な場合の救済）
+  try {
+    const subDirs = await getAllSubDirectories(dirHandle);
+    for (const subHandle of subDirs) {
+      const foundInAnySub = await searchInDirectory(subHandle);
+      if (foundInAnySub) return foundInAnySub;
+    }
+  } catch {
+    // スキップ
   }
 
   return null;
