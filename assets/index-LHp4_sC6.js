@@ -1891,7 +1891,10 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
+  const isPickerActiveRef = reactExports.useRef(false);
   const handleFolderSelect = async () => {
+    if (isPickerActiveRef.current) return;
+    isPickerActiveRef.current = true;
     try {
       if (dirHandle) {
         const options = { mode: "read" };
@@ -1916,10 +1919,13 @@ const useProductData = () => {
       setError(null);
       await set("imageDirHandle", handle);
     } catch (err) {
-      if (err.name !== "AbortError") {
+      const isAlreadyActive = err.message && err.message.includes("already active");
+      if (err.name !== "AbortError" && !isAlreadyActive) {
         console.error("Error selecting folder:", err);
         setError("フォルダの選択に失敗しました");
       }
+    } finally {
+      isPickerActiveRef.current = false;
     }
   };
   const handleImageFilesSelect = async (e) => {
@@ -1944,11 +1950,20 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
-    if (!isFileSystemSupported) return;
+    if (!isFileSystemSupported || isPickerActiveRef.current) return;
+    isPickerActiveRef.current = true;
     try {
       if (customerDirHandle) {
         const options = { mode: "read" };
-        const permission = await customerDirHandle.requestPermission(options);
+        let permission;
+        try {
+          permission = await customerDirHandle.queryPermission(options);
+          if (permission !== "granted") {
+            permission = await customerDirHandle.requestPermission(options);
+          }
+        } catch {
+          permission = "denied";
+        }
         if (permission === "granted") {
           setCustomerPermissionGranted(true);
           const files2 = await getExcelFilesFromDir(customerDirHandle);
@@ -1969,10 +1984,13 @@ const useProductData = () => {
       await set("customerDirHandle", handle);
       await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
     } catch (err) {
-      if (err.name !== "AbortError") {
+      const isAlreadyActive = err.message && err.message.includes("already active");
+      if (err.name !== "AbortError" && !isAlreadyActive) {
         console.error("Error selecting customer folder:", err);
         setError("顧客フォルダの選択に失敗しました");
       }
+    } finally {
+      isPickerActiveRef.current = false;
     }
   };
   const handleCustomerFilesSelect = async (e) => {
