@@ -332,20 +332,20 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
     }
     return null;
   };
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
+  }
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
       if (subDirHandle) {
-        const found = await searchInDirectory(subDirHandle);
-        if (found) return found;
+        const foundSub = await searchInDirectory(subDirHandle);
+        if (foundSub) return foundSub;
       }
     } catch {
     }
-  }
-  try {
-    const found = await searchInDirectory(dirHandle);
-    if (found) return found;
-  } catch {
   }
   return null;
 };
