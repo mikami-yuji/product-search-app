@@ -2789,7 +2789,7 @@ function App() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
-    data.length > 0 || isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
+    data.length > 0 || isLoading && fileName ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `amazon-sidebar ${isFilterOpen ? "open" : ""}`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
