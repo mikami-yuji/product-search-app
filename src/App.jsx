@@ -69,7 +69,7 @@ function App() {
 
   // Direct shipping search state
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = useState('');
-  const [showExcelModal, setShowExcelModal] = useState(false);
+  const [showExcelDropdown, setShowExcelDropdown] = useState(false);
 
   // Sidebar Accordion Open States
   const [openFilters, setOpenFilters] = useState({
@@ -819,14 +819,49 @@ function App() {
                 <strong>{filteredData.length}</strong> 件の商品
               </div>
               <div className="amazon-toolbar-controls">
-                <button
-                  onClick={() => setShowExcelModal(true)}
-                  className="amazon-btn amazon-btn-primary excel-export-btn"
-                  title="商品一覧をExcel出力"
-                >
-                  <FileSpreadsheet size={16} />
-                  Excel出力
-                </button>
+                <div className="excel-export-dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
+                  <button
+                    onClick={() => setShowExcelDropdown(prev => !prev)}
+                    className="amazon-btn amazon-btn-primary excel-export-btn"
+                    title="商品一覧をExcel出力"
+                  >
+                    <FileSpreadsheet size={16} />
+                    Excel出力
+                    <ChevronDown size={14} style={{ marginLeft: '2px' }} />
+                  </button>
+
+                  {showExcelDropdown && (
+                    <div className="excel-dropdown-menu">
+                      <button
+                        className="excel-dropdown-item"
+                        onClick={() => {
+                          setShowExcelDropdown(false);
+                          handleExportExcel({ includeImages: false });
+                        }}
+                      >
+                        <FileSpreadsheet size={16} className="dropdown-item-icon text-icon" />
+                        <div>
+                          <span className="dropdown-item-title">画像なしで出力</span>
+                          <span className="dropdown-item-sub">テキストのみ・高速</span>
+                        </div>
+                      </button>
+
+                      <button
+                        className="excel-dropdown-item"
+                        onClick={() => {
+                          setShowExcelDropdown(false);
+                          handleExportExcel({ includeImages: true });
+                        }}
+                      >
+                        <ImageIcon size={16} className="dropdown-item-icon image-icon" />
+                        <div>
+                          <span className="dropdown-item-title">画像付きで出力</span>
+                          <span className="dropdown-item-sub">商品画像埋め込み</span>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleExportHtml}
                   className="amazon-btn amazon-btn-primary html-export-btn"
@@ -1045,64 +1080,6 @@ function App() {
       )}
       {showCacheManager && (
         <CacheManager onClose={() => setShowCacheManager(false)} />
-      )}
-
-      {/* Excel出力形式選択モーダル */}
-      {showExcelModal && (
-        <div className="cart-modal-overlay" onClick={() => setShowExcelModal(false)}>
-          <div className="excel-export-modal" onClick={e => e.stopPropagation()}>
-            <div className="excel-modal-header">
-              <h3>
-                <FileSpreadsheet size={20} className="modal-title-icon" />
-                Excel出力形式の選択
-              </h3>
-              <button className="cart-modal-close" onClick={() => setShowExcelModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="excel-modal-body">
-              <p className="excel-modal-desc">
-                出力するExcelファイルの形式を選択してください。
-              </p>
-              
-              <div className="excel-option-cards">
-                <button
-                  className="excel-option-card"
-                  onClick={() => {
-                    setShowExcelModal(false);
-                    handleExportExcel({ includeImages: false });
-                  }}
-                >
-                  <div className="option-icon text-only-icon">
-                    <FileSpreadsheet size={32} />
-                  </div>
-                  <div className="option-info">
-                    <h4>画像なしで出力（テキストのみ）</h4>
-                    <span className="option-badge fast-badge">高速</span>
-                    <p>データ一覧の集計・保存に最適です。一瞬で軽量なファイルが出力されます。</p>
-                  </div>
-                </button>
-
-                <button
-                  className="excel-option-card image-option-card"
-                  onClick={() => {
-                    setShowExcelModal(false);
-                    handleExportExcel({ includeImages: true });
-                  }}
-                >
-                  <div className="option-icon image-rich-icon">
-                    <ImageIcon size={32} />
-                  </div>
-                  <div className="option-info">
-                    <h4>画像付きで出力（商品画像入り）</h4>
-                    <span className="option-badge rich-badge">画像入り</span>
-                    <p>各行に商品画像を埋め込んだ見栄えの良いExcelを出力します。提案書やカタログに最適です。</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       <Toast message={toast.message} type={toast.type} isVisible={toast.show} onClose={hideToast} />
