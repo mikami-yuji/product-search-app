@@ -1895,7 +1895,15 @@ const useProductData = () => {
     try {
       if (dirHandle) {
         const options = { mode: "read" };
-        const permission = await dirHandle.requestPermission(options);
+        let permission;
+        try {
+          permission = await dirHandle.queryPermission(options);
+          if (permission !== "granted") {
+            permission = await dirHandle.requestPermission(options);
+          }
+        } catch {
+          permission = "denied";
+        }
         if (permission === "granted") {
           setPermissionGranted(true);
           setError(null);
@@ -1912,6 +1920,27 @@ const useProductData = () => {
         console.error("Error selecting folder:", err);
         setError("フォルダの選択に失敗しました");
       }
+    }
+  };
+  const handleImageFilesSelect = async (e) => {
+    const files = Array.from(e.target.files).filter(
+      (file) => file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+    );
+    if (files.length === 0) return;
+    setIsLoading(true);
+    try {
+      for (const file of files) {
+        const rawName = file.name.replace(/\.[^/.]+$/, "");
+        await cacheImage(rawName, file);
+        await cacheImage(file.name, file);
+      }
+      setPermissionGranted(true);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to cache image files:", err);
+      setError("画像ファイルの読み込み・保存に失敗しました");
+    } finally {
+      setIsLoading(false);
     }
   };
   const handleCustomerFolderSelect = async () => {
@@ -2010,6 +2039,7 @@ const useProductData = () => {
     isFileSystemSupported,
     handleFileUpload,
     handleFolderSelect,
+    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile,
@@ -2254,6 +2284,7 @@ function App() {
     isFileSystemSupported: isFileSystemSupported2,
     handleFileUpload,
     handleFolderSelect,
+    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile: originalLoadCustomerFile,
@@ -2267,6 +2298,9 @@ function App() {
   }, [originalLoadCustomerFile]);
   const triggerCustomerFilesSelect = () => {
     document.getElementById("customer-files-input")?.click();
+  };
+  const triggerImageFilesSelect = () => {
+    document.getElementById("image-files-input")?.click();
   };
   const [customerSearchKeyword, setCustomerSearchKeyword] = reactExports.useState("");
   const [cartBouncing, setCartBouncing] = reactExports.useState(false);
@@ -2587,16 +2621,25 @@ function App() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-          permissionGranted ? "画像接続済" : "画像フォルダ"
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: isFileSystemSupported2 ? handleFolderSelect : triggerImageFilesSelect,
+            className: `amazon-btn ${permissionGranted ? "connected" : ""}`,
+            title: isFileSystemSupported2 ? permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続" : permissionGranted ? "画像ファイル選択済み" : "画像ファイルを選択",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
+              isFileSystemSupported2 ? permissionGranted ? "画像接続済" : "画像フォルダ" : permissionGranted ? "画像選択済" : "画像ファイル"
+            ]
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "file-input", className: "amazon-btn amazon-btn-primary", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
           fileName || "ファイル選択"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
