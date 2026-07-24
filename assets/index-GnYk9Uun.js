@@ -167,23 +167,40 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
 };
 const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
   if (!dirHandle || !rawFilename) return null;
-  const cleaned = String(rawFilename).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+  const rawStr = String(rawFilename).trim();
+  const cleaned = rawStr.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
   const unpadded = cleaned.replace(/^0+/, "");
-  const baseNames = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, String(rawFilename).trim()])).filter(Boolean);
+  const pad7 = unpadded ? unpadded.padStart(7, "0") : "";
+  const pad8 = unpadded ? unpadded.padStart(8, "0") : "";
+  const baseNames = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, pad7, pad8, rawStr])).filter(Boolean);
   const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
   const prefixes = [];
+  const suffixes = [
+    "",
+    "-01",
+    "_01",
+    "-00",
+    "_00",
+    "-0",
+    "_0",
+    "A",
+    "a",
+    "_1",
+    "_A",
+    "_a",
+    "-1",
+    "-A",
+    "-a",
+    " (1)",
+    "_01a",
+    "-01a",
+    "_1a",
+    "-1a"
+  ];
   for (const base of baseNames) {
-    prefixes.push(
-      base,
-      `${base}A`,
-      `${base}a`,
-      `${base}_1`,
-      `${base}_A`,
-      `${base}_a`,
-      `${base}-1`,
-      `${base}-A`,
-      `${base}-a`
-    );
+    for (const suf of suffixes) {
+      prefixes.push(`${base}${suf}`);
+    }
   }
   const searchInDirectory = async (targetHandle) => {
     if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
@@ -821,15 +838,25 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
           const kLower = key.toLowerCase();
           const candidates = [
             kLower,
+            `${kLower}-01`,
+            `${kLower}_01`,
+            `${kLower}-00`,
+            `${kLower}_00`,
+            `${kLower}-0`,
+            `${kLower}_0`,
             `${kLower}a`,
             `${kLower}_1`,
             `${kLower}_a`,
             `${kLower}-1`,
             `${kLower}-a`,
             `${customerPrefix}/${kLower}`,
+            `${customerPrefix}/${kLower}-01`,
+            `${customerPrefix}/${kLower}_01`,
             `${customerPrefix}/${kLower}a`,
             `${customerPrefix}/${kLower}_1`,
             `${customerCode}/${kLower}`,
+            `${customerCode}/${kLower}-01`,
+            `${customerCode}/${kLower}_01`,
             `${customerCode}/${kLower}a`,
             `${customerCode}/${kLower}_1`
           ].filter(Boolean);
