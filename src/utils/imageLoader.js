@@ -14,10 +14,20 @@ const subDirHandleCache = new Map();
 export const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   if (!dirHandle || !customerFileName) return null;
 
+  const cleanString = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/\.xlsx?$/i, '')
+      .trim()
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+      .toLowerCase();
+  };
+
   const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, '').trim();
+  const cleanedCustomerName = cleanString(customerFileName);
   if (!rawCustomerName) return null;
 
-  const cacheKey = `${dirHandle.name || 'root'}:${rawCustomerName}`;
+  const cacheKey = `${dirHandle.name || 'root'}:${cleanedCustomerName}`;
   if (subDirHandleCache.has(cacheKey)) {
     return subDirHandleCache.get(cacheKey);
   }
@@ -35,16 +45,24 @@ export const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
     // スキップ
   }
 
-  // 2. 顧客コード部分での前方一致を試す (例: "16152")
-  const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
-  if (match && typeof dirHandle.values === 'function') {
-    const customerCode = match[1];
+  // 2. 顧客コード・名前の部分一致で全サブフォルダを検索
+  const codeMatch = cleanedCustomerName.match(/^([0-9a-z]+)/i);
+  const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+
+  if (typeof dirHandle.values === 'function') {
     try {
       // @ts-ignore - FileSystemDirectoryHandle iteration
       for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === 'directory' && entry.name && (entry.name.startsWith(customerCode) || entry.name.includes(customerCode))) {
-          subDirHandleCache.set(cacheKey, entry);
-          return entry;
+        if (entry && entry.kind === 'directory' && entry.name) {
+          const entryCleaned = cleanString(entry.name);
+          if (
+            (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode))) ||
+            entryCleaned.includes(cleanedCustomerName) ||
+            cleanedCustomerName.includes(entryCleaned)
+          ) {
+            subDirHandleCache.set(cacheKey, entry);
+            return entry;
+          }
         }
       }
     } catch {
@@ -126,15 +144,7 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     return null;
   };
 
-  // 1. ルートディレクトリ直下の探索（PC用：フォルダ内に一括で画像が入っている場合）
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-    // 次へ
-  }
-
-  // 2. 顧客専用サブディレクトリ内の探索（スマホ・顧客サブフォルダ用）
+  // 1. 顧客専用サブディレクトリ内の優先探索（PC・スマホ顧客別サブフォルダ対応）
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
@@ -145,6 +155,14 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     } catch {
       // スキップ
     }
+  }
+
+  // 2. ルートディレクトリ直下の探索（PC用：ルートフォルダ内に一括で画像が入っている場合）
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
+    // 次へ
   }
 
   return null;
