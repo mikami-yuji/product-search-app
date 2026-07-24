@@ -336,8 +336,14 @@ const createProductExcelWorkbook = async (products, fileName, options = {}) => {
   for (let i = 0; i < products.length; i++) {
     const item = products[i];
     const displayName = item["種別"] === "既製品" ? item["商品名"] : item["タイトル"];
-    const price = item["単価"] && !isNaN(Number(item["単価"])) ? Number(item["単価"]) : null;
-    const printingCost = item["印刷代"] && !isNaN(Number(item["印刷代"])) ? Number(item["印刷代"]) : null;
+    const parseCost = (val) => {
+      if (val == null || val === "") return null;
+      const cleanedVal = String(val).replace(/,/g, "").trim();
+      const num = Number(cleanedVal);
+      return isNaN(num) ? null : num;
+    };
+    const price = parseCost(item["単価"]);
+    const printingCost = parseCost(item["印刷代"]);
     const rawDate = item["最新受注日"] || "";
     const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, "/") : "";
     const rowData = includeImages ? [
@@ -2318,10 +2324,11 @@ const useProductFilters = (data) => {
         return selectedValues.includes(String(item[key]));
       });
     });
+    const parsePrice = (val) => parseFloat(String(val || 0).replace(/,/g, "")) || 0;
     if (sortBy === "price-asc") {
-      result = [...result].sort((a, b) => (parseFloat(a["単価"]) || 0) - (parseFloat(b["単価"]) || 0));
+      result = [...result].sort((a, b) => parsePrice(a["単価"]) - parsePrice(b["単価"]));
     } else if (sortBy === "price-desc") {
-      result = [...result].sort((a, b) => (parseFloat(b["単価"]) || 0) - (parseFloat(a["単価"]) || 0));
+      result = [...result].sort((a, b) => parsePrice(b["単価"]) - parsePrice(a["単価"]));
     } else if (sortBy === "date-desc") {
       result = [...result].sort((a, b) => {
         const dateA = new Date(a["最新受注日"] || 0);
