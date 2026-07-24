@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as ChevronUp, k as ChevronDown, l as Check, m as MapPin, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-B1qRZBu8.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as Check, k as MapPin, l as FunnelX, m as ChevronUp, n as ChevronDown, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-Jg6Xo3NW.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -160,8 +160,8 @@ const createProductExcelWorkbook = async (products, fileName) => {
   return workbook;
 };
 const IMAGE_CACHE_PREFIX = "img_";
-const MAX_CACHE_SIZE = 5e3;
-const CACHE_EXPIRY_DAYS = 90;
+const MAX_CACHE_SIZE = 100;
+const CACHE_EXPIRY_DAYS = 7;
 const cacheImage = async (filename, blob) => {
   try {
     const cacheKey = `${IMAGE_CACHE_PREFIX}${filename}`;
@@ -250,106 +250,7 @@ const getCacheStats = async () => {
     return { count: 0, totalSize: 0, totalSizeMB: "0.00", entries: [] };
   }
 };
-const subDirHandleCache = /* @__PURE__ */ new Map();
-const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
-  if (!dirHandle || !customerFileName) return null;
-  const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, "").trim();
-  if (!rawCustomerName) return null;
-  const cacheKey = `${dirHandle.name || "root"}:${rawCustomerName}`;
-  if (subDirHandleCache.has(cacheKey)) {
-    return subDirHandleCache.get(cacheKey);
-  }
-  try {
-    if (typeof dirHandle.getDirectoryHandle === "function") {
-      const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
-      if (subHandle) {
-        subDirHandleCache.set(cacheKey, subHandle);
-        return subHandle;
-      }
-    }
-  } catch {
-  }
-  const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
-  if (match && typeof dirHandle.values === "function") {
-    const customerCode = match[1];
-    try {
-      for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === "directory" && entry.name && (entry.name.startsWith(customerCode) || entry.name.includes(customerCode))) {
-          subDirHandleCache.set(cacheKey, entry);
-          return entry;
-        }
-      }
-    } catch {
-    }
-  }
-  return null;
-};
-const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
-  if (!dirHandle || !rawFilename) return null;
-  const cleaned = String(rawFilename).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-  const unpadded = cleaned.replace(/^0+/, "");
-  const baseNames = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, String(rawFilename).trim()])).filter(Boolean);
-  const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
-  const prefixes = [];
-  for (const base of baseNames) {
-    prefixes.push(
-      base,
-      `${base}A`,
-      `${base}a`,
-      `${base}_1`,
-      `${base}_A`,
-      `${base}_a`,
-      `${base}-1`,
-      `${base}-A`,
-      `${base}-a`
-    );
-  }
-  const searchInDirectory = async (targetHandle) => {
-    if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
-    for (const prefix of prefixes) {
-      for (const ext of extensions) {
-        try {
-          const fileHandle = await targetHandle.getFileHandle(`${prefix}${ext}`);
-          if (fileHandle) return fileHandle;
-        } catch {
-        }
-      }
-    }
-    if (typeof targetHandle.values === "function") {
-      try {
-        for await (const entry of targetHandle.values()) {
-          if (entry && entry.kind === "file" && entry.name) {
-            const entryNameLower = entry.name.toLowerCase();
-            for (const base of baseNames) {
-              if (entryNameLower.startsWith(base.toLowerCase())) {
-                return entry;
-              }
-            }
-          }
-        }
-      } catch {
-      }
-    }
-    return null;
-  };
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-  }
-  if (customerFileName) {
-    try {
-      const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
-      if (subDirHandle) {
-        const foundSub = await searchInDirectory(subDirHandle);
-        if (foundSub) return foundSub;
-      }
-    } catch {
-    }
-  }
-  return null;
-};
-const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
+const fetchProductImageBlob = async (filename, dirHandle) => {
   if (!filename) return null;
   if (typeof indexedDB !== "undefined") {
     try {
@@ -372,13 +273,21 @@ const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
   } catch {
   }
   if (dirHandle) {
-    try {
-      const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
-      if (fileHandle) {
-        const file = await fileHandle.getFile();
-        if (file) return file;
+    const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
+    const candidates = [];
+    for (const ext of extensions) {
+      candidates.push(`${filename}${ext}`);
+      candidates.push(`${filename}A${ext}`);
+    }
+    for (const name of candidates) {
+      try {
+        const fileHandle = await dirHandle.getFileHandle(name);
+        if (fileHandle) {
+          const file = await fileHandle.getFile();
+          if (file) return file;
+        }
+      } catch {
       }
-    } catch {
     }
   }
   return null;
@@ -692,7 +601,7 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
-const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -708,7 +617,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
           }
         });
       },
-      { rootMargin: "100px" }
+      { rootMargin: "50px" }
     );
     if (imgRef.current) {
       observer.observe(imgRef.current);
@@ -740,57 +649,36 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
     if (!isVisible) return;
     let isCancelled = false;
     const loadImage = async () => {
-      setError(false);
-      const cleanKey = (val) => {
-        if (!val) return "";
-        return String(val).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-      };
-      const searchKeys = Array.from(/* @__PURE__ */ new Set([
-        cleanKey(filename),
-        cleanKey(productCode),
-        String(filename || "").trim(),
-        String(productCode || "").trim()
-      ])).filter(Boolean);
-      for (const key of searchKeys) {
-        try {
-          const variants = [
-            key,
-            `${key}A`,
-            `${key}a`,
-            `${key}_1`,
-            `${key}_A`,
-            `${key}-1`,
-            `${key}-A`
-          ];
-          for (const variant of variants) {
-            const cachedBlob = await getCachedImage(variant);
-            if (isCancelled) return;
-            if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
-              const objectUrl = URL.createObjectURL(cachedBlob);
-              if (isCancelled) {
-                URL.revokeObjectURL(objectUrl);
-                return;
-              }
-              updateImageUrl(objectUrl);
-              setError(false);
-              return;
-            }
+      try {
+        const cachedBlob = await getCachedImage(filename);
+        if (isCancelled) return;
+        if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
+          const objectUrl = URL.createObjectURL(cachedBlob);
+          if (isCancelled) {
+            URL.revokeObjectURL(objectUrl);
+            return;
           }
-        } catch (err) {
-          console.error("Error loading cached image:", err);
+          updateImageUrl(objectUrl);
+          setError(false);
+          return;
+        } else if (cachedBlob) {
+          console.warn(`Invalid cached image detected for ${filename}. Cached item is not a valid image Blob.`, cachedBlob);
         }
+      } catch (err) {
+        console.error("Error loading cached image:", err);
       }
-      for (const key of searchKeys) {
+      if (filename) {
         try {
-          const response = await fetch(`/_local_images/${key}`);
+          const response = await fetch(`/_local_images/${filename}`);
           if (isCancelled) return;
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.startsWith("image/")) {
               const blob = await response.blob();
               try {
-                await cacheImage(key, blob);
-              } catch {
+                await cacheImage(filename, blob);
+              } catch (err) {
+                console.error("Failed to cache dev server image:", err);
               }
               if (isCancelled) return;
               const objectUrl = URL.createObjectURL(blob);
@@ -801,35 +689,54 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
               updateImageUrl(objectUrl);
               setError(false);
               return;
+            } else {
+              console.log(`Local dev server response for ${filename} is not an image. Content-Type:`, contentType);
             }
           }
-        } catch {
+        } catch (err) {
+          console.log("Local dev server image not available, falling back:", err.message);
         }
       }
-      if (dirHandle) {
-        for (const key of searchKeys) {
-          try {
-            const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
+      if (dirHandle && filename) {
+        try {
+          const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
+          let fileHandle = null;
+          for (const ext of extensions) {
             if (isCancelled) return;
-            if (fileHandle) {
-              const file = await fileHandle.getFile();
+            try {
               try {
-                await cacheImage(key, file);
+                fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
+                if (fileHandle) break;
               } catch {
               }
-              if (isCancelled) return;
-              const objectUrl = URL.createObjectURL(file);
-              if (isCancelled) {
-                URL.revokeObjectURL(objectUrl);
-                return;
+              try {
+                fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
+                if (fileHandle) break;
+              } catch {
               }
-              updateImageUrl(objectUrl);
-              setError(false);
+            } catch {
+            }
+          }
+          if (isCancelled) return;
+          if (fileHandle) {
+            const file = await fileHandle.getFile();
+            try {
+              await cacheImage(filename, file);
+            } catch (err) {
+              console.error("Failed to cache image:", err);
+            }
+            if (isCancelled) return;
+            const objectUrl = URL.createObjectURL(file);
+            if (isCancelled) {
+              URL.revokeObjectURL(objectUrl);
               return;
             }
-          } catch (err) {
-            console.error("Error loading local image from dirHandle:", err);
+            updateImageUrl(objectUrl);
+            setError(false);
+            return;
           }
+        } catch (err) {
+          console.error("Error loading local image:", err);
         }
       }
       if (!isCancelled) {
@@ -840,7 +747,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, filename, customerFileName, productCode, isVisible]);
+  }, [dirHandle, filename, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -857,11 +764,11 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
         "img",
         {
           src: imageUrl,
-          alt: filename || productCode,
+          alt: filename,
           className: `product-thumbnail image-fade-in ${isLoaded ? "loaded" : ""}`,
           onLoad: () => setIsLoaded(true),
           onError: () => {
-            console.error(`Failed to load image for ${filename || productCode}`);
+            console.error(`Failed to load image: ${imageUrl}`);
             setError(true);
           }
         }
@@ -1145,7 +1052,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
     ) })
   ] });
 };
-const ProductDetailsModal = ({ product, onClose, dirHandle, fileName, onNext, onPrev, hasNext, hasPrev }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
   const [currentImageIndex, setCurrentImageIndex] = reactExports.useState(0);
   const [availableImages, setAvailableImages] = reactExports.useState([]);
   const [isSwitching, setIsSwitching] = reactExports.useState(false);
@@ -1182,33 +1089,26 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, fileName, onNext, on
       const suffixes = ["", "A", "B", "C", "D", "E", "F", "G", "H"];
       const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
       if (dirHandle) {
-        const subDirHandle = fileName ? await getCustomerSubDirHandle(dirHandle, fileName) : null;
-        const targetHandles = subDirHandle ? [subDirHandle, dirHandle] : [dirHandle];
         for (const suffix of suffixes) {
-          let foundForSuffix = false;
-          for (const handle of targetHandles) {
-            if (foundForSuffix || isCancelled) break;
-            for (const ext of extensions) {
+          for (const ext of extensions) {
+            if (isCancelled) break;
+            try {
+              const filename = `${product["受注№"]}${suffix}${ext}`;
+              const fileHandle = await dirHandle.getFileHandle(filename);
               if (isCancelled) break;
-              try {
-                const filename = `${product["受注№"]}${suffix}${ext}`;
-                const fileHandle = await handle.getFileHandle(filename);
+              if (fileHandle) {
+                const file = await fileHandle.getFile();
                 if (isCancelled) break;
-                if (fileHandle) {
-                  const file = await fileHandle.getFile();
-                  if (isCancelled) break;
-                  const url = URL.createObjectURL(file);
-                  if (isCancelled) {
-                    URL.revokeObjectURL(url);
-                    break;
-                  }
-                  createdUrls.push(url);
-                  images.push({ url, suffix, source: "local" });
-                  foundForSuffix = true;
+                const url = URL.createObjectURL(file);
+                if (isCancelled) {
+                  URL.revokeObjectURL(url);
                   break;
                 }
-              } catch {
+                createdUrls.push(url);
+                images.push({ url, suffix, source: "local" });
+                break;
               }
+            } catch {
             }
           }
         }
@@ -1232,7 +1132,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, fileName, onNext, on
       isCancelled = true;
       createdUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [product, dirHandle, fileName]);
+  }, [product, dirHandle]);
   reactExports.useEffect(() => {
     return () => {
       setAvailableImages((prevImages) => {
@@ -1406,7 +1306,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, fileName, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1427,7 +1327,6 @@ const ProductCard = ({ product, dirHandle, fileName, onClick, onAddToCart, keywo
       {
         dirHandle,
         filename: product["受注№"],
-        customerFileName: fileName,
         productCode: product["商品コード"],
         className: "amazon-card-image"
       }
@@ -1541,7 +1440,6 @@ const CacheManager = ({ onClose }) => {
       await del("productData");
       await del("fileName");
       await del("lastModified");
-      await del("imageDirHandle");
       await del("customerDirHandle");
       await del("customerFilesCache");
       await del("customerFilesListCache");
@@ -1571,7 +1469,6 @@ const CacheManager = ({ onClose }) => {
       await del("productData");
       await del("fileName");
       await del("lastModified");
-      await del("imageDirHandle");
       await del("customerDirHandle");
       await del("customerFilesCache");
       await del("customerFilesListCache");
@@ -1757,25 +1654,6 @@ const getExcelFilesFromDir = async (dirHandle) => {
   }
   return files;
 };
-const cacheAllImagesFromDir = async (dirHandle) => {
-  try {
-    for await (const entry of dirHandle.values()) {
-      if (entry.kind === "file" && /\.(jpg|jpeg|png|gif|webp)$/i.test(entry.name)) {
-        try {
-          const file = await entry.getFile();
-          const rawName = entry.name.replace(/\.[^/.]+$/, "");
-          await cacheImage(rawName, file);
-          await cacheImage(entry.name, file);
-        } catch {
-        }
-      } else if (entry.kind === "directory") {
-        await cacheAllImagesFromDir(entry);
-      }
-    }
-  } catch (err) {
-    console.error("Error scanning images from directory:", err);
-  }
-};
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
 const useProductData = () => {
   const [data, setData] = reactExports.useState([]);
@@ -1795,117 +1673,159 @@ const useProductData = () => {
         const cachedData = await get("productData");
         const cachedFileName = await get("fileName");
         const cachedLastModified = await get("lastModified");
+        const cachedDirHandle = await get("imageDirHandle");
         const cachedCustomerDirHandle = isFileSystemSupported ? await get("customerDirHandle") : null;
-        const cachedImageDirHandle = isFileSystemSupported ? await get("imageDirHandle") : null;
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
-        if (cachedImageDirHandle && isFileSystemSupported) {
-          setDirHandle(cachedImageDirHandle);
-        }
-        try {
-          const stats = await getCacheStats();
-          if (stats.count > 0) {
+        if (cachedDirHandle && isFileSystemSupported) {
+          setDirHandle(cachedDirHandle);
+          const options = { mode: "read" };
+          const permission = await cachedDirHandle.queryPermission(options);
+          if (permission === "granted") {
             setPermissionGranted(true);
+          } else {
+            setPermissionGranted(false);
           }
-        } catch {
         }
         if (cachedCustomerDirHandle && isFileSystemSupported) {
           setCustomerDirHandle(cachedCustomerDirHandle);
-          try {
-            const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
-            if (files && files.length > 0) {
-              files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-              setCustomerFiles(files);
-              setCustomerPermissionGranted(true);
-            }
-          } catch {
-          }
-        }
-        if (customerFiles.length === 0) {
-          const cachedCustomerFilesList = await get("customerFilesListCache");
-          const cachedCustomerFiles = await get("customerFilesCache");
-          if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
-            setCustomerFiles(cachedCustomerFilesList);
+          const options = { mode: "read" };
+          const permission = await cachedCustomerDirHandle.queryPermission(options);
+          if (permission === "granted") {
             setCustomerPermissionGranted(true);
-          } else if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
+            const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
+            files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+            setCustomerFiles(files);
+          } else {
+            const cachedCustomerFilesList = await get("customerFilesListCache");
+            if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
+              setCustomerFiles(cachedCustomerFilesList);
+              setCustomerPermissionGranted(true);
+            } else {
+              setCustomerPermissionGranted(false);
+            }
+          }
+        } else if (!isFileSystemSupported) {
+          const cachedCustomerFiles = await get("customerFilesCache");
+          if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
             setCustomerFiles(cachedCustomerFiles);
             setCustomerPermissionGranted(true);
           }
         }
       } catch (err) {
-        console.error("Error loading cached data:", err);
+        console.error("Error loading cache:", err);
+        setError("キャッシュの読み込みに失敗しました");
       } finally {
         setIsLoading(false);
       }
     };
     loadCachedData();
   }, []);
-  const processRawData = async (jsonData, sourceFileName) => {
-    if (jsonData.length === 0) {
-      throw new Error("ファイルにデータが含まれていません");
+  const validateData = (jsonData) => {
+    if (!jsonData || jsonData.length === 0) {
+      throw new Error("データが空です");
     }
-    const headers = Object.keys(jsonData[0]);
-    const missingColumns = REQUIRED_COLUMNS.filter((col) => !headers.includes(col));
+    const firstRow = jsonData[0];
+    const missingColumns = REQUIRED_COLUMNS.filter((col) => !(col in firstRow));
     if (missingColumns.length > 0) {
       throw new Error(`必須列が見つかりません: ${missingColumns.join(", ")}`);
     }
-    const processedData = jsonData.map((row, index) => {
-      const cleanRow = {};
-      Object.keys(row).forEach((key) => {
-        const cleanKey = key.trim();
-        cleanRow[cleanKey] = row[key] !== void 0 && row[key] !== null ? String(row[key]).trim() : "";
-      });
-      cleanRow._id = `${sourceFileName}_${cleanRow["受注№"] || index}`;
-      return cleanRow;
-    });
-    setData(processedData);
-    setFileName(sourceFileName);
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    setLastModified(now);
-    await set("productData", processedData);
-    await set("fileName", sourceFileName);
-    await set("lastModified", now);
+    return true;
   };
   const processExcelFile = async (file) => {
     setIsLoading(true);
     setError(null);
-    try {
-      await new Promise((resolve, reject) => {
+    setFileName(file.name);
+    setLastModified(file.lastModified);
+    if (file.size === 0) {
+      console.log("File size is 0. Attempting to wake up cloud file...");
+    }
+    const readWithRetry = async (attempt = 1) => {
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY = 1500;
+      if (file.size === 0) {
+        setError(`クラウドからデータを取得中... (${attempt}/${MAX_RETRIES})`);
+      }
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data2 = new Uint8Array(e.target.result);
-            const workbook = readSync(data2, { type: "array" });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonData = utils.sheet_to_json(worksheet, { defval: "" });
-            resolve(jsonData);
-          } catch (err) {
-            reject(err);
+        reader.onerror = () => {
+          reject(new Error(`Read failed (Code: ${reader.error?.code})`));
+        };
+        reader.onload = (evt) => {
+          const buffer = evt.target.result;
+          if (buffer.byteLength === 0 && attempt <= MAX_RETRIES) {
+            console.warn(`Attempt ${attempt}: Read 0 bytes. Retrying...`);
+            setTimeout(() => readWithRetry(attempt + 1).then(resolve).catch(reject), RETRY_DELAY);
+          } else {
+            resolve(buffer);
           }
         };
-        reader.onerror = (err) => reject(err);
         reader.readAsArrayBuffer(file);
-      }).then(async (jsonData) => {
-        await processRawData(jsonData, file.name);
       });
-    } catch (err) {
-      console.error("Error processing Excel file:", err);
-      let userMsg = "Excelファイルの読み込みに失敗しました";
-      if (err.message) {
-        if (err.message.includes("Bad compressed size")) {
+    };
+    try {
+      if (file.size === 0) {
+        setError("クラウドからデータを取得中... (これには数秒かかる場合があります)");
+      }
+      const buffer = await readWithRetry();
+      if (buffer.byteLength === 0) {
+        throw new Error("File is empty after retries");
+      }
+      console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
+      const parseExcelDirectly = () => {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            try {
+              const DO_NOT_PROCESS = { cellStyles: false, cellFormula: false, cellHTML: false, cellNF: false, cellText: false };
+              const workbook = readSync(buffer, { type: "array", dense: true, ...DO_NOT_PROCESS });
+              if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                throw new Error("シートが見つかりません");
+              }
+              const wsname = workbook.SheetNames[0];
+              const ws = workbook.Sheets[wsname];
+              const jsonData = utils.sheet_to_json(ws);
+              resolve(jsonData);
+            } catch (err) {
+              reject(err);
+            }
+          }, 0);
+        });
+      };
+      try {
+        const parsedData = await parseExcelDirectly();
+        validateData(parsedData);
+        setData(parsedData);
+        set("productData", parsedData);
+        set("fileName", file.name);
+        set("lastModified", file.lastModified);
+        setError(null);
+      } catch (err) {
+        console.error("Parsing failed:", err);
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        let userMsg = `エラーが発生しました (File: ${sizeMB}MB)`;
+        if (err.message && err.message.includes("Bad compressed size")) {
           userMsg = `ファイルが破損しているか、ダウンロードが完了していません。
 (Bad compressed size)
 
 スマホの場合は、iCloud/Google Driveから「このiPhone内」に保存してから再度お試しください。`;
+        } else if (err.message && err.message.includes("Password")) {
+          userMsg = "パスワード保護されたファイルは読み込めません。";
         } else {
-          userMsg = err.message;
+          userMsg = `ファイルの解析に失敗しました: ${err.message}`;
         }
+        setError(userMsg);
+        setData([]);
+      } finally {
+        setIsLoading(false);
       }
-      setError(userMsg);
-      throw err;
-    } finally {
+    } catch (err) {
+      console.error("File processing error:", err);
+      if (file.size === 0) {
+        setError("ファイルの取得に失敗しました。クラウドからダウンロードされていない可能性があります。\n一度「ファイル」アプリで開いてから再度お試しください。");
+      } else {
+        setError("ファイルの読み込みに失敗しました。");
+      }
       setIsLoading(false);
     }
   };
@@ -1914,83 +1834,59 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
-  const isPickerActiveRef = reactExports.useRef(false);
   const handleFolderSelect = async () => {
-    if (isPickerActiveRef.current) return;
-    isPickerActiveRef.current = true;
     try {
-      if (isFileSystemSupported) {
-        try {
-          const handle = await window.showDirectoryPicker();
-          setDirHandle(handle);
+      if (dirHandle) {
+        const options = { mode: "read" };
+        const permission = await dirHandle.requestPermission(options);
+        if (permission === "granted") {
           setPermissionGranted(true);
           setError(null);
-          await set("imageDirHandle", handle);
-          cacheAllImagesFromDir(handle).catch(console.error);
           return;
-        } catch (err) {
-          if (err.name === "AbortError") return;
         }
       }
-      document.getElementById("image-files-input")?.click();
-    } catch (err) {
-      console.error("Error in handleFolderSelect:", err);
-    } finally {
-      setTimeout(() => {
-        isPickerActiveRef.current = false;
-      }, 500);
-    }
-  };
-  const handleImageFilesSelect = async (e) => {
-    const files = Array.from(e.target.files).filter(
-      (file) => file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
-    );
-    if (files.length === 0) return;
-    setIsLoading(true);
-    try {
-      for (const file of files) {
-        const rawName = file.name.replace(/\.[^/.]+$/, "");
-        const cleanedRawName = rawName.trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-        await cacheImage(rawName, file);
-        await cacheImage(cleanedRawName, file);
-        await cacheImage(file.name, file);
-      }
+      const handle = await window.showDirectoryPicker();
+      setDirHandle(handle);
       setPermissionGranted(true);
       setError(null);
+      await set("imageDirHandle", handle);
     } catch (err) {
-      console.error("Failed to cache image files:", err);
-      setError("画像ファイルの読み込み・保存に失敗しました");
-    } finally {
-      setIsLoading(false);
+      if (err.name !== "AbortError") {
+        console.error("Error selecting folder:", err);
+        setError("フォルダの選択に失敗しました");
+      }
     }
   };
   const handleCustomerFolderSelect = async () => {
-    if (isPickerActiveRef.current) return;
-    isPickerActiveRef.current = true;
+    if (!isFileSystemSupported) return;
     try {
-      if (isFileSystemSupported) {
-        try {
-          const handle = await window.showDirectoryPicker();
-          setCustomerDirHandle(handle);
+      if (customerDirHandle) {
+        const options = { mode: "read" };
+        const permission = await customerDirHandle.requestPermission(options);
+        if (permission === "granted") {
           setCustomerPermissionGranted(true);
-          const files = await getExcelFilesFromDir(handle);
-          files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-          setCustomerFiles(files);
+          const files2 = await getExcelFilesFromDir(customerDirHandle);
+          files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+          setCustomerFiles(files2);
+          await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
           setError(null);
-          await set("customerDirHandle", handle);
-          await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
           return;
-        } catch (err) {
-          if (err.name === "AbortError") return;
         }
       }
-      document.getElementById("customer-files-input")?.click();
+      const handle = await window.showDirectoryPicker();
+      setCustomerDirHandle(handle);
+      setCustomerPermissionGranted(true);
+      const files = await getExcelFilesFromDir(handle);
+      files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+      setCustomerFiles(files);
+      setError(null);
+      await set("customerDirHandle", handle);
+      await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
     } catch (err) {
-      console.error("Error in handleCustomerFolderSelect:", err);
-    } finally {
-      setTimeout(() => {
-        isPickerActiveRef.current = false;
-      }, 500);
+      if (err.name !== "AbortError") {
+        console.error("Error selecting customer folder:", err);
+        setError("顧客フォルダの選択に失敗しました");
+      }
     }
   };
   const handleCustomerFilesSelect = async (e) => {
@@ -2007,33 +1903,27 @@ const useProductData = () => {
     setError(null);
     try {
       await set("customerFilesCache", mappedFiles);
-      await set("customerFilesListCache", mappedFiles.map((f) => ({ name: f.name })));
     } catch (err) {
       console.error("Failed to cache customer files:", err);
     }
   };
   const loadCustomerFile = async (name) => {
-    setIsLoading(true);
     try {
       let file;
       if (isFileSystemSupported && customerDirHandle) {
         const options = { mode: "read" };
-        let permission;
-        try {
-          permission = await customerDirHandle.queryPermission(options);
-          if (permission !== "granted") {
-            permission = await customerDirHandle.requestPermission(options);
-          }
-        } catch {
-          permission = "denied";
+        let permission = await customerDirHandle.queryPermission(options);
+        if (permission !== "granted") {
+          permission = await customerDirHandle.requestPermission(options);
         }
         if (permission === "granted") {
           setCustomerPermissionGranted(true);
           const fileHandle = await customerDirHandle.getFileHandle(name);
           file = await fileHandle.getFile();
+        } else {
+          throw new Error("フォルダへのアクセス権限がありません");
         }
-      }
-      if (!file) {
+      } else {
         const found = customerFiles.find((f) => f.name === name);
         if (found && found.file) {
           file = found.file;
@@ -2042,14 +1932,11 @@ const useProductData = () => {
       if (file) {
         await processExcelFile(file);
       } else {
-        setCustomerPermissionGranted(false);
-        throw new Error(`顧客フォルダのアクセス権限が切れているか、ファイルが見つかりません。「顧客フォルダ」ボタンを押して再選択してください。`);
+        throw new Error("ファイルが見つかりません");
       }
     } catch (err) {
       console.error("Error loading customer file:", err);
-      setError(err.message || `顧客ファイル「${name}」の読み込みに失敗しました`);
-    } finally {
-      setIsLoading(false);
+      setError(`顧客ファイル「${name}」の読み込みに失敗しました`);
     }
   };
   return {
@@ -2066,7 +1953,6 @@ const useProductData = () => {
     isFileSystemSupported,
     handleFileUpload,
     handleFolderSelect,
-    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile,
@@ -2272,7 +2158,6 @@ function App() {
     }
     return true;
   });
-  const [isCustomerSectionOpen, setIsCustomerSectionOpen] = reactExports.useState(true);
   reactExports.useEffect(() => {
     if (typeof window !== "undefined") {
       document.body.classList.remove("dark-mode");
@@ -2311,12 +2196,25 @@ function App() {
     isFileSystemSupported: isFileSystemSupported2,
     handleFileUpload,
     handleFolderSelect,
-    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile: originalLoadCustomerFile,
     clearError
   } = useProductData();
+  const loadCustomerFile = reactExports.useMemo(() => {
+    return async (name) => {
+      await originalLoadCustomerFile(name);
+      setDirectShippingSearchKeyword("");
+    };
+  }, [originalLoadCustomerFile]);
+  const triggerCustomerFilesSelect = () => {
+    document.getElementById("customer-files-input")?.click();
+  };
+  const [customerSearchKeyword, setCustomerSearchKeyword] = reactExports.useState("");
+  const [cartBouncing, setCartBouncing] = reactExports.useState(false);
+  const filteredCustomerFiles = customerFiles.filter(
+    (file) => file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
+  );
   const {
     keyword,
     setKeyword,
@@ -2335,24 +2233,6 @@ function App() {
     clearFilterKey,
     clearFilters
   } = useProductFilters(data);
-  const loadCustomerFile = reactExports.useMemo(() => {
-    return async (name) => {
-      await originalLoadCustomerFile(name);
-      setDirectShippingSearchKeyword("");
-      setKeyword("");
-    };
-  }, [originalLoadCustomerFile, setKeyword]);
-  const triggerCustomerFilesSelect = () => {
-    document.getElementById("customer-files-input")?.click();
-  };
-  const triggerImageFilesSelect = () => {
-    document.getElementById("image-files-input")?.click();
-  };
-  const [customerSearchKeyword, setCustomerSearchKeyword] = reactExports.useState("");
-  const [cartBouncing, setCartBouncing] = reactExports.useState(false);
-  const filteredCustomerFiles = customerFiles.filter(
-    (file) => file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
-  );
   const filteredDirectShippings = reactExports.useMemo(() => {
     const list = uniqueValues["直送先名称"] || [];
     if (!directShippingSearchKeyword.trim()) return list;
@@ -2602,28 +2482,6 @@ function App() {
                   autoComplete: "off"
                 }
               ),
-              keyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setKeyword(""),
-                  style: {
-                    position: "absolute",
-                    right: "12px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    color: "#888",
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    padding: "4px",
-                    zIndex: 2
-                  },
-                  title: "検索をクリア",
-                  children: "×"
-                }
-              ),
               isSearchFocused && (keyword ? suggestions.length > 0 : history.length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "search-history-dropdown", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "search-history-header", children: keyword ? "検索候補" : "最近の検索履歴" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "search-history-list", children: (keyword ? suggestions : history).map((item, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -2671,197 +2529,163 @@ function App() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: isFileSystemSupported2 ? handleFolderSelect : triggerImageFilesSelect,
-            className: `amazon-btn ${permissionGranted ? "connected" : ""}`,
-            title: isFileSystemSupported2 ? permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続" : permissionGranted ? "画像ファイル選択済み" : "画像ファイルを選択",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-              isFileSystemSupported2 ? permissionGranted ? "画像接続済" : "画像フォルダ" : permissionGranted ? "画像選択済" : "画像ファイル"
-            ]
-          }
-        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
+          permissionGranted ? "画像接続済" : "画像フォルダ"
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "file-input", className: "amazon-btn amazon-btn-primary", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
           fileName || "ファイル選択"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
-    data.length > 0 || isLoading && fileName ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
+    data.length > 0 || isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `amazon-sidebar ${isFilterOpen ? "open" : ""}`, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section customer-shipping-combined-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: "customer-section-header clickable-header",
-              onClick: () => setIsCustomerSectionOpen(!isCustomerSectionOpen),
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
-                    isFileSystemSupported2 ? "顧客・直送先選択" : "顧客ファイル・直送先選択"
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isCustomerSectionOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
-                ] }),
-                !isCustomerSectionOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "section-summary-badges", children: [
-                  fileName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "selected-summary-badge", title: fileName, children: fileName.replace(/\.xlsx?$/, "") }),
-                  filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "selected-summary-badge", children: [
-                    "直送先: ",
-                    filters["直送先名称"].length,
-                    "件"
-                  ] })
-                ] })
-              ]
-            }
-          ),
-          isCustomerSectionOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-shipping-combined-body", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-subsection", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "subsection-title", children: isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択" }),
-              !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "button",
-                  {
-                    onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
-                    className: "amazon-btn amazon-btn-primary customer-connect-btn",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
-                      " ",
-                      isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
-                    ]
-                  }
-                )
-              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "input",
-                    {
-                      type: "text",
-                      placeholder: "顧客名で検索...",
-                      value: customerSearchKeyword,
-                      onChange: (e) => setCustomerSearchKeyword(e.target.value),
-                      className: "customer-search-input"
-                    }
-                  ),
-                  customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      className: "search-clear-btn",
-                      onClick: () => setCustomerSearchKeyword(""),
-                      title: "検索をクリア",
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                    }
-                  )
-                ] }),
-                filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
-                  const isCurrent = fileName === file.name;
-                  const rawName = file.name.replace(/\.xlsx?$/, "");
-                  const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
-                  const codeBadge = match ? match[1] : null;
-                  const displayName = match ? match[2] : rawName;
-                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "li",
-                    {
-                      className: `customer-item ${isCurrent ? "active" : ""}`,
-                      onClick: () => {
-                        if (!isCurrent) {
-                          loadCustomerFile(file.name);
-                        }
-                      },
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                          codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
-                        ] }),
-                        isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
-                      ]
-                    },
-                    file.name
-                  );
-                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
-              ] })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
+            isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択"
+          ] }) }),
+          !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
+                className: "amazon-btn amazon-btn-primary customer-connect-btn",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
+                  " ",
+                  isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
+                ]
+              }
+            )
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "text",
+                  placeholder: "顧客名で検索...",
+                  value: customerSearchKeyword,
+                  onChange: (e) => setCustomerSearchKeyword(e.target.value),
+                  className: "customer-search-input"
+                }
+              ),
+              customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "search-clear-btn",
+                  onClick: () => setCustomerSearchKeyword(""),
+                  title: "検索をクリア",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
+              )
             ] }),
-            customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-subsection direct-shipping-subsection", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "subsection-header", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "subsection-title", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 16, className: "section-title-icon" }),
-                  "直送先選択"
-                ] }),
-                filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "button",
-                  {
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      clearFilterKey("直送先名称");
-                    },
-                    className: "amazon-clear-btn",
-                    title: "直送先選択をクリア",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
-                      "クリア (",
-                      filters["直送先名称"].length,
-                      ")"
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "input",
-                    {
-                      type: "text",
-                      placeholder: "直送先名で検索...",
-                      value: directShippingSearchKeyword,
-                      onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
-                      className: "customer-search-input"
+            filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
+              const isCurrent = fileName === file.name;
+              const rawName = file.name.replace(/\.xlsx?$/, "");
+              const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+              const codeBadge = match ? match[1] : null;
+              const displayName = match ? match[2] : rawName;
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "li",
+                {
+                  className: `customer-item ${isCurrent ? "active" : ""}`,
+                  onClick: () => {
+                    if (!isCurrent) {
+                      loadCustomerFile(file.name);
                     }
-                  ),
-                  directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      className: "search-clear-btn",
-                      onClick: () => setDirectShippingSearchKeyword(""),
-                      title: "検索をクリア",
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                    }
-                  )
-                ] }),
-                filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
-                  const isSelected = filters["直送先名称"].includes(shipping);
-                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "li",
-                    {
-                      className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
-                      onClick: () => handleFilterChange("直送先名称", shipping),
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "input",
-                          {
-                            type: "checkbox",
-                            checked: isSelected,
-                            readOnly: true,
-                            className: "shipping-checkbox"
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
-                      ] })
-                    },
-                    shipping
-                  );
-                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
-              ] })
-            ] })
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                      codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
+                    ] }),
+                    isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
+                  ]
+                },
+                file.name
+              );
+            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
+          ] })
+        ] }),
+        customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section direct-shipping-section", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-section-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 18, className: "section-title-icon" }),
+              "直送先選択"
+            ] }),
+            filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  clearFilterKey("直送先名称");
+                },
+                className: "amazon-clear-btn",
+                title: "直送先選択をクリア",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
+                  "クリア (",
+                  filters["直送先名称"].length,
+                  ")"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "text",
+                  placeholder: "直送先名で検索...",
+                  value: directShippingSearchKeyword,
+                  onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
+                  className: "customer-search-input"
+                }
+              ),
+              directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "search-clear-btn",
+                  onClick: () => setDirectShippingSearchKeyword(""),
+                  title: "検索をクリア",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                }
+              )
+            ] }),
+            filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
+              const isSelected = filters["直送先名称"].includes(shipping);
+              return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "li",
+                {
+                  className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
+                  onClick: () => handleFilterChange("直送先名称", shipping),
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: isSelected,
+                        readOnly: true,
+                        className: "shipping-checkbox"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+                  ] })
+                },
+                shipping
+              );
+            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section filter-panel-section", children: [
@@ -3013,7 +2837,6 @@ function App() {
           {
             product,
             dirHandle,
-            fileName,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
             keyword
@@ -3022,7 +2845,7 @@ function App() {
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], customerFileName: fileName, productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -3036,7 +2859,7 @@ function App() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-id", children: row["商品コード"] })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-body", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], customerFileName: fileName, productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-field", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-label", children: "受注№" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-value", children: row["受注№"] })
@@ -3147,7 +2970,7 @@ function App() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(ImageModal, { imageUrl: modalImage, onClose: () => setModalImage(null) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, fileName, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
     showCart && /* @__PURE__ */ jsxRuntimeExports.jsx(CartModal, { cart, onClose: () => setShowCart(false), onUpdateQuantity: updateCartQuantity, onRemove: removeFromCart, onClear: clearCart, total: cartTotal, fileName }),
     showCacheManager && /* @__PURE__ */ jsxRuntimeExports.jsx(CacheManager, { onClose: () => setShowCacheManager(false) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toast, { message: toast.message, type: toast.type, isVisible: toast.show, onClose: hideToast })
