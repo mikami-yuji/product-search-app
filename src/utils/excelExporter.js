@@ -119,8 +119,16 @@ export const createProductExcelWorkbook = async (products, fileName, options = {
   for (let i = 0; i < products.length; i++) {
     const item = products[i];
     const displayName = item['種別'] === '既製品' ? item['商品名'] : item['タイトル'];
-    const price = item['単価'] && !isNaN(Number(item['単価'])) ? Number(item['単価']) : null;
-    const printingCost = item['印刷代'] && !isNaN(Number(item['印刷代'])) ? Number(item['印刷代']) : null;
+
+    const parseCost = (val) => {
+      if (val == null || val === '') return null;
+      const cleanedVal = String(val).replace(/,/g, '').trim();
+      const num = Number(cleanedVal);
+      return isNaN(num) ? null : num;
+    };
+
+    const price = parseCost(item['単価']);
+    const printingCost = parseCost(item['印刷代']);
 
     // 日付フォーマットを YYYY/MM/DD に統一
     const rawDate = item['最新受注日'] || '';

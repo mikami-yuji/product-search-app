@@ -197,10 +197,11 @@ export const useProductFilters = (data) => {
         });
 
         // 3. 並び替えの適用
+        const parsePrice = (val) => parseFloat(String(val || 0).replace(/,/g, '')) || 0;
         if (sortBy === 'price-asc') {
-            result = [...result].sort((a, b) => (parseFloat(a['単価']) || 0) - (parseFloat(b['単価']) || 0));
+            result = [...result].sort((a, b) => parsePrice(a['単価']) - parsePrice(b['単価']));
         } else if (sortBy === 'price-desc') {
-            result = [...result].sort((a, b) => (parseFloat(b['単価']) || 0) - (parseFloat(a['単価']) || 0));
+            result = [...result].sort((a, b) => parsePrice(b['単価']) - parsePrice(a['単価']));
         } else if (sortBy === 'date-desc') {
             result = [...result].sort((a, b) => {
                 const dateA = new Date(a['最新受注日'] || 0);
