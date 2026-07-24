@@ -2123,6 +2123,11 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
+    const input = document.getElementById("customer-folder-input") || document.getElementById("customer-files-input");
+    if (input) {
+      input.click();
+      return;
+    }
     try {
       if (isFileSystemSupported && window.showDirectoryPicker) {
         const handle = await window.showDirectoryPicker();
@@ -2134,15 +2139,11 @@ const useProductData = () => {
         setError(null);
         await set("customerDirHandle", handle);
         await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
-        return;
       }
     } catch (err) {
-      if (err.name === "AbortError" || err.name === "NotAllowedError") return;
-      console.warn("showDirectoryPicker unavailable for customer folder, falling back to folder input:", err);
-    }
-    const input = document.getElementById("customer-folder-input") || document.getElementById("customer-files-input");
-    if (input) {
-      input.click();
+      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
+        console.error("Error selecting customer folder:", err);
+      }
     }
   };
   const handleCustomerFilesSelect = async (e) => {
