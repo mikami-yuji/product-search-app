@@ -2072,16 +2072,23 @@ const useProductData = () => {
             }
           }
         }
-        try {
-          await cacheImage(rawName, file);
-          await cacheImage(cleanedRawName, file);
-          if (unpaddedName) await cacheImage(unpaddedName, file);
-        } catch {
-        }
       }
       setImageFilesMap(newMap);
       setPermissionGranted(true);
       setError(null);
+      setTimeout(async () => {
+        for (const file of files) {
+          const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
+          const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+          const unpaddedName = cleanedRawName.replace(/^0+/, "");
+          try {
+            await cacheImage(rawName, file);
+            await cacheImage(cleanedRawName, file);
+            if (unpaddedName) await cacheImage(unpaddedName, file);
+          } catch {
+          }
+        }
+      }, 50);
     } catch (err) {
       console.error("Error in handleImageFilesSelect:", err);
     } finally {
