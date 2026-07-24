@@ -257,7 +257,7 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   if (!rawCustomerName) return null;
   const cacheKey = `${dirHandle.name || "root"}:${rawCustomerName}`;
   if (subDirHandleCache.has(cacheKey)) {
-    return subDirHandleCache.get(cacheKey) || null;
+    return subDirHandleCache.get(cacheKey);
   }
   try {
     if (typeof dirHandle.getDirectoryHandle === "function") {
@@ -274,7 +274,7 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
     const customerCode = match[1];
     try {
       for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === "directory" && entry.name && entry.name.startsWith(customerCode)) {
+        if (entry && entry.kind === "directory" && entry.name && (entry.name.startsWith(customerCode) || entry.name.includes(customerCode))) {
           subDirHandleCache.set(cacheKey, entry);
           return entry;
         }
@@ -282,17 +282,13 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
     } catch {
     }
   }
-  subDirHandleCache.set(cacheKey, null);
   return null;
 };
 const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
   if (!dirHandle || !rawFilename) return null;
-  const trimmed = String(rawFilename).trim().replace(
-    /[Ａ-Ｚａ-ｚ０-９]/g,
-    (s) => String.fromCharCode(s.charCodeAt(0) - 65248)
-  );
-  const unpadded = trimmed.replace(/^0+/, "");
-  const baseNames = Array.from(/* @__PURE__ */ new Set([trimmed, unpadded])).filter(Boolean);
+  const cleaned = String(rawFilename).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+  const unpadded = cleaned.replace(/^0+/, "");
+  const baseNames = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, String(rawFilename).trim()])).filter(Boolean);
   const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
   const prefixes = [];
   for (const base of baseNames) {
@@ -745,7 +741,16 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
     let isCancelled = false;
     const loadImage = async () => {
       setError(false);
-      const searchKeys = Array.from(/* @__PURE__ */ new Set([filename, productCode])).filter(Boolean);
+      const cleanKey = (val) => {
+        if (!val) return "";
+        return String(val).trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      };
+      const searchKeys = Array.from(/* @__PURE__ */ new Set([
+        cleanKey(filename),
+        cleanKey(productCode),
+        String(filename || "").trim(),
+        String(productCode || "").trim()
+      ])).filter(Boolean);
       for (const key of searchKeys) {
         try {
           const variants = [
