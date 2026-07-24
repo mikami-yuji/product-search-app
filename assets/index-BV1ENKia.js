@@ -160,8 +160,8 @@ const createProductExcelWorkbook = async (products, fileName) => {
   return workbook;
 };
 const IMAGE_CACHE_PREFIX = "img_";
-const MAX_CACHE_SIZE = 100;
-const CACHE_EXPIRY_DAYS = 7;
+const MAX_CACHE_SIZE = 5e3;
+const CACHE_EXPIRY_DAYS = 90;
 const cacheImage = async (filename, blob) => {
   try {
     const cacheKey = `${IMAGE_CACHE_PREFIX}${filename}`;
@@ -285,42 +285,65 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   subDirHandleCache.set(cacheKey, null);
   return null;
 };
-const findImageFileHandle = async (dirHandle, filename, customerFileName) => {
-  if (!dirHandle || !filename) return null;
-  const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
+const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
+  if (!dirHandle || !rawFilename) return null;
+  const filename = String(rawFilename).trim().replace(
+    /[Ａ-Ｚａ-ｚ０-９]/g,
+    (s) => String.fromCharCode(s.charCodeAt(0) - 65248)
+  );
+  const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
+  const prefixes = [
+    `${filename}`,
+    `${filename}A`,
+    `${filename}a`,
+    `${filename}_1`,
+    `${filename}_A`,
+    `${filename}_a`,
+    `${filename}-1`,
+    `${filename}-A`,
+    `${filename}-a`
+  ];
+  const searchInDirectory = async (targetHandle) => {
+    if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
+    for (const prefix of prefixes) {
+      for (const ext of extensions) {
+        try {
+          const fileHandle = await targetHandle.getFileHandle(`${prefix}${ext}`);
+          if (fileHandle) return fileHandle;
+        } catch {
+        }
+      }
+    }
+    if (typeof targetHandle.values === "function") {
+      try {
+        for await (const entry of targetHandle.values()) {
+          if (entry && entry.kind === "file" && entry.name) {
+            const entryNameLower = entry.name.toLowerCase();
+            const fnLower = filename.toLowerCase();
+            if (entryNameLower.startsWith(fnLower)) {
+              return entry;
+            }
+          }
+        }
+      } catch {
+      }
+    }
+    return null;
+  };
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
-      if (subDirHandle && typeof subDirHandle.getFileHandle === "function") {
-        for (const ext of extensions) {
-          try {
-            const fileHandle = await subDirHandle.getFileHandle(`${filename}${ext}`);
-            if (fileHandle) return fileHandle;
-          } catch {
-          }
-          try {
-            const fileHandle = await subDirHandle.getFileHandle(`${filename}A${ext}`);
-            if (fileHandle) return fileHandle;
-          } catch {
-          }
-        }
+      if (subDirHandle) {
+        const found = await searchInDirectory(subDirHandle);
+        if (found) return found;
       }
     } catch {
     }
   }
-  if (typeof dirHandle.getFileHandle === "function") {
-    for (const ext of extensions) {
-      try {
-        const fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
-        if (fileHandle) return fileHandle;
-      } catch {
-      }
-      try {
-        const fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
-        if (fileHandle) return fileHandle;
-      } catch {
-      }
-    }
+  try {
+    const found = await searchInDirectory(dirHandle);
+    if (found) return found;
+  } catch {
   }
   return null;
 };
@@ -715,6 +738,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
     if (!isVisible) return;
     let isCancelled = false;
     const loadImage = async () => {
+      setError(false);
       try {
         const cachedBlob = await getCachedImage(filename);
         if (isCancelled) return;
@@ -765,24 +789,37 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
       }
       if (dirHandle && filename) {
         try {
-          const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
-          if (isCancelled) return;
-          if (fileHandle) {
-            const file = await fileHandle.getFile();
+          let hasPermission = false;
+          if (typeof dirHandle.queryPermission === "function") {
             try {
-              await cacheImage(filename, file);
-            } catch (err) {
-              console.error("Failed to cache image:", err);
+              const permission = await dirHandle.queryPermission({ mode: "read" });
+              hasPermission = permission === "granted";
+            } catch {
+              hasPermission = false;
             }
+          } else {
+            hasPermission = true;
+          }
+          if (hasPermission) {
+            const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
             if (isCancelled) return;
-            const objectUrl = URL.createObjectURL(file);
-            if (isCancelled) {
-              URL.revokeObjectURL(objectUrl);
+            if (fileHandle) {
+              const file = await fileHandle.getFile();
+              try {
+                await cacheImage(filename, file);
+              } catch (err) {
+                console.error("Failed to cache image:", err);
+              }
+              if (isCancelled) return;
+              const objectUrl = URL.createObjectURL(file);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+              updateImageUrl(objectUrl);
+              setError(false);
               return;
             }
-            updateImageUrl(objectUrl);
-            setError(false);
-            return;
           }
         } catch (err) {
           console.error("Error loading local image:", err);
