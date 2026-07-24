@@ -754,7 +754,7 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
-const ProductImage = ({ dirHandle, filename, customerFileName, productCode, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, productCode, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -813,6 +813,32 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
         String(filename || "").trim(),
         String(productCode || "").trim()
       ])).filter(Boolean);
+      if (imageFilesMap && imageFilesMap.size > 0) {
+        const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
+        for (const key of searchKeys) {
+          const kLower = key.toLowerCase();
+          const candidates = [
+            kLower,
+            `${kLower}a`,
+            `${kLower}_1`,
+            `${customerPrefix}/${kLower}`,
+            `${customerPrefix}/${kLower}a`
+          ];
+          for (const cand of candidates) {
+            const file = imageFilesMap.get(cand);
+            if (file) {
+              const objectUrl = URL.createObjectURL(file);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+              updateImageUrl(objectUrl);
+              setError(false);
+              return;
+            }
+          }
+        }
+      }
       for (const key of searchKeys) {
         try {
           const variants = [
@@ -902,7 +928,7 @@ const ProductImage = ({ dirHandle, filename, customerFileName, productCode, clas
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, filename, customerFileName, productCode, isVisible]);
+  }, [dirHandle, imageFilesMap, filename, customerFileName, productCode, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -1461,7 +1487,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, customerFileName, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1481,6 +1507,7 @@ const ProductCard = ({ product, dirHandle, customerFileName, onClick, onAddToCar
       ProductImage$1,
       {
         dirHandle,
+        imageFilesMap,
         filename: product["受注№"],
         productCode: product["商品コード"],
         customerFileName,
@@ -1535,7 +1562,7 @@ const ProductCard = ({ product, dirHandle, customerFileName, onClick, onAddToCar
   ] });
 };
 const ProductCard$1 = React.memo(ProductCard, (prevProps, nextProps) => {
-  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle && prevProps.customerFileName === nextProps.customerFileName;
+  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle && prevProps.imageFilesMap === nextProps.imageFilesMap && prevProps.customerFileName === nextProps.customerFileName;
 });
 const Toast = ({ message, type = "success", isVisible, onClose }) => {
   reactExports.useEffect(() => {
@@ -1990,26 +2017,56 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
-  const handleFolderSelect = async () => {
-    try {
-      if (dirHandle) {
-        const options = { mode: "read" };
-        const permission = await dirHandle.requestPermission(options);
-        if (permission === "granted") {
-          setPermissionGranted(true);
-          setError(null);
-          return;
+  const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const handleImageFilesSelect = (e) => {
+    const files = Array.from(e.target.files).filter(
+      (file) => file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+    );
+    if (files.length === 0) return;
+    const newMap = new Map(imageFilesMap);
+    for (const file of files) {
+      const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
+      const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      newMap.set(rawName.toLowerCase(), file);
+      newMap.set(cleanedRawName.toLowerCase(), file);
+      newMap.set(file.name.toLowerCase(), file);
+      if (file.webkitRelativePath) {
+        const parts = file.webkitRelativePath.split("/");
+        if (parts.length > 1) {
+          const folderName = parts[parts.length - 2];
+          newMap.set(`${folderName}/${rawName}`.toLowerCase(), file);
+          newMap.set(`${folderName}/${cleanedRawName}`.toLowerCase(), file);
         }
       }
-      const handle = await window.showDirectoryPicker();
-      setDirHandle(handle);
-      setPermissionGranted(true);
-      setError(null);
-      await set("imageDirHandle", handle);
+    }
+    setImageFilesMap(newMap);
+    setPermissionGranted(true);
+    setError(null);
+  };
+  const handleFolderSelect = async () => {
+    try {
+      if (isFileSystemSupported) {
+        if (dirHandle) {
+          const options = { mode: "read" };
+          const permission = await dirHandle.requestPermission(options);
+          if (permission === "granted") {
+            setPermissionGranted(true);
+            setError(null);
+            return;
+          }
+        }
+        const handle = await window.showDirectoryPicker();
+        setDirHandle(handle);
+        setPermissionGranted(true);
+        setError(null);
+        await set("imageDirHandle", handle);
+        return;
+      }
+      document.getElementById("image-files-input")?.click();
     } catch (err) {
       if (err.name !== "AbortError") {
-        console.error("Error selecting folder:", err);
-        setError("フォルダの選択に失敗しました");
+        console.error("Error selecting folder, falling back:", err);
+        document.getElementById("image-files-input")?.click();
       }
     }
   };
@@ -2100,6 +2157,7 @@ const useProductData = () => {
     fileName,
     lastModified,
     dirHandle,
+    imageFilesMap,
     permissionGranted,
     customerDirHandle,
     customerPermissionGranted,
@@ -2109,6 +2167,7 @@ const useProductData = () => {
     isFileSystemSupported,
     handleFileUpload,
     handleFolderSelect,
+    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile,
@@ -2345,6 +2404,7 @@ function App() {
     fileName,
     lastModified,
     dirHandle,
+    imageFilesMap,
     permissionGranted,
     customerPermissionGranted,
     customerFiles,
@@ -2353,6 +2413,7 @@ function App() {
     isFileSystemSupported: isFileSystemSupported2,
     handleFileUpload,
     handleFolderSelect,
+    handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
     loadCustomerFile: originalLoadCustomerFile,
@@ -2698,6 +2759,7 @@ function App() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
@@ -3035,6 +3097,7 @@ function App() {
           {
             product,
             dirHandle,
+            imageFilesMap,
             customerFileName: fileName,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
@@ -3044,7 +3107,7 @@ function App() {
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -3058,7 +3121,7 @@ function App() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-id", children: row["商品コード"] })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-body", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-field", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-label", children: "受注№" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-value", children: row["受注№"] })
