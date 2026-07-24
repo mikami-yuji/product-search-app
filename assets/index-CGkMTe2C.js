@@ -1914,7 +1914,10 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
+  const isPickerActiveRef = reactExports.useRef(false);
   const handleFolderSelect = async () => {
+    if (isPickerActiveRef.current) return;
+    isPickerActiveRef.current = true;
     try {
       if (isFileSystemSupported) {
         try {
@@ -1927,12 +1930,15 @@ const useProductData = () => {
           return;
         } catch (err) {
           if (err.name === "AbortError") return;
-          console.warn("showDirectoryPicker failed, falling back to file input:", err);
         }
       }
       document.getElementById("image-files-input")?.click();
     } catch (err) {
       console.error("Error in handleFolderSelect:", err);
+    } finally {
+      setTimeout(() => {
+        isPickerActiveRef.current = false;
+      }, 500);
     }
   };
   const handleImageFilesSelect = async (e) => {
@@ -1959,6 +1965,8 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
+    if (isPickerActiveRef.current) return;
+    isPickerActiveRef.current = true;
     try {
       if (isFileSystemSupported) {
         try {
@@ -1974,12 +1982,15 @@ const useProductData = () => {
           return;
         } catch (err) {
           if (err.name === "AbortError") return;
-          console.warn("showDirectoryPicker for customer folder failed, falling back to file input:", err);
         }
       }
       document.getElementById("customer-files-input")?.click();
     } catch (err) {
       console.error("Error in handleCustomerFolderSelect:", err);
+    } finally {
+      setTimeout(() => {
+        isPickerActiveRef.current = false;
+      }, 500);
     }
   };
   const handleCustomerFilesSelect = async (e) => {
