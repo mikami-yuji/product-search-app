@@ -1769,70 +1769,24 @@ const useProductData = () => {
         const cachedData = await get("productData");
         const cachedFileName = await get("fileName");
         const cachedLastModified = await get("lastModified");
-        const cachedDirHandle = await get("imageDirHandle");
-        const cachedCustomerDirHandle = isFileSystemSupported ? await get("customerDirHandle") : null;
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
-        if (isFileSystemSupported) {
-          if (cachedDirHandle) {
-            setDirHandle(cachedDirHandle);
-            const options = { mode: "read" };
-            try {
-              const permission = await cachedDirHandle.queryPermission(options);
-              if (permission === "granted") {
-                setPermissionGranted(true);
-              } else {
-                setPermissionGranted(false);
-              }
-            } catch {
-              setPermissionGranted(false);
-            }
-          } else {
-            setPermissionGranted(false);
+        try {
+          const stats = await getCacheStats();
+          if (stats.count > 0) {
+            setPermissionGranted(true);
           }
-        } else {
-          try {
-            const stats = await getCacheStats();
-            setPermissionGranted(stats.count > 0);
-          } catch {
-            setPermissionGranted(false);
-          }
+        } catch {
         }
-        if (cachedCustomerDirHandle && isFileSystemSupported) {
-          setCustomerDirHandle(cachedCustomerDirHandle);
-          const options = { mode: "read" };
-          try {
-            const permission = await cachedCustomerDirHandle.queryPermission(options);
-            if (permission === "granted") {
-              setCustomerPermissionGranted(true);
-              const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
-              files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-              setCustomerFiles(files);
-            } else {
-              const cachedCustomerFilesList = await get("customerFilesListCache");
-              if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
-                setCustomerFiles(cachedCustomerFilesList);
-                setCustomerPermissionGranted(true);
-              } else {
-                setCustomerPermissionGranted(false);
-              }
-            }
-          } catch {
-            const cachedCustomerFilesList = await get("customerFilesListCache");
-            if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
-              setCustomerFiles(cachedCustomerFilesList);
-              setCustomerPermissionGranted(true);
-            } else {
-              setCustomerPermissionGranted(false);
-            }
-          }
-        } else if (!isFileSystemSupported) {
-          const cachedCustomerFiles = await get("customerFilesCache");
-          if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
-            setCustomerFiles(cachedCustomerFiles);
-            setCustomerPermissionGranted(true);
-          }
+        const cachedCustomerFilesList = await get("customerFilesListCache");
+        const cachedCustomerFiles = await get("customerFilesCache");
+        if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
+          setCustomerFiles(cachedCustomerFilesList);
+          setCustomerPermissionGranted(true);
+        } else if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
+          setCustomerFiles(cachedCustomerFiles);
+          setCustomerPermissionGranted(true);
         }
       } catch (err) {
         console.error("Error loading cached data:", err);
@@ -1917,16 +1871,21 @@ const useProductData = () => {
   };
   const handleFolderSelect = async () => {
     try {
-      const handle = await window.showDirectoryPicker();
-      setDirHandle(handle);
-      setPermissionGranted(true);
-      setError(null);
-      await set("imageDirHandle", handle);
-    } catch (err) {
-      if (err.name !== "AbortError" && !err.message?.includes("already active")) {
-        console.error("Error selecting folder:", err);
-        setError("フォルダの選択に失敗しました");
+      if (isFileSystemSupported) {
+        try {
+          const handle = await window.showDirectoryPicker();
+          setDirHandle(handle);
+          setPermissionGranted(true);
+          setError(null);
+          return;
+        } catch (err) {
+          if (err.name === "AbortError") return;
+          console.warn("showDirectoryPicker failed, falling back to file input:", err);
+        }
       }
+      document.getElementById("image-files-input")?.click();
+    } catch (err) {
+      console.error("Error in handleFolderSelect:", err);
     }
   };
   const handleImageFilesSelect = async (e) => {
@@ -1951,22 +1910,26 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
-    if (!isFileSystemSupported) return;
     try {
-      const handle = await window.showDirectoryPicker();
-      setCustomerDirHandle(handle);
-      setCustomerPermissionGranted(true);
-      const files = await getExcelFilesFromDir(handle);
-      files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-      setCustomerFiles(files);
-      setError(null);
-      await set("customerDirHandle", handle);
-      await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
-    } catch (err) {
-      if (err.name !== "AbortError" && !err.message?.includes("already active")) {
-        console.error("Error selecting customer folder:", err);
-        setError("顧客フォルダの選択に失敗しました");
+      if (isFileSystemSupported) {
+        try {
+          const handle = await window.showDirectoryPicker();
+          setCustomerDirHandle(handle);
+          setCustomerPermissionGranted(true);
+          const files = await getExcelFilesFromDir(handle);
+          files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+          setCustomerFiles(files);
+          setError(null);
+          await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
+          return;
+        } catch (err) {
+          if (err.name === "AbortError") return;
+          console.warn("showDirectoryPicker for customer folder failed, falling back to file input:", err);
+        }
       }
+      document.getElementById("customer-files-input")?.click();
+    } catch (err) {
+      console.error("Error in handleCustomerFolderSelect:", err);
     }
   };
   const handleCustomerFilesSelect = async (e) => {
@@ -1983,6 +1946,7 @@ const useProductData = () => {
     setError(null);
     try {
       await set("customerFilesCache", mappedFiles);
+      await set("customerFilesListCache", mappedFiles.map((f) => ({ name: f.name })));
     } catch (err) {
       console.error("Failed to cache customer files:", err);
     }
@@ -1992,17 +1956,14 @@ const useProductData = () => {
     try {
       let file;
       if (isFileSystemSupported && customerDirHandle) {
-        const options = { mode: "read" };
-        let permission = await customerDirHandle.queryPermission(options);
-        if (permission !== "granted") {
-          permission = await customerDirHandle.requestPermission(options);
-        }
-        if (permission === "granted") {
-          setCustomerPermissionGranted(true);
+        try {
           const fileHandle = await customerDirHandle.getFileHandle(name);
           file = await fileHandle.getFile();
-        } else {
-          throw new Error("フォルダへのアクセス権限がありません");
+        } catch {
+          const found = customerFiles.find((f) => f.name === name);
+          if (found && found.file) {
+            file = found.file;
+          }
         }
       } else {
         const found = customerFiles.find((f) => f.name === name);
@@ -2013,7 +1974,7 @@ const useProductData = () => {
       if (file) {
         await processExcelFile(file);
       } else {
-        throw new Error("ファイルが見つかりません");
+        throw new Error("顧客ファイルが見つかりません。顧客フォルダまたは顧客ファイルを再選択してください。");
       }
     } catch (err) {
       console.error("Error loading customer file:", err);
