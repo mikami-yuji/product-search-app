@@ -144,7 +144,15 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     return null;
   };
 
-  // 1. 顧客専用サブディレクトリ内の優先探索（PC・スマホ顧客別サブフォルダ対応）
+  // 1. ルートディレクトリ直下の探索（PC用：画像フォルダ内に全画像が一括で入っている場合）
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
+    // 次へ
+  }
+
+  // 2. 顧客専用サブディレクトリ内の探索（スマホ・顧客サブフォルダ用）
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
@@ -155,14 +163,6 @@ export const findImageFileHandle = async (dirHandle, rawFilename, customerFileNa
     } catch {
       // スキップ
     }
-  }
-
-  // 2. ルートディレクトリ直下の探索（PC用：ルートフォルダ内に一括で画像が入っている場合）
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-    // 次へ
   }
 
   return null;
