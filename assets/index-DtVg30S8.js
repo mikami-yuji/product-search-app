@@ -126,9 +126,14 @@ const getCacheStats = async () => {
 const subDirHandleCache = /* @__PURE__ */ new Map();
 const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   if (!dirHandle || !customerFileName) return null;
+  const cleanString = (str) => {
+    if (!str) return "";
+    return String(str).replace(/\.xlsx?$/i, "").trim().replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).toLowerCase();
+  };
   const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, "").trim();
+  const cleanedCustomerName = cleanString(customerFileName);
   if (!rawCustomerName) return null;
-  const cacheKey = `${dirHandle.name || "root"}:${rawCustomerName}`;
+  const cacheKey = `${dirHandle.name || "root"}:${cleanedCustomerName}`;
   if (subDirHandleCache.has(cacheKey)) {
     return subDirHandleCache.get(cacheKey);
   }
@@ -142,14 +147,17 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
     }
   } catch {
   }
-  const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
-  if (match && typeof dirHandle.values === "function") {
-    const customerCode = match[1];
+  const codeMatch = cleanedCustomerName.match(/^([0-9a-z]+)/i);
+  const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
+  if (typeof dirHandle.values === "function") {
     try {
       for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === "directory" && entry.name && (entry.name.startsWith(customerCode) || entry.name.includes(customerCode))) {
-          subDirHandleCache.set(cacheKey, entry);
-          return entry;
+        if (entry && entry.kind === "directory" && entry.name) {
+          const entryCleaned = cleanString(entry.name);
+          if (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode)) || entryCleaned.includes(cleanedCustomerName) || cleanedCustomerName.includes(entryCleaned)) {
+            subDirHandleCache.set(cacheKey, entry);
+            return entry;
+          }
         }
       }
     } catch {
@@ -205,11 +213,6 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
     }
     return null;
   };
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-  }
   if (customerFileName) {
     try {
       const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
@@ -219,6 +222,11 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
       }
     } catch {
     }
+  }
+  try {
+    const foundRoot = await searchInDirectory(dirHandle);
+    if (foundRoot) return foundRoot;
+  } catch {
   }
   return null;
 };
