@@ -32,133 +32,6 @@ import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
     fetch(link.href, fetchOpts);
   }
 })();
-const createProductExcelWorkbook = async (products, fileName) => {
-  if (!products || products.length === 0) {
-    throw new Error("出力するデータがありません");
-  }
-  const companyName = fileName ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社") : "顧客";
-  const today = /* @__PURE__ */ new Date();
-  const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("商品一覧");
-  worksheet.views = [{ showGridLines: true }];
-  worksheet.mergeCells("A1:L1");
-  const titleCell = worksheet.getCell("A1");
-  titleCell.value = `【${companyName} 様】 取扱商品一覧`;
-  titleCell.font = { name: "Yu Gothic", size: 18, bold: true, color: { argb: "FF0F172A" } };
-  titleCell.alignment = { vertical: "middle", horizontal: "center" };
-  worksheet.getRow(1).height = 50;
-  worksheet.mergeCells("A2:L2");
-  const dateCell = worksheet.getCell("A2");
-  dateCell.value = `出力日: ${dateStr}`;
-  dateCell.font = { name: "Yu Gothic", size: 10, italic: true, color: { argb: "FF475569" } };
-  dateCell.alignment = { vertical: "middle", horizontal: "right" };
-  worksheet.getRow(2).height = 25;
-  worksheet.addRow([]);
-  worksheet.getRow(3).height = 15;
-  const headers = [
-    "No.",
-    "受注№",
-    "商品コード",
-    "品名",
-    "種別",
-    "形状",
-    "材質",
-    "重量",
-    "単価",
-    "印刷代",
-    "JANコード",
-    "最新受注日"
-  ];
-  const headerRow = worksheet.addRow(headers);
-  headerRow.height = 35;
-  headerRow.eachCell((cell) => {
-    cell.font = { name: "Yu Gothic", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF1E293B" }
-      // 落ち着いたミッドナイトブルー
-    };
-    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-    cell.border = {
-      top: { style: "medium", color: { argb: "FF0F172A" } },
-      left: { style: "thin", color: { argb: "FF475569" } },
-      bottom: { style: "medium", color: { argb: "FF0F172A" } },
-      right: { style: "thin", color: { argb: "FF475569" } }
-    };
-  });
-  for (let i = 0; i < products.length; i++) {
-    const item = products[i];
-    const displayName = item["種別"] === "既製品" ? item["商品名"] : item["タイトル"];
-    const price = item["単価"] && !isNaN(Number(item["単価"])) ? Number(item["単価"]) : null;
-    const printingCost = item["印刷代"] && !isNaN(Number(item["印刷代"])) ? Number(item["印刷代"]) : null;
-    const rawDate = item["最新受注日"] || "";
-    const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, "/") : "";
-    const rowData = [
-      i + 1,
-      item["受注№"] || "",
-      item["商品コード"] || "",
-      displayName || "",
-      item["種別"] || "",
-      item["形状"] || "",
-      item["材質名称"] || "",
-      item["重量"] || "",
-      price,
-      printingCost,
-      item["JANコード"] || "",
-      formattedDate
-    ];
-    const row = worksheet.addRow(rowData);
-    row.height = 25;
-    const isEven = i % 2 === 1;
-    const rowBgColor = isEven ? "FFF8FAFC" : "FFFFFFFF";
-    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      cell.font = { name: "Yu Gothic", size: 10 };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: rowBgColor }
-      };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFE2E8F0" } },
-        // 柔らかい極細罫線
-        left: { style: "thin", color: { argb: "FFE2E8F0" } },
-        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
-        right: { style: "thin", color: { argb: "FFE2E8F0" } }
-      };
-      if ([1, 2, 3, 5, 6, 7, 8, 12].includes(colNumber)) {
-        cell.alignment = { vertical: "middle", horizontal: "center" };
-      } else if ([9, 10].includes(colNumber)) {
-        cell.alignment = { vertical: "middle", horizontal: "right" };
-      } else {
-        cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
-      }
-      if ([9, 10].includes(colNumber) && cell.value !== null) {
-        cell.numFmt = '"¥"#,##0';
-      }
-    });
-  }
-  worksheet.columns.forEach((col, colIdx) => {
-    if (colIdx === 0) {
-      col.width = 8;
-      return;
-    }
-    let maxLen = 10;
-    col.eachCell({ includeEmpty: false }, (cell) => {
-      if (cell.row < 4) return;
-      if (cell.value !== void 0 && cell.value !== null) {
-        const str = String(cell.value);
-        const len = str.split("").reduce((acc, char) => acc + (char.charCodeAt(0) > 127 ? 2 : 1), 0);
-        if (len > maxLen) {
-          maxLen = len;
-        }
-      }
-    });
-    col.width = maxLen + 5;
-  });
-  return workbook;
-};
 const IMAGE_CACHE_PREFIX = "img_";
 const MAX_CACHE_SIZE = 100;
 const CACHE_EXPIRY_DAYS = 7;
@@ -291,6 +164,195 @@ const fetchProductImageBlob = async (filename, dirHandle) => {
     }
   }
   return null;
+};
+const getImageExtension = (blob) => {
+  if (blob && blob.type && blob.type.includes("png")) {
+    return "png";
+  }
+  return "jpeg";
+};
+const createProductExcelWorkbook = async (products, fileName, options = {}) => {
+  const { includeImages = false, dirHandle = null } = options;
+  if (!products || products.length === 0) {
+    throw new Error("出力するデータがありません");
+  }
+  const companyName = fileName ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社") : "顧客";
+  const today = /* @__PURE__ */ new Date();
+  const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("商品一覧");
+  const lastColLetter = includeImages ? "M" : "L";
+  worksheet.mergeCells(`A1:${lastColLetter}1`);
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = `【${companyName} 様】 取扱商品一覧`;
+  titleCell.font = { name: "Yu Gothic", size: 18, bold: true, color: { argb: "FF0F172A" } };
+  titleCell.alignment = { vertical: "middle", horizontal: "center" };
+  worksheet.getRow(1).height = 50;
+  worksheet.mergeCells(`A2:${lastColLetter}2`);
+  const dateCell = worksheet.getCell("A2");
+  dateCell.value = `出力日: ${dateStr}`;
+  dateCell.font = { name: "Yu Gothic", size: 10, italic: true, color: { argb: "FF475569" } };
+  dateCell.alignment = { vertical: "middle", horizontal: "right" };
+  worksheet.getRow(2).height = 25;
+  worksheet.addRow([]);
+  worksheet.getRow(3).height = 15;
+  const headers = includeImages ? [
+    "No.",
+    "画像",
+    "受注№",
+    "商品コード",
+    "品名",
+    "種別",
+    "形状",
+    "材質",
+    "重量",
+    "単価",
+    "印刷代",
+    "JANコード",
+    "最新受注日"
+  ] : [
+    "No.",
+    "受注№",
+    "商品コード",
+    "品名",
+    "種別",
+    "形状",
+    "材質",
+    "重量",
+    "単価",
+    "印刷代",
+    "JANコード",
+    "最新受注日"
+  ];
+  const headerRow = worksheet.addRow(headers);
+  headerRow.height = 35;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Yu Gothic", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF1E293B" }
+      // 落ち着いたミッドナイトブルー
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    cell.border = {
+      top: { style: "medium", color: { argb: "FF0F172A" } },
+      left: { style: "thin", color: { argb: "FF475569" } },
+      bottom: { style: "medium", color: { argb: "FF0F172A" } },
+      right: { style: "thin", color: { argb: "FF475569" } }
+    };
+  });
+  for (let i = 0; i < products.length; i++) {
+    const item = products[i];
+    const displayName = item["種別"] === "既製品" ? item["商品名"] : item["タイトル"];
+    const price = item["単価"] && !isNaN(Number(item["単価"])) ? Number(item["単価"]) : null;
+    const printingCost = item["印刷代"] && !isNaN(Number(item["印刷代"])) ? Number(item["印刷代"]) : null;
+    const rawDate = item["最新受注日"] || "";
+    const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, "/") : "";
+    const rowData = includeImages ? [
+      i + 1,
+      "",
+      // 画像セル（埋め込み用プレースホルダー）
+      item["受注№"] || "",
+      item["商品コード"] || "",
+      displayName || "",
+      item["種別"] || "",
+      item["形状"] || "",
+      item["材質名称"] || "",
+      item["重量"] || "",
+      price,
+      printingCost,
+      item["JANコード"] || "",
+      formattedDate
+    ] : [
+      i + 1,
+      item["受注№"] || "",
+      item["商品コード"] || "",
+      displayName || "",
+      item["種別"] || "",
+      item["形状"] || "",
+      item["材質名称"] || "",
+      item["重量"] || "",
+      price,
+      printingCost,
+      item["JANコード"] || "",
+      formattedDate
+    ];
+    const row = worksheet.addRow(rowData);
+    const currentRowNumber = row.number;
+    row.height = includeImages ? 60 : 25;
+    const isEven = i % 2 === 1;
+    const rowBgColor = isEven ? "FFF8FAFC" : "FFFFFFFF";
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.font = { name: "Yu Gothic", size: 10 };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: rowBgColor }
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } }
+      };
+      const centerCols = includeImages ? [1, 2, 3, 4, 6, 7, 8, 9, 13] : [1, 2, 3, 5, 6, 7, 8, 12];
+      const rightCols = includeImages ? [10, 11] : [9, 10];
+      if (centerCols.includes(colNumber)) {
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      } else if (rightCols.includes(colNumber)) {
+        cell.alignment = { vertical: "middle", horizontal: "right" };
+      } else {
+        cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+      }
+      if (rightCols.includes(colNumber) && cell.value !== null) {
+        cell.numFmt = '"¥"#,##0';
+      }
+    });
+    if (includeImages && item["受注№"]) {
+      try {
+        const imageBlob = await fetchProductImageBlob(item["受注№"], dirHandle, fileName);
+        if (imageBlob && imageBlob instanceof Blob) {
+          const arrayBuffer = await imageBlob.arrayBuffer();
+          const ext = getImageExtension(imageBlob);
+          const imageId = workbook.addImage({
+            buffer: arrayBuffer,
+            extension: ext
+          });
+          worksheet.addImage(imageId, {
+            tl: { col: 1.1, row: currentRowNumber - 1 + 0.1 },
+            br: { col: 1.9, row: currentRowNumber - 0.1 },
+            editAs: "oneCell"
+          });
+        }
+      } catch (err) {
+        console.error(`Excel画像埋め込みエラー (${item["受注№"]}):`, err);
+      }
+    }
+  }
+  worksheet.columns.forEach((col, colIdx) => {
+    if (colIdx === 0) {
+      col.width = 8;
+      return;
+    }
+    if (includeImages && colIdx === 1) {
+      col.width = 14;
+      return;
+    }
+    let maxLen = 10;
+    col.eachCell({ includeEmpty: false }, (cell) => {
+      if (cell.row < 4) return;
+      if (cell.value !== void 0 && cell.value !== null) {
+        const str = String(cell.value);
+        const len = str.split("").reduce((acc, char) => acc + (char.charCodeAt(0) > 127 ? 2 : 1), 0);
+        if (len > maxLen) {
+          maxLen = len;
+        }
+      }
+    });
+    col.width = maxLen + 5;
+  });
+  return workbook;
 };
 const blobToBase64 = (blob) => {
   return new Promise((resolve, reject) => {
@@ -2175,6 +2237,7 @@ function App() {
   const [isSearchFocused, setIsSearchFocused] = reactExports.useState(false);
   const [activeSuggestionIdx, setActiveSuggestionIdx] = reactExports.useState(-1);
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = reactExports.useState("");
+  const [showExcelModal, setShowExcelModal] = reactExports.useState(false);
   const [openFilters, setOpenFilters] = reactExports.useState({
     "種別": true,
     "重量": false,
@@ -2263,18 +2326,20 @@ function App() {
       };
     }
   }, [cartItemCount]);
-  const handleExportExcel = async () => {
+  const handleExportExcel = async (options = { includeImages: false }) => {
     if (!filteredData || filteredData.length === 0) {
       showToast("出力するデータがありません", "error");
       return;
     }
-    showToast("Excelファイルを生成中...", "info");
+    const { includeImages = false } = options;
+    showToast(includeImages ? "画像付きExcelファイルを生成中..." : "Excelファイルを生成中...", "info");
     try {
-      const wb = await createProductExcelWorkbook(filteredData, fileName);
+      const wb = await createProductExcelWorkbook(filteredData, fileName, { includeImages, dirHandle });
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
       const today = /* @__PURE__ */ new Date();
       const fileDateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-      const exportFileName = `${cleanCompanyName}_商品一覧_${fileDateStr}.xlsx`;
+      const imageSuffix = includeImages ? "_画像あり" : "";
+      const exportFileName = `${cleanCompanyName}_商品一覧${imageSuffix}_${fileDateStr}.xlsx`;
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = URL.createObjectURL(blob);
@@ -2285,7 +2350,7 @@ function App() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("Excelファイルをエクスポートしました", "success");
+      showToast(`Excelファイル(${includeImages ? "画像付き" : "画像なし"})をエクスポートしました`, "success");
     } catch (err) {
       console.error("Excelエクスポートエラー:", err);
       showToast(err.message || "Excelファイルの生成に失敗しました", "error");
@@ -2799,7 +2864,7 @@ function App() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
-                onClick: handleExportExcel,
+                onClick: () => setShowExcelModal(true),
                 className: "amazon-btn amazon-btn-primary excel-export-btn",
                 title: "商品一覧をExcel出力",
                 children: [
@@ -2973,6 +3038,56 @@ function App() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
     showCart && /* @__PURE__ */ jsxRuntimeExports.jsx(CartModal, { cart, onClose: () => setShowCart(false), onUpdateQuantity: updateCartQuantity, onRemove: removeFromCart, onClear: clearCart, total: cartTotal, fileName }),
     showCacheManager && /* @__PURE__ */ jsxRuntimeExports.jsx(CacheManager, { onClose: () => setShowCacheManager(false) }),
+    showExcelModal && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cart-modal-overlay", onClick: () => setShowExcelModal(false), children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-export-modal", onClick: (e) => e.stopPropagation(), children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-modal-header", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 20, className: "modal-title-icon" }),
+          "Excel出力形式の選択"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "cart-modal-close", onClick: () => setShowExcelModal(false), children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 20 }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-modal-body", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "excel-modal-desc", children: "出力するExcelファイルの形式を選択してください。" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-option-cards", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              className: "excel-option-card",
+              onClick: () => {
+                setShowExcelModal(false);
+                handleExportExcel({ includeImages: false });
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "option-icon text-only-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 32 }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "option-info", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { children: "画像なしで出力（テキストのみ）" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "option-badge fast-badge", children: "高速" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "データ一覧の集計・保存に最適です。一瞬で軽量なファイルが出力されます。" })
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              className: "excel-option-card image-option-card",
+              onClick: () => {
+                setShowExcelModal(false);
+                handleExportExcel({ includeImages: true });
+              },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "option-icon image-rich-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 32 }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "option-info", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { children: "画像付きで出力（商品画像入り）" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "option-badge rich-badge", children: "画像入り" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "各行に商品画像を埋め込んだ見栄えの良いExcelを出力します。提案書やカタログに最適です。" })
+                ] })
+              ]
+            }
+          )
+        ] })
+      ] })
+    ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toast, { message: toast.message, type: toast.type, isVisible: toast.show, onClose: hideToast })
   ] });
 }
