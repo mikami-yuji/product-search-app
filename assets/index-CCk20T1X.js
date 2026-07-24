@@ -2166,6 +2166,7 @@ const useProductData = () => {
     }
   };
   const loadCustomerFile = async (name) => {
+    setIsLoading(true);
     try {
       let file;
       if (isFileSystemSupported && customerDirHandle) {
@@ -2179,7 +2180,8 @@ const useProductData = () => {
           const fileHandle = await customerDirHandle.getFileHandle(name);
           file = await fileHandle.getFile();
         } else {
-          throw new Error("フォルダへのアクセス権限がありません");
+          setCustomerPermissionGranted(false);
+          throw new Error("フォルダへのアクセス権限が許可されていません");
         }
       } else {
         const found = customerFiles.find((f) => f.name === name);
@@ -2195,6 +2197,8 @@ const useProductData = () => {
     } catch (err) {
       console.error("Error loading customer file:", err);
       setError(`顧客ファイル「${name}」の読み込みに失敗しました`);
+    } finally {
+      setIsLoading(false);
     }
   };
   return {
