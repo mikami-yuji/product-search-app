@@ -32,18 +32,18 @@ const CacheManager = ({ onClose }) => {
     };
 
     const handleClearData = async () => {
-        if (!confirm('保存されたExcelデータを削除しますか？\n（次回アプリ起動時に再度ファイル読み込みが必要になります）')) return;
+        if (!confirm('保存されたExcelデータおよび接続情報を削除しますか？\n（次回アプリ起動時に画面が初期状態に戻ります）')) return;
 
         setIsClearing(true);
         try {
             await del('productData');
             await del('fileName');
             await del('lastModified');
-            // コメント: 追加した顧客フォルダ・ファイルキャッシュも削除
+            await del('imageDirHandle');
             await del('customerDirHandle');
             await del('customerFilesCache');
             await del('customerFilesListCache');
-            alert('商品データおよび顧客接続キャッシュを削除しました。\n反映するにはページを再読み込みしてください。');
+            alert('全データおよびフォルダ接続情報をクリアしました。\n画面を初期状態に再読み込みします。');
             window.location.reload();
         } catch (err) {
             console.error(err);
@@ -53,7 +53,7 @@ const CacheManager = ({ onClose }) => {
     };
 
     const handleForceUpdateApp = async () => {
-        if (!confirm('アプリの全キャッシュ（Service Worker・全画像・データ）をクリアして最新版に更新しますか？')) return;
+        if (!confirm('アプリの全キャッシュ（Service Worker・全画像・接続情報）をクリアして最新版に更新しますか？')) return;
 
         setIsClearing(true);
         try {
@@ -74,11 +74,12 @@ const CacheManager = ({ onClose }) => {
             await del('productData');
             await del('fileName');
             await del('lastModified');
+            await del('imageDirHandle');
             await del('customerDirHandle');
             await del('customerFilesCache');
             await del('customerFilesListCache');
 
-            alert('すべてのキャッシュを削除しました。最新版に再読み込みします。');
+            alert('すべてのキャッシュと接続情報を削除しました。最新版に再読み込みします。');
             window.location.reload();
         } catch (err) {
             console.error('Failed to force update app:', err);
