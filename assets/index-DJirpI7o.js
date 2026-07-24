@@ -740,19 +740,28 @@ const ProductImage = ({ dirHandle, filename, customerFileName, className, onClic
     const loadImage = async () => {
       setError(false);
       try {
-        const cachedBlob = await getCachedImage(filename);
-        if (isCancelled) return;
-        if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
-          const objectUrl = URL.createObjectURL(cachedBlob);
-          if (isCancelled) {
-            URL.revokeObjectURL(objectUrl);
+        const variants = [
+          filename,
+          `${filename}A`,
+          `${filename}a`,
+          `${filename}_1`,
+          `${filename}_A`,
+          `${filename}-1`,
+          `${filename}-A`
+        ];
+        for (const variant of variants) {
+          const cachedBlob = await getCachedImage(variant);
+          if (isCancelled) return;
+          if (cachedBlob && cachedBlob instanceof Blob && cachedBlob.type.startsWith("image/")) {
+            const objectUrl = URL.createObjectURL(cachedBlob);
+            if (isCancelled) {
+              URL.revokeObjectURL(objectUrl);
+              return;
+            }
+            updateImageUrl(objectUrl);
+            setError(false);
             return;
           }
-          updateImageUrl(objectUrl);
-          setError(false);
-          return;
-        } else if (cachedBlob) {
-          console.warn(`Invalid cached image detected for ${filename}. Cached item is not a valid image Blob.`, cachedBlob);
         }
       } catch (err) {
         console.error("Error loading cached image:", err);
@@ -1750,6 +1759,25 @@ const getExcelFilesFromDir = async (dirHandle) => {
   }
   return files;
 };
+const cacheAllImagesFromDir = async (dirHandle) => {
+  try {
+    for await (const entry of dirHandle.values()) {
+      if (entry.kind === "file" && /\.(jpg|jpeg|png|gif|webp)$/i.test(entry.name)) {
+        try {
+          const file = await entry.getFile();
+          const rawName = entry.name.replace(/\.[^/.]+$/, "");
+          await cacheImage(rawName, file);
+          await cacheImage(entry.name, file);
+        } catch {
+        }
+      } else if (entry.kind === "directory") {
+        await cacheAllImagesFromDir(entry);
+      }
+    }
+  } catch (err) {
+    console.error("Error scanning images from directory:", err);
+  }
+};
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
 const useProductData = () => {
   const [data, setData] = reactExports.useState([]);
@@ -1897,6 +1925,7 @@ const useProductData = () => {
           setPermissionGranted(true);
           setError(null);
           await set("imageDirHandle", handle);
+          cacheAllImagesFromDir(handle).catch(console.error);
           return;
         } catch (err) {
           if (err.name === "AbortError") return;
