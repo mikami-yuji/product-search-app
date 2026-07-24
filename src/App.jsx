@@ -547,7 +547,7 @@ function App() {
         </div>
       </header>
 
-      {data.length > 0 || isLoading ? (
+      {data.length > 0 || (isLoading && fileName) ? (
         <div className="amazon-main">
           {/* Sidebar Filters */}
           <aside className={`amazon-sidebar ${isFilterOpen ? 'open' : ''}`}>
