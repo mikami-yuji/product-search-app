@@ -1497,6 +1497,7 @@ const CacheManager = ({ onClose }) => {
       await del("productData");
       await del("fileName");
       await del("lastModified");
+      await del("imageDirHandle");
       await del("customerDirHandle");
       await del("customerFilesCache");
       await del("customerFilesListCache");
@@ -1526,6 +1527,7 @@ const CacheManager = ({ onClose }) => {
       await del("productData");
       await del("fileName");
       await del("lastModified");
+      await del("imageDirHandle");
       await del("customerDirHandle");
       await del("customerFilesCache");
       await del("customerFilesListCache");
@@ -1735,16 +1737,27 @@ const useProductData = () => {
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
-        if (cachedDirHandle && isFileSystemSupported) {
-          setDirHandle(cachedDirHandle);
-          const options = { mode: "read" };
-          try {
-            const permission = await cachedDirHandle.queryPermission(options);
-            if (permission === "granted") {
-              setPermissionGranted(true);
-            } else {
+        if (isFileSystemSupported) {
+          if (cachedDirHandle) {
+            setDirHandle(cachedDirHandle);
+            const options = { mode: "read" };
+            try {
+              const permission = await cachedDirHandle.queryPermission(options);
+              if (permission === "granted") {
+                setPermissionGranted(true);
+              } else {
+                setPermissionGranted(false);
+              }
+            } catch {
               setPermissionGranted(false);
             }
+          } else {
+            setPermissionGranted(false);
+          }
+        } else {
+          try {
+            const stats = await getCacheStats();
+            setPermissionGranted(stats.count > 0);
           } catch {
             setPermissionGranted(false);
           }
