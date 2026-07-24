@@ -1896,23 +1896,6 @@ const useProductData = () => {
     if (isPickerActiveRef.current) return;
     isPickerActiveRef.current = true;
     try {
-      if (dirHandle) {
-        const options = { mode: "read" };
-        let permission;
-        try {
-          permission = await dirHandle.queryPermission(options);
-          if (permission !== "granted") {
-            permission = await dirHandle.requestPermission(options);
-          }
-        } catch {
-          permission = "denied";
-        }
-        if (permission === "granted") {
-          setPermissionGranted(true);
-          setError(null);
-          return;
-        }
-      }
       const handle = await window.showDirectoryPicker();
       setDirHandle(handle);
       setPermissionGranted(true);
@@ -1953,27 +1936,6 @@ const useProductData = () => {
     if (!isFileSystemSupported || isPickerActiveRef.current) return;
     isPickerActiveRef.current = true;
     try {
-      if (customerDirHandle) {
-        const options = { mode: "read" };
-        let permission;
-        try {
-          permission = await customerDirHandle.queryPermission(options);
-          if (permission !== "granted") {
-            permission = await customerDirHandle.requestPermission(options);
-          }
-        } catch {
-          permission = "denied";
-        }
-        if (permission === "granted") {
-          setCustomerPermissionGranted(true);
-          const files2 = await getExcelFilesFromDir(customerDirHandle);
-          files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-          setCustomerFiles(files2);
-          await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
-          setError(null);
-          return;
-        }
-      }
       const handle = await window.showDirectoryPicker();
       setCustomerDirHandle(handle);
       setCustomerPermissionGranted(true);
