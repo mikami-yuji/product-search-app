@@ -2237,7 +2237,7 @@ function App() {
   const [isSearchFocused, setIsSearchFocused] = reactExports.useState(false);
   const [activeSuggestionIdx, setActiveSuggestionIdx] = reactExports.useState(-1);
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = reactExports.useState("");
-  const [showExcelModal, setShowExcelModal] = reactExports.useState(false);
+  const [showExcelDropdown, setShowExcelDropdown] = reactExports.useState(false);
   const [openFilters, setOpenFilters] = reactExports.useState({
     "種別": true,
     "重量": false,
@@ -2861,18 +2861,57 @@ function App() {
             " 件の商品"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-toolbar-controls", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: () => setShowExcelModal(true),
-                className: "amazon-btn amazon-btn-primary excel-export-btn",
-                title: "商品一覧をExcel出力",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16 }),
-                  "Excel出力"
-                ]
-              }
-            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-export-dropdown-container", style: { position: "relative", display: "inline-block" }, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  onClick: () => setShowExcelDropdown((prev) => !prev),
+                  className: "amazon-btn amazon-btn-primary excel-export-btn",
+                  title: "商品一覧をExcel出力",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16 }),
+                    "Excel出力",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 14, style: { marginLeft: "2px" } })
+                  ]
+                }
+              ),
+              showExcelDropdown && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-dropdown-menu", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    className: "excel-dropdown-item",
+                    onClick: () => {
+                      setShowExcelDropdown(false);
+                      handleExportExcel({ includeImages: false });
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 16, className: "dropdown-item-icon text-icon" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropdown-item-title", children: "画像なしで出力" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropdown-item-sub", children: "テキストのみ・高速" })
+                      ] })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    className: "excel-dropdown-item",
+                    onClick: () => {
+                      setShowExcelDropdown(false);
+                      handleExportExcel({ includeImages: true });
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 16, className: "dropdown-item-icon image-icon" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropdown-item-title", children: "画像付きで出力" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropdown-item-sub", children: "商品画像埋め込み" })
+                      ] })
+                    ]
+                  }
+                )
+              ] })
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
@@ -3038,56 +3077,6 @@ function App() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
     showCart && /* @__PURE__ */ jsxRuntimeExports.jsx(CartModal, { cart, onClose: () => setShowCart(false), onUpdateQuantity: updateCartQuantity, onRemove: removeFromCart, onClear: clearCart, total: cartTotal, fileName }),
     showCacheManager && /* @__PURE__ */ jsxRuntimeExports.jsx(CacheManager, { onClose: () => setShowCacheManager(false) }),
-    showExcelModal && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cart-modal-overlay", onClick: () => setShowExcelModal(false), children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-export-modal", onClick: (e) => e.stopPropagation(), children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-modal-header", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 20, className: "modal-title-icon" }),
-          "Excel出力形式の選択"
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "cart-modal-close", onClick: () => setShowExcelModal(false), children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 20 }) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-modal-body", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "excel-modal-desc", children: "出力するExcelファイルの形式を選択してください。" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "excel-option-cards", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              className: "excel-option-card",
-              onClick: () => {
-                setShowExcelModal(false);
-                handleExportExcel({ includeImages: false });
-              },
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "option-icon text-only-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 32 }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "option-info", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { children: "画像なしで出力（テキストのみ）" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "option-badge fast-badge", children: "高速" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "データ一覧の集計・保存に最適です。一瞬で軽量なファイルが出力されます。" })
-                ] })
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              className: "excel-option-card image-option-card",
-              onClick: () => {
-                setShowExcelModal(false);
-                handleExportExcel({ includeImages: true });
-              },
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "option-icon image-rich-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 32 }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "option-info", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { children: "画像付きで出力（商品画像入り）" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "option-badge rich-badge", children: "画像入り" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "各行に商品画像を埋め込んだ見栄えの良いExcelを出力します。提案書やカタログに最適です。" })
-                ] })
-              ]
-            }
-          )
-        ] })
-      ] })
-    ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toast, { message: toast.message, type: toast.type, isVisible: toast.show, onClose: hideToast })
   ] });
 }
