@@ -196,21 +196,6 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
         }
       }
     }
-    if (typeof targetHandle.values === "function") {
-      try {
-        for await (const entry of targetHandle.values()) {
-          if (entry && entry.kind === "file" && entry.name) {
-            const entryNameLower = entry.name.toLowerCase();
-            for (const base of baseNames) {
-              if (entryNameLower.startsWith(base.toLowerCase())) {
-                return entry;
-              }
-            }
-          }
-        }
-      } catch {
-      }
-    }
     return null;
   };
   try {
@@ -1875,51 +1860,6 @@ const getExcelFilesFromDir = async (dirHandle) => {
   }
   return files;
 };
-const scanDirHandleToMap = async (dirHandle) => {
-  const newMap = /* @__PURE__ */ new Map();
-  if (!dirHandle || typeof dirHandle.values !== "function") return newMap;
-  const processFile = (name, file) => {
-    const dotIdx = name.lastIndexOf(".");
-    const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
-    const lowerRawName = rawName.toLowerCase();
-    const lowerFileName = name.toLowerCase();
-    newMap.set(lowerRawName, file);
-    newMap.set(lowerFileName, file);
-    const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-    if (cleaned !== lowerRawName) {
-      newMap.set(cleaned, file);
-    }
-    const unpadded = cleaned.replace(/^0+/, "");
-    if (unpadded && unpadded !== cleaned) {
-      newMap.set(unpadded, file);
-    }
-  };
-  const scanDirectory = async (handle, prefix = "") => {
-    try {
-      for await (const entry of handle.values()) {
-        if (entry.kind === "file") {
-          if (/\.(jpg|jpeg|png|webp)$/i.test(entry.name)) {
-            const file = await entry.getFile();
-            processFile(entry.name, file);
-            if (prefix) {
-              const lowerRawName = entry.name.replace(/\.[^/.]+$/, "").toLowerCase();
-              newMap.set(`${prefix}/${lowerRawName}`, file);
-            }
-          }
-        } else if (entry.kind === "directory") {
-          const folderName = entry.name.trim().toLowerCase();
-          const codeMatch = folderName.match(/^([0-9a-z]+)/i);
-          const folderCode = codeMatch ? codeMatch[1].toLowerCase() : folderName;
-          await scanDirectory(entry, folderCode);
-        }
-      }
-    } catch (err) {
-      console.error("Error scanning dirHandle:", err);
-    }
-  };
-  await scanDirectory(dirHandle);
-  return newMap;
-};
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
 const useProductData = () => {
   const [data, setData] = reactExports.useState([]);
@@ -1950,9 +1890,6 @@ const useProductData = () => {
           const permission = await cachedDirHandle.queryPermission(options);
           if (permission === "granted") {
             setPermissionGranted(true);
-            scanDirHandleToMap(cachedDirHandle).then((map) => {
-              if (map.size > 0) setImageFilesMap(map);
-            });
           } else {
             setPermissionGranted(false);
           }
@@ -2160,10 +2097,6 @@ const useProductData = () => {
         setPermissionGranted(true);
         setError(null);
         await set("imageDirHandle", handle);
-        const map = await scanDirHandleToMap(handle);
-        if (map.size > 0) {
-          setImageFilesMap(map);
-        }
         return;
       }
     } catch (err) {
