@@ -898,7 +898,7 @@ function App() {
               <div className="amazon-products-grid fade-in-up">
                 {paginatedData.map((product, idx) => (
                   <ProductCard
-                    key={idx}
+                    key={`${product['受注№'] || product['商品コード'] || idx}`}
                     product={product}
                     dirHandle={dirHandle}
                     imageFilesMap={imageFilesMap}
@@ -918,7 +918,7 @@ function App() {
                   </thead>
                   <tbody>
                     {paginatedData.map((row, idx) => (
-                      <tr key={idx} onClick={() => setSelectedProduct(row)} style={{ cursor: 'pointer' }}>
+                      <tr key={`${row['受注№'] || row['商品コード'] || idx}`} onClick={() => setSelectedProduct(row)} style={{ cursor: 'pointer' }}>
                         {columns.map(col => (
                           <td key={col}>
                             {col === '画像' ? (
@@ -937,7 +937,7 @@ function App() {
                 <div className="mobile-table-cards">
                   {paginatedData.map((row, idx) => (
                     <div 
-                      key={idx} 
+                      key={`${row['受注№'] || row['商品コード'] || idx}`} 
                       className="mobile-table-card"
                       onClick={() => setSelectedProduct(row)}
                       style={{ cursor: 'pointer' }}

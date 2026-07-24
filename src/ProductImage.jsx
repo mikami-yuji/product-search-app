@@ -85,6 +85,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
         let isCancelled = false;
 
         const loadImage = async () => {
+            updateImageUrl(null);
             setError(false);
             const cleanKey = (val) => {
                 if (!val) return '';
