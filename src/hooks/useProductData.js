@@ -326,12 +326,19 @@ export const useProductData = () => {
         try {
             if (isFileSystemSupported) {
                 if (dirHandle) {
-                    const options = { mode: 'read' };
-                    const permission = await dirHandle.requestPermission(options);
-                    if (permission === 'granted') {
-                        setPermissionGranted(true);
-                        setError(null);
-                        return;
+                    try {
+                        const options = { mode: 'read' };
+                        let permission = await dirHandle.queryPermission(options);
+                        if (permission !== 'granted') {
+                            permission = await dirHandle.requestPermission(options);
+                        }
+                        if (permission === 'granted') {
+                            setPermissionGranted(true);
+                            setError(null);
+                            return;
+                        }
+                    } catch {
+                        // 新しいフォルダピッカーへフォールバック
                     }
                 }
 
@@ -345,7 +352,7 @@ export const useProductData = () => {
 
             document.getElementById('image-files-input')?.click();
         } catch (err) {
-            if (err.name !== 'AbortError') {
+            if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
                 console.error('Error selecting folder, falling back:', err);
                 document.getElementById('image-files-input')?.click();
             }
@@ -360,17 +367,23 @@ export const useProductData = () => {
         if (!isFileSystemSupported) return;
         try {
             if (customerDirHandle) {
-                const options = { mode: 'read' };
-                const permission = await customerDirHandle.requestPermission(options);
-                if (permission === 'granted') {
-                    setCustomerPermissionGranted(true);
-                    const files = await getExcelFilesFromDir(customerDirHandle);
-                    files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
-                    setCustomerFiles(files);
-                    // コメント: ファイル名リストをキャッシュに保存する（リロード時の表示用）
-                    await set('customerFilesListCache', files.map(f => ({ name: f.name })));
-                    setError(null);
-                    return;
+                try {
+                    const options = { mode: 'read' };
+                    let permission = await customerDirHandle.queryPermission(options);
+                    if (permission !== 'granted') {
+                        permission = await customerDirHandle.requestPermission(options);
+                    }
+                    if (permission === 'granted') {
+                        setCustomerPermissionGranted(true);
+                        const files = await getExcelFilesFromDir(customerDirHandle);
+                        files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
+                        setCustomerFiles(files);
+                        await set('customerFilesListCache', files.map(f => ({ name: f.name })));
+                        setError(null);
+                        return;
+                    }
+                } catch {
+                    // 新しいフォルダピッカーへフォールバック
                 }
             }
 
@@ -382,10 +395,9 @@ export const useProductData = () => {
             setCustomerFiles(files);
             setError(null);
             await set('customerDirHandle', handle);
-            // コメント: ファイル名リストをキャッシュに保存する（リロード時の表示用）
             await set('customerFilesListCache', files.map(f => ({ name: f.name })));
         } catch (err) {
-            if (err.name !== 'AbortError') {
+            if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
                 console.error('Error selecting customer folder:', err);
                 setError('顧客フォルダの選択に失敗しました');
             }
