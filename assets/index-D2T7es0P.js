@@ -1769,9 +1769,14 @@ const useProductData = () => {
         const cachedData = await get("productData");
         const cachedFileName = await get("fileName");
         const cachedLastModified = await get("lastModified");
+        const cachedCustomerDirHandle = isFileSystemSupported ? await get("customerDirHandle") : null;
+        const cachedImageDirHandle = isFileSystemSupported ? await get("imageDirHandle") : null;
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
+        if (cachedImageDirHandle && isFileSystemSupported) {
+          setDirHandle(cachedImageDirHandle);
+        }
         try {
           const stats = await getCacheStats();
           if (stats.count > 0) {
@@ -1779,14 +1784,28 @@ const useProductData = () => {
           }
         } catch {
         }
-        const cachedCustomerFilesList = await get("customerFilesListCache");
-        const cachedCustomerFiles = await get("customerFilesCache");
-        if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
-          setCustomerFiles(cachedCustomerFilesList);
-          setCustomerPermissionGranted(true);
-        } else if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
-          setCustomerFiles(cachedCustomerFiles);
-          setCustomerPermissionGranted(true);
+        if (cachedCustomerDirHandle && isFileSystemSupported) {
+          setCustomerDirHandle(cachedCustomerDirHandle);
+          try {
+            const files = await getExcelFilesFromDir(cachedCustomerDirHandle);
+            if (files && files.length > 0) {
+              files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
+              setCustomerFiles(files);
+              setCustomerPermissionGranted(true);
+            }
+          } catch {
+          }
+        }
+        if (customerFiles.length === 0) {
+          const cachedCustomerFilesList = await get("customerFilesListCache");
+          const cachedCustomerFiles = await get("customerFilesCache");
+          if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
+            setCustomerFiles(cachedCustomerFilesList);
+            setCustomerPermissionGranted(true);
+          } else if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
+            setCustomerFiles(cachedCustomerFiles);
+            setCustomerPermissionGranted(true);
+          }
         }
       } catch (err) {
         console.error("Error loading cached data:", err);
@@ -1877,6 +1896,7 @@ const useProductData = () => {
           setDirHandle(handle);
           setPermissionGranted(true);
           setError(null);
+          await set("imageDirHandle", handle);
           return;
         } catch (err) {
           if (err.name === "AbortError") return;
@@ -1920,6 +1940,7 @@ const useProductData = () => {
           files.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
           setCustomerFiles(files);
           setError(null);
+          await set("customerDirHandle", handle);
           await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
           return;
         } catch (err) {
@@ -1956,16 +1977,23 @@ const useProductData = () => {
     try {
       let file;
       if (isFileSystemSupported && customerDirHandle) {
+        const options = { mode: "read" };
+        let permission;
         try {
+          permission = await customerDirHandle.queryPermission(options);
+          if (permission !== "granted") {
+            permission = await customerDirHandle.requestPermission(options);
+          }
+        } catch {
+          permission = "denied";
+        }
+        if (permission === "granted") {
+          setCustomerPermissionGranted(true);
           const fileHandle = await customerDirHandle.getFileHandle(name);
           file = await fileHandle.getFile();
-        } catch {
-          const found = customerFiles.find((f) => f.name === name);
-          if (found && found.file) {
-            file = found.file;
-          }
         }
-      } else {
+      }
+      if (!file) {
         const found = customerFiles.find((f) => f.name === name);
         if (found && found.file) {
           file = found.file;
@@ -1974,11 +2002,12 @@ const useProductData = () => {
       if (file) {
         await processExcelFile(file);
       } else {
-        throw new Error("顧客ファイルが見つかりません。顧客フォルダまたは顧客ファイルを再選択してください。");
+        setCustomerPermissionGranted(false);
+        throw new Error(`顧客フォルダのアクセス権限が切れているか、ファイルが見つかりません。「顧客フォルダ」ボタンを押して再選択してください。`);
       }
     } catch (err) {
       console.error("Error loading customer file:", err);
-      setError(`顧客ファイル「${name}」の読み込みに失敗しました`);
+      setError(err.message || `顧客ファイル「${name}」の読み込みに失敗しました`);
     } finally {
       setIsLoading(false);
     }
