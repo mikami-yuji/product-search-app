@@ -821,12 +821,27 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
             kLower,
             `${kLower}a`,
             `${kLower}_1`,
+            `${kLower}_a`,
+            `${kLower}-1`,
+            `${kLower}-a`,
             `${customerPrefix}/${kLower}`,
             `${customerPrefix}/${kLower}a`
           ];
           for (const cand of candidates) {
             const file = imageFilesMap.get(cand);
             if (file) {
+              const objectUrl = URL.createObjectURL(file);
+              if (isCancelled) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+              updateImageUrl(objectUrl);
+              setError(false);
+              return;
+            }
+          }
+          for (const [mapKey, file] of imageFilesMap.entries()) {
+            if (mapKey.startsWith(kLower) || customerPrefix && mapKey.startsWith(`${customerPrefix}/${kLower}`)) {
               const objectUrl = URL.createObjectURL(file);
               if (isCancelled) {
                 URL.revokeObjectURL(objectUrl);
@@ -2018,30 +2033,46 @@ const useProductData = () => {
     processExcelFile(file);
   };
   const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
-  const handleImageFilesSelect = (e) => {
+  const handleImageFilesSelect = async (e) => {
     const files = Array.from(e.target.files).filter(
       (file) => file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
     );
     if (files.length === 0) return;
-    const newMap = new Map(imageFilesMap);
-    for (const file of files) {
-      const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
-      const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-      newMap.set(rawName.toLowerCase(), file);
-      newMap.set(cleanedRawName.toLowerCase(), file);
-      newMap.set(file.name.toLowerCase(), file);
-      if (file.webkitRelativePath) {
-        const parts = file.webkitRelativePath.split("/");
-        if (parts.length > 1) {
-          const folderName = parts[parts.length - 2];
-          newMap.set(`${folderName}/${rawName}`.toLowerCase(), file);
-          newMap.set(`${folderName}/${cleanedRawName}`.toLowerCase(), file);
+    setIsLoading(true);
+    try {
+      const newMap = new Map(imageFilesMap);
+      for (const file of files) {
+        const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
+        const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+        const unpaddedName = cleanedRawName.replace(/^0+/, "");
+        newMap.set(rawName.toLowerCase(), file);
+        newMap.set(cleanedRawName.toLowerCase(), file);
+        if (unpaddedName) newMap.set(unpaddedName.toLowerCase(), file);
+        newMap.set(file.name.toLowerCase(), file);
+        if (file.webkitRelativePath) {
+          const parts = file.webkitRelativePath.split("/");
+          if (parts.length > 1) {
+            const folderName = parts[parts.length - 2];
+            newMap.set(`${folderName}/${rawName}`.toLowerCase(), file);
+            newMap.set(`${folderName}/${cleanedRawName}`.toLowerCase(), file);
+            if (unpaddedName) newMap.set(`${folderName}/${unpaddedName}`.toLowerCase(), file);
+          }
+        }
+        try {
+          await cacheImage(rawName, file);
+          await cacheImage(cleanedRawName, file);
+          if (unpaddedName) await cacheImage(unpaddedName, file);
+        } catch {
         }
       }
+      setImageFilesMap(newMap);
+      setPermissionGranted(true);
+      setError(null);
+    } catch (err) {
+      console.error("Error in handleImageFilesSelect:", err);
+    } finally {
+      setIsLoading(false);
     }
-    setImageFilesMap(newMap);
-    setPermissionGranted(true);
-    setError(null);
   };
   const handleFolderSelect = async () => {
     try {
@@ -2759,7 +2790,8 @@ function App() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-folder-input", name: "imageFolder", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
