@@ -250,7 +250,74 @@ const getCacheStats = async () => {
     return { count: 0, totalSize: 0, totalSizeMB: "0.00", entries: [] };
   }
 };
-const fetchProductImageBlob = async (filename, dirHandle) => {
+const subDirHandleCache = /* @__PURE__ */ new Map();
+const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
+  if (!dirHandle || !customerFileName) return null;
+  const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, "").trim();
+  if (!rawCustomerName) return null;
+  const cacheKey = `${dirHandle.name || "root"}:${rawCustomerName}`;
+  if (subDirHandleCache.has(cacheKey)) {
+    return subDirHandleCache.get(cacheKey) || null;
+  }
+  try {
+    const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
+    if (subHandle) {
+      subDirHandleCache.set(cacheKey, subHandle);
+      return subHandle;
+    }
+  } catch {
+  }
+  const match = rawCustomerName.match(/^([0-9A-Za-z]+)/);
+  if (match) {
+    const customerCode = match[1];
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === "directory" && entry.name.startsWith(customerCode)) {
+          subDirHandleCache.set(cacheKey, entry);
+          return entry;
+        }
+      }
+    } catch {
+    }
+  }
+  subDirHandleCache.set(cacheKey, null);
+  return null;
+};
+const findImageFileHandle = async (dirHandle, filename, customerFileName) => {
+  if (!dirHandle || !filename) return null;
+  const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
+  if (customerFileName) {
+    const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
+    if (subDirHandle) {
+      for (const ext of extensions) {
+        try {
+          const fileHandle = await subDirHandle.getFileHandle(`${filename}${ext}`);
+          if (fileHandle) return fileHandle;
+        } catch {
+        }
+        try {
+          const fileHandle = await subDirHandle.getFileHandle(`${filename}A${ext}`);
+          if (fileHandle) return fileHandle;
+        } catch {
+        }
+      }
+    }
+  }
+  for (const ext of extensions) {
+    try {
+      const fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
+      if (fileHandle) return fileHandle;
+    } catch {
+    }
+    try {
+      const fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
+      if (fileHandle) return fileHandle;
+    } catch {
+    }
+  }
+  return null;
+};
+const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
   if (!filename) return null;
   if (typeof indexedDB !== "undefined") {
     try {
@@ -273,21 +340,13 @@ const fetchProductImageBlob = async (filename, dirHandle) => {
   } catch {
   }
   if (dirHandle) {
-    const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-    const candidates = [];
-    for (const ext of extensions) {
-      candidates.push(`${filename}${ext}`);
-      candidates.push(`${filename}A${ext}`);
-    }
-    for (const name of candidates) {
-      try {
-        const fileHandle = await dirHandle.getFileHandle(name);
-        if (fileHandle) {
-          const file = await fileHandle.getFile();
-          if (file) return file;
-        }
-      } catch {
+    try {
+      const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
+      if (fileHandle) {
+        const file = await fileHandle.getFile();
+        if (file) return file;
       }
+    } catch {
     }
   }
   return null;
@@ -601,7 +660,7 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
-const ProductImage = ({ dirHandle, filename, className, onClick }) => {
+const ProductImage = ({ dirHandle, filename, customerFileName, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -699,24 +758,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
       }
       if (dirHandle && filename) {
         try {
-          const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-          let fileHandle = null;
-          for (const ext of extensions) {
-            if (isCancelled) return;
-            try {
-              try {
-                fileHandle = await dirHandle.getFileHandle(`${filename}${ext}`);
-                if (fileHandle) break;
-              } catch {
-              }
-              try {
-                fileHandle = await dirHandle.getFileHandle(`${filename}A${ext}`);
-                if (fileHandle) break;
-              } catch {
-              }
-            } catch {
-            }
-          }
+          const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
           if (isCancelled) return;
           if (fileHandle) {
             const file = await fileHandle.getFile();
@@ -747,7 +789,7 @@ const ProductImage = ({ dirHandle, filename, className, onClick }) => {
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, filename, isVisible]);
+  }, [dirHandle, filename, customerFileName, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -1052,7 +1094,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
     ) })
   ] });
 };
-const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle, fileName, onNext, onPrev, hasNext, hasPrev }) => {
   const [currentImageIndex, setCurrentImageIndex] = reactExports.useState(0);
   const [availableImages, setAvailableImages] = reactExports.useState([]);
   const [isSwitching, setIsSwitching] = reactExports.useState(false);
@@ -1089,26 +1131,33 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
       const suffixes = ["", "A", "B", "C", "D", "E", "F", "G", "H"];
       const extensions = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
       if (dirHandle) {
+        const subDirHandle = fileName ? await getCustomerSubDirHandle(dirHandle, fileName) : null;
+        const targetHandles = subDirHandle ? [subDirHandle, dirHandle] : [dirHandle];
         for (const suffix of suffixes) {
-          for (const ext of extensions) {
-            if (isCancelled) break;
-            try {
-              const filename = `${product["受注№"]}${suffix}${ext}`;
-              const fileHandle = await dirHandle.getFileHandle(filename);
+          let foundForSuffix = false;
+          for (const handle of targetHandles) {
+            if (foundForSuffix || isCancelled) break;
+            for (const ext of extensions) {
               if (isCancelled) break;
-              if (fileHandle) {
-                const file = await fileHandle.getFile();
+              try {
+                const filename = `${product["受注№"]}${suffix}${ext}`;
+                const fileHandle = await handle.getFileHandle(filename);
                 if (isCancelled) break;
-                const url = URL.createObjectURL(file);
-                if (isCancelled) {
-                  URL.revokeObjectURL(url);
+                if (fileHandle) {
+                  const file = await fileHandle.getFile();
+                  if (isCancelled) break;
+                  const url = URL.createObjectURL(file);
+                  if (isCancelled) {
+                    URL.revokeObjectURL(url);
+                    break;
+                  }
+                  createdUrls.push(url);
+                  images.push({ url, suffix, source: "local" });
+                  foundForSuffix = true;
                   break;
                 }
-                createdUrls.push(url);
-                images.push({ url, suffix, source: "local" });
-                break;
+              } catch {
               }
-            } catch {
             }
           }
         }
@@ -1132,7 +1181,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
       isCancelled = true;
       createdUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [product, dirHandle]);
+  }, [product, dirHandle, fileName]);
   reactExports.useEffect(() => {
     return () => {
       setAvailableImages((prevImages) => {
@@ -1306,7 +1355,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, fileName, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1327,6 +1376,7 @@ const ProductCard = ({ product, dirHandle, onClick, onAddToCart, keyword }) => {
       {
         dirHandle,
         filename: product["受注№"],
+        customerFileName: fileName,
         productCode: product["商品コード"],
         className: "amazon-card-image"
       }
@@ -2868,6 +2918,7 @@ function App() {
           {
             product,
             dirHandle,
+            fileName,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
             keyword
@@ -2876,7 +2927,7 @@ function App() {
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], customerFileName: fileName, productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -2890,7 +2941,7 @@ function App() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-id", children: row["商品コード"] })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-body", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, filename: row["受注№"], customerFileName: fileName, productCode: row["商品コード"], onClick: (url) => setModalImage(url) }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-field", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-label", children: "受注№" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-value", children: row["受注№"] })
@@ -3001,7 +3052,7 @@ function App() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(ImageModal, { imageUrl: modalImage, onClose: () => setModalImage(null) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ProductDetailsModal, { product: selectedProduct, onClose: () => setSelectedProduct(null), dirHandle, fileName, onNext: handleNextProduct, onPrev: handlePrevProduct, hasNext, hasPrev }),
     showCart && /* @__PURE__ */ jsxRuntimeExports.jsx(CartModal, { cart, onClose: () => setShowCart(false), onUpdateQuantity: updateCartQuantity, onRemove: removeFromCart, onClear: clearCart, total: cartTotal, fileName }),
     showCacheManager && /* @__PURE__ */ jsxRuntimeExports.jsx(CacheManager, { onClose: () => setShowCacheManager(false) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toast, { message: toast.message, type: toast.type, isVisible: toast.show, onClose: hideToast })
