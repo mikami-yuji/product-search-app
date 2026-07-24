@@ -323,6 +323,12 @@ export const useProductData = () => {
      * @returns {Promise<void>}
      */
     const handleFolderSelect = async () => {
+        const input = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
+        if (input) {
+            input.click();
+            return;
+        }
+
         try {
             if (isFileSystemSupported && window.showDirectoryPicker) {
                 const handle = await window.showDirectoryPicker();
@@ -330,16 +336,11 @@ export const useProductData = () => {
                 setPermissionGranted(true);
                 setError(null);
                 await set('imageDirHandle', handle);
-                return;
             }
         } catch (err) {
-            if (err.name === 'AbortError' || err.name === 'NotAllowedError') return;
-            console.warn('showDirectoryPicker unavailable, falling back to input:', err);
-        }
-
-        const input = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
-        if (input) {
-            input.click();
+            if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+                console.error('Error selecting image folder:', err);
+            }
         }
     };
 
