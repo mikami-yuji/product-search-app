@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
-import { cacheImage } from '../utils/imageCache';
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
 
@@ -258,85 +257,65 @@ export const useProductData = () => {
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
 
     /**
-     * スマホ等のファイルインプット選択時に画像ファイル群をマップ化＆IndexedDB保存（全環境100%表示保障）
+     * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（無駄なディスク待機をゼロ化し一瞬で表示）
      * @param {React.ChangeEvent<HTMLInputElement>} e
      */
-    const handleImageFilesSelect = async (e) => {
-        const files = Array.from(e.target.files).filter(
-            file => file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
-        );
+    const handleImageFilesSelect = (e) => {
+        const fileList = e.target.files;
+        if (!fileList || fileList.length === 0) return;
 
-        if (files.length === 0) return;
+        const files = Array.from(fileList);
+        const newMap = new Map(imageFilesMap);
 
-        setIsLoading(true);
-        try {
-            const newMap = new Map(imageFilesMap);
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const name = file.name;
+            const dotIdx = name.lastIndexOf('.');
+            const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+            const lowerRawName = rawName.toLowerCase();
+            const lowerFileName = name.toLowerCase();
 
-            for (const file of files) {
-                const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
-                const cleanedRawName = rawName
-                    .replace(/,/g, '')
-                    .replace(/\.0+$/, '')
-                    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+            newMap.set(lowerRawName, file);
+            newMap.set(lowerFileName, file);
 
-                const unpaddedName = cleanedRawName.replace(/^0+/, '');
+            const cleaned = lowerRawName
+                .replace(/,/g, '')
+                .replace(/\.0+$/, '')
+                .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+            if (cleaned !== lowerRawName) {
+                newMap.set(cleaned, file);
+            }
+            const unpadded = cleaned.replace(/^0+/, '');
+            if (unpadded && unpadded !== cleaned) {
+                newMap.set(unpadded, file);
+            }
 
-                newMap.set(rawName.toLowerCase(), file);
-                newMap.set(cleanedRawName.toLowerCase(), file);
-                if (unpaddedName) newMap.set(unpaddedName.toLowerCase(), file);
-                newMap.set(file.name.toLowerCase(), file);
-
-                if (file.webkitRelativePath) {
-                    const parts = file.webkitRelativePath.split('/');
-                    for (let p = 0; p < parts.length - 1; p++) {
-                        const folderSegment = parts[p].trim().toLowerCase();
-                        if (!folderSegment) continue;
-
+            const relPath = file.webkitRelativePath;
+            if (relPath) {
+                const parts = relPath.split('/');
+                if (parts.length > 1) {
+                    const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+                    if (folderSegment) {
+                        newMap.set(`${folderSegment}/${lowerRawName}`, file);
+                        if (cleaned !== lowerRawName) {
+                            newMap.set(`${folderSegment}/${cleaned}`, file);
+                        }
                         const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-                        const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
-
-                        newMap.set(`${folderSegment}/${rawName}`.toLowerCase(), file);
-                        newMap.set(`${folderSegment}/${cleanedRawName}`.toLowerCase(), file);
-                        if (unpaddedName) newMap.set(`${folderSegment}/${unpaddedName}`.toLowerCase(), file);
-
-                        if (customerCode) {
-                            newMap.set(`${customerCode}/${rawName}`.toLowerCase(), file);
-                            newMap.set(`${customerCode}/${cleanedRawName}`.toLowerCase(), file);
-                            if (unpaddedName) newMap.set(`${customerCode}/${unpaddedName}`.toLowerCase(), file);
+                        if (codeMatch) {
+                            const code = codeMatch[1].toLowerCase();
+                            newMap.set(`${code}/${lowerRawName}`, file);
+                            if (cleaned !== lowerRawName) {
+                                newMap.set(`${code}/${cleaned}`, file);
+                            }
                         }
                     }
                 }
-
             }
-
-            setImageFilesMap(newMap);
-            setPermissionGranted(true);
-            setError(null);
-
-            // バックグラウンドで非同期にIndexedDB保存処理（画面描画を0.1秒で最優先実行）
-            setTimeout(async () => {
-                for (const file of files) {
-                    const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
-                    const cleanedRawName = rawName
-                        .replace(/,/g, '')
-                        .replace(/\.0+$/, '')
-                        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
-                    const unpaddedName = cleanedRawName.replace(/^0+/, '');
-
-                    try {
-                        await cacheImage(rawName, file);
-                        await cacheImage(cleanedRawName, file);
-                        if (unpaddedName) await cacheImage(unpaddedName, file);
-                    } catch {
-                        // スキップ
-                    }
-                }
-            }, 50);
-        } catch (err) {
-            console.error('Error in handleImageFilesSelect:', err);
-        } finally {
-            setIsLoading(false);
         }
+
+        setImageFilesMap(newMap);
+        setPermissionGranted(true);
+        setError(null);
     };
 
     /**
