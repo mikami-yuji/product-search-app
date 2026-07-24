@@ -532,10 +532,10 @@ function App() {
               <FolderOpen size={18} />
               {permissionGranted ? '画像接続済' : '画像フォルダ'}
             </button>
-            <label htmlFor="file-input" className="amazon-btn amazon-btn-primary">
+            <button onClick={() => document.getElementById('file-input')?.click()} className="amazon-btn amazon-btn-primary" title="Excelファイルを直接開く">
               <Upload size={18} />
               {fileName || 'ファイル選択'}
-            </label>
+            </button>
             <input id="file-input" name="file" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
             <input id="customer-files-input" name="customerFiles" type="file" accept=".xlsx,.xls" onChange={handleCustomerFilesSelect} multiple hidden />
             <input id="image-files-input" name="imageFiles" type="file" accept="image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleImageFilesSelect} multiple hidden />
