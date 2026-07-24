@@ -1917,18 +1917,6 @@ const useProductData = () => {
   };
   const handleFolderSelect = async () => {
     try {
-      if (dirHandle && !permissionGranted) {
-        const options = { mode: "read" };
-        try {
-          const permission = await dirHandle.requestPermission(options);
-          if (permission === "granted") {
-            setPermissionGranted(true);
-            setError(null);
-            return;
-          }
-        } catch {
-        }
-      }
       const handle = await window.showDirectoryPicker();
       setDirHandle(handle);
       setPermissionGranted(true);
@@ -1965,22 +1953,6 @@ const useProductData = () => {
   const handleCustomerFolderSelect = async () => {
     if (!isFileSystemSupported) return;
     try {
-      if (customerDirHandle && !customerPermissionGranted) {
-        const options = { mode: "read" };
-        try {
-          const permission = await customerDirHandle.requestPermission(options);
-          if (permission === "granted") {
-            setCustomerPermissionGranted(true);
-            const files2 = await getExcelFilesFromDir(customerDirHandle);
-            files2.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
-            setCustomerFiles(files2);
-            await set("customerFilesListCache", files2.map((f) => ({ name: f.name })));
-            setError(null);
-            return;
-          }
-        } catch {
-        }
-      }
       const handle = await window.showDirectoryPicker();
       setCustomerDirHandle(handle);
       setCustomerPermissionGranted(true);
