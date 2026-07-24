@@ -802,6 +802,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
     if (!isVisible) return;
     let isCancelled = false;
     const loadImage = async () => {
+      updateImageUrl(null);
       setError(false);
       const cleanKey = (val) => {
         if (!val) return "";
@@ -3148,11 +3149,11 @@ function App() {
             onAddToCart: addToCart,
             keyword
           },
-          idx
+          `${product["受注№"] || product["商品コード"] || idx}`
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, idx)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, `${row["受注№"] || row["商品コード"] || idx}`)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -3207,7 +3208,7 @@ function App() {
                 ] })
               ]
             },
-            idx
+            `${row["受注№"] || row["商品コード"] || idx}`
           )) })
         ] }),
         totalPages > 1 && !isLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-pagination", children: [
