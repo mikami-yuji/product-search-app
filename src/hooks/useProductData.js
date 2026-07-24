@@ -288,11 +288,22 @@ export const useProductData = () => {
 
                 if (file.webkitRelativePath) {
                     const parts = file.webkitRelativePath.split('/');
-                    if (parts.length > 1) {
-                        const folderName = parts[parts.length - 2];
-                        newMap.set(`${folderName}/${rawName}`.toLowerCase(), file);
-                        newMap.set(`${folderName}/${cleanedRawName}`.toLowerCase(), file);
-                        if (unpaddedName) newMap.set(`${folderName}/${unpaddedName}`.toLowerCase(), file);
+                    for (let p = 0; p < parts.length - 1; p++) {
+                        const folderSegment = parts[p].trim().toLowerCase();
+                        if (!folderSegment) continue;
+
+                        const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
+                        const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+
+                        newMap.set(`${folderSegment}/${rawName}`.toLowerCase(), file);
+                        newMap.set(`${folderSegment}/${cleanedRawName}`.toLowerCase(), file);
+                        if (unpaddedName) newMap.set(`${folderSegment}/${unpaddedName}`.toLowerCase(), file);
+
+                        if (customerCode) {
+                            newMap.set(`${customerCode}/${rawName}`.toLowerCase(), file);
+                            newMap.set(`${customerCode}/${cleanedRawName}`.toLowerCase(), file);
+                            if (unpaddedName) newMap.set(`${customerCode}/${unpaddedName}`.toLowerCase(), file);
+                        }
                     }
                 }
 

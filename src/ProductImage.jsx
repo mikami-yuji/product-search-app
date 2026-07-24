@@ -105,6 +105,9 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
             // 0. メモリ内のファイルマップ (スマホ・インプット選択用RAM節約型) から超高速探索
             if (imageFilesMap && imageFilesMap.size > 0) {
                 const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, '').trim().toLowerCase() : '';
+                const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
+                const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+
                 for (const key of searchKeys) {
                     const kLower = key.toLowerCase();
                     const candidates = [
@@ -115,8 +118,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                         `${kLower}-1`,
                         `${kLower}-a`,
                         `${customerPrefix}/${kLower}`,
-                        `${customerPrefix}/${kLower}a`
-                    ];
+                        `${customerPrefix}/${kLower}a`,
+                        `${customerPrefix}/${kLower}_1`,
+                        `${customerCode}/${kLower}`,
+                        `${customerCode}/${kLower}a`,
+                        `${customerCode}/${kLower}_1`
+                    ].filter(Boolean);
+
                     for (const cand of candidates) {
                         const file = imageFilesMap.get(cand);
                         if (file) {
