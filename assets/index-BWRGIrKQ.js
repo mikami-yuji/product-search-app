@@ -124,6 +124,25 @@ const getCacheStats = async () => {
   }
 };
 const subDirHandleCache = /* @__PURE__ */ new Map();
+let cachedSubDirList = null;
+const getAllSubDirectories = async (dirHandle) => {
+  if (!dirHandle) return [];
+  if (cachedSubDirList) return cachedSubDirList;
+  const list = [];
+  try {
+    if (typeof dirHandle.values === "function") {
+      for await (const entry of dirHandle.values()) {
+        if (entry && entry.kind === "directory") {
+          list.push(entry);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error scanning subdirectories:", err);
+  }
+  cachedSubDirList = list;
+  return list;
+};
 const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   if (!dirHandle || !customerFileName) return null;
   const cleanString = (str) => {
@@ -149,18 +168,14 @@ const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
   }
   const codeMatch = cleanedCustomerName.match(/^([0-9a-z]+)/i);
   const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
-  if (typeof dirHandle.values === "function") {
-    try {
-      for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === "directory" && entry.name) {
-          const entryCleaned = cleanString(entry.name);
-          if (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode)) || entryCleaned.includes(cleanedCustomerName) || cleanedCustomerName.includes(entryCleaned)) {
-            subDirHandleCache.set(cacheKey, entry);
-            return entry;
-          }
-        }
+  const subDirs = await getAllSubDirectories(dirHandle);
+  for (const entry of subDirs) {
+    if (entry && entry.name) {
+      const entryCleaned = cleanString(entry.name);
+      if (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode)) || entryCleaned.includes(cleanedCustomerName) || cleanedCustomerName.includes(entryCleaned)) {
+        subDirHandleCache.set(cacheKey, entry);
+        return entry;
       }
-    } catch {
     }
   }
   return null;
@@ -229,6 +244,14 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
       }
     } catch {
     }
+  }
+  try {
+    const subDirs = await getAllSubDirectories(dirHandle);
+    for (const subHandle of subDirs) {
+      const foundInAnySub = await searchInDirectory(subHandle);
+      if (foundInAnySub) return foundInAnySub;
+    }
+  } catch {
   }
   return null;
 };
