@@ -111,12 +111,29 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                         kLower,
                         `${kLower}a`,
                         `${kLower}_1`,
+                        `${kLower}_a`,
+                        `${kLower}-1`,
+                        `${kLower}-a`,
                         `${customerPrefix}/${kLower}`,
                         `${customerPrefix}/${kLower}a`
                     ];
                     for (const cand of candidates) {
                         const file = imageFilesMap.get(cand);
                         if (file) {
+                            const objectUrl = URL.createObjectURL(file);
+                            if (isCancelled) {
+                                URL.revokeObjectURL(objectUrl);
+                                return;
+                            }
+                            updateImageUrl(objectUrl);
+                            setError(false);
+                            return;
+                        }
+                    }
+
+                    // あいまい前方一致探索 (フォールバック)
+                    for (const [mapKey, file] of imageFilesMap.entries()) {
+                        if (mapKey.startsWith(kLower) || (customerPrefix && mapKey.startsWith(`${customerPrefix}/${kLower}`))) {
                             const objectUrl = URL.createObjectURL(file);
                             if (isCancelled) {
                                 URL.revokeObjectURL(objectUrl);
