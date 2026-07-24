@@ -2039,61 +2039,53 @@ const useProductData = () => {
     processExcelFile(file);
   };
   const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
-  const handleImageFilesSelect = async (e) => {
-    const files = Array.from(e.target.files).filter(
-      (file) => file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
-    );
-    if (files.length === 0) return;
-    setIsLoading(true);
-    try {
-      const newMap = new Map(imageFilesMap);
-      for (const file of files) {
-        const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
-        const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-        const unpaddedName = cleanedRawName.replace(/^0+/, "");
-        newMap.set(rawName.toLowerCase(), file);
-        newMap.set(cleanedRawName.toLowerCase(), file);
-        if (unpaddedName) newMap.set(unpaddedName.toLowerCase(), file);
-        newMap.set(file.name.toLowerCase(), file);
-        if (file.webkitRelativePath) {
-          const parts = file.webkitRelativePath.split("/");
-          for (let p = 0; p < parts.length - 1; p++) {
-            const folderSegment = parts[p].trim().toLowerCase();
-            if (!folderSegment) continue;
+  const handleImageFilesSelect = (e) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    const newMap = new Map(imageFilesMap);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const name = file.name;
+      const dotIdx = name.lastIndexOf(".");
+      const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+      const lowerRawName = rawName.toLowerCase();
+      const lowerFileName = name.toLowerCase();
+      newMap.set(lowerRawName, file);
+      newMap.set(lowerFileName, file);
+      const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      if (cleaned !== lowerRawName) {
+        newMap.set(cleaned, file);
+      }
+      const unpadded = cleaned.replace(/^0+/, "");
+      if (unpadded && unpadded !== cleaned) {
+        newMap.set(unpadded, file);
+      }
+      const relPath = file.webkitRelativePath;
+      if (relPath) {
+        const parts = relPath.split("/");
+        if (parts.length > 1) {
+          const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+          if (folderSegment) {
+            newMap.set(`${folderSegment}/${lowerRawName}`, file);
+            if (cleaned !== lowerRawName) {
+              newMap.set(`${folderSegment}/${cleaned}`, file);
+            }
             const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-            const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
-            newMap.set(`${folderSegment}/${rawName}`.toLowerCase(), file);
-            newMap.set(`${folderSegment}/${cleanedRawName}`.toLowerCase(), file);
-            if (unpaddedName) newMap.set(`${folderSegment}/${unpaddedName}`.toLowerCase(), file);
-            if (customerCode) {
-              newMap.set(`${customerCode}/${rawName}`.toLowerCase(), file);
-              newMap.set(`${customerCode}/${cleanedRawName}`.toLowerCase(), file);
-              if (unpaddedName) newMap.set(`${customerCode}/${unpaddedName}`.toLowerCase(), file);
+            if (codeMatch) {
+              const code = codeMatch[1].toLowerCase();
+              newMap.set(`${code}/${lowerRawName}`, file);
+              if (cleaned !== lowerRawName) {
+                newMap.set(`${code}/${cleaned}`, file);
+              }
             }
           }
         }
       }
-      setImageFilesMap(newMap);
-      setPermissionGranted(true);
-      setError(null);
-      setTimeout(async () => {
-        for (const file of files) {
-          const rawName = file.name.replace(/\.[^/.]+$/, "").trim();
-          const cleanedRawName = rawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-          const unpaddedName = cleanedRawName.replace(/^0+/, "");
-          try {
-            await cacheImage(rawName, file);
-            await cacheImage(cleanedRawName, file);
-            if (unpaddedName) await cacheImage(unpaddedName, file);
-          } catch {
-          }
-        }
-      }, 50);
-    } catch (err) {
-      console.error("Error in handleImageFilesSelect:", err);
-    } finally {
-      setIsLoading(false);
     }
+    setImageFilesMap(newMap);
+    setPermissionGranted(true);
+    setError(null);
   };
   const handleFolderSelect = async () => {
     try {
