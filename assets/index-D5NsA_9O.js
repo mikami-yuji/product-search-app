@@ -123,64 +123,7 @@ const getCacheStats = async () => {
     return { count: 0, totalSize: 0, totalSizeMB: "0.00", entries: [] };
   }
 };
-const subDirHandleCache = /* @__PURE__ */ new Map();
-let cachedSubDirList = null;
-const getAllSubDirectories = async (dirHandle) => {
-  if (!dirHandle) return [];
-  if (cachedSubDirList) return cachedSubDirList;
-  const list = [];
-  try {
-    if (typeof dirHandle.values === "function") {
-      for await (const entry of dirHandle.values()) {
-        if (entry && entry.kind === "directory") {
-          list.push(entry);
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Error scanning subdirectories:", err);
-  }
-  cachedSubDirList = list;
-  return list;
-};
-const getCustomerSubDirHandle = async (dirHandle, customerFileName) => {
-  if (!dirHandle || !customerFileName) return null;
-  const cleanString = (str) => {
-    if (!str) return "";
-    return String(str).replace(/\.xlsx?$/i, "").trim().replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).toLowerCase();
-  };
-  const rawCustomerName = customerFileName.replace(/\.xlsx?$/i, "").trim();
-  const cleanedCustomerName = cleanString(customerFileName);
-  if (!rawCustomerName) return null;
-  const cacheKey = `${dirHandle.name || "root"}:${cleanedCustomerName}`;
-  if (subDirHandleCache.has(cacheKey)) {
-    return subDirHandleCache.get(cacheKey);
-  }
-  try {
-    if (typeof dirHandle.getDirectoryHandle === "function") {
-      const subHandle = await dirHandle.getDirectoryHandle(rawCustomerName);
-      if (subHandle) {
-        subDirHandleCache.set(cacheKey, subHandle);
-        return subHandle;
-      }
-    }
-  } catch {
-  }
-  const codeMatch = cleanedCustomerName.match(/^([0-9a-z]+)/i);
-  const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
-  const subDirs = await getAllSubDirectories(dirHandle);
-  for (const entry of subDirs) {
-    if (entry && entry.name) {
-      const entryCleaned = cleanString(entry.name);
-      if (customerCode && (entryCleaned.startsWith(customerCode) || entryCleaned.includes(customerCode)) || entryCleaned.includes(cleanedCustomerName) || cleanedCustomerName.includes(entryCleaned)) {
-        subDirHandleCache.set(cacheKey, entry);
-        return entry;
-      }
-    }
-  }
-  return null;
-};
-const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => {
+const findImageFileHandle = async (dirHandle, rawFilename) => {
   if (!dirHandle || !rawFilename) return null;
   const rawStr = String(rawFilename).trim();
   const cleaned = rawStr.replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
@@ -217,45 +160,19 @@ const findImageFileHandle = async (dirHandle, rawFilename, customerFileName) => 
       prefixes.push(`${base}${suf}`);
     }
   }
-  const searchInDirectory = async (targetHandle) => {
-    if (!targetHandle || typeof targetHandle.getFileHandle !== "function") return null;
-    for (const prefix of prefixes) {
-      for (const ext of extensions) {
-        try {
-          const fileHandle = await targetHandle.getFileHandle(`${prefix}${ext}`);
-          if (fileHandle) return fileHandle;
-        } catch {
-        }
+  if (typeof dirHandle.getFileHandle !== "function") return null;
+  for (const prefix of prefixes) {
+    for (const ext of extensions) {
+      try {
+        const fileHandle = await dirHandle.getFileHandle(`${prefix}${ext}`);
+        if (fileHandle) return fileHandle;
+      } catch {
       }
     }
-    return null;
-  };
-  try {
-    const foundRoot = await searchInDirectory(dirHandle);
-    if (foundRoot) return foundRoot;
-  } catch {
-  }
-  if (customerFileName) {
-    try {
-      const subDirHandle = await getCustomerSubDirHandle(dirHandle, customerFileName);
-      if (subDirHandle) {
-        const foundSub = await searchInDirectory(subDirHandle);
-        if (foundSub) return foundSub;
-      }
-    } catch {
-    }
-  }
-  try {
-    const subDirs = await getAllSubDirectories(dirHandle);
-    for (const subHandle of subDirs) {
-      const foundInAnySub = await searchInDirectory(subHandle);
-      if (foundInAnySub) return foundInAnySub;
-    }
-  } catch {
   }
   return null;
 };
-const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
+const fetchProductImageBlob = async (filename, dirHandle) => {
   if (!filename) return null;
   if (typeof indexedDB !== "undefined") {
     try {
@@ -279,7 +196,7 @@ const fetchProductImageBlob = async (filename, dirHandle, customerFileName) => {
   }
   if (dirHandle) {
     try {
-      const fileHandle = await findImageFileHandle(dirHandle, filename, customerFileName);
+      const fileHandle = await findImageFileHandle(dirHandle, filename);
       if (fileHandle) {
         const file = await fileHandle.getFile();
         if (file) return file;
@@ -849,9 +766,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
       };
       const searchKeys = Array.from(/* @__PURE__ */ new Set([
         cleanKey(filename),
-        cleanKey(productCode),
-        String(filename || "").trim(),
-        String(productCode || "").trim()
+        String(filename || "").trim()
       ])).filter(Boolean);
       if (imageFilesMap && imageFilesMap.size > 0) {
         const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
@@ -968,7 +883,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
       if (dirHandle) {
         for (const key of searchKeys) {
           try {
-            const fileHandle = await findImageFileHandle(dirHandle, key, customerFileName);
+            const fileHandle = await findImageFileHandle(dirHandle, key);
             if (isCancelled) return;
             if (fileHandle) {
               const file = await fileHandle.getFile();
