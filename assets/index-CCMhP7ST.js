@@ -2312,23 +2312,6 @@ function App() {
     loadCustomerFile: originalLoadCustomerFile,
     clearError
   } = useProductData();
-  const loadCustomerFile = reactExports.useMemo(() => {
-    return async (name) => {
-      await originalLoadCustomerFile(name);
-      setDirectShippingSearchKeyword("");
-    };
-  }, [originalLoadCustomerFile]);
-  const triggerCustomerFilesSelect = () => {
-    document.getElementById("customer-files-input")?.click();
-  };
-  const triggerImageFilesSelect = () => {
-    document.getElementById("image-files-input")?.click();
-  };
-  const [customerSearchKeyword, setCustomerSearchKeyword] = reactExports.useState("");
-  const [cartBouncing, setCartBouncing] = reactExports.useState(false);
-  const filteredCustomerFiles = customerFiles.filter(
-    (file) => file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
-  );
   const {
     keyword,
     setKeyword,
@@ -2347,6 +2330,24 @@ function App() {
     clearFilterKey,
     clearFilters
   } = useProductFilters(data);
+  const loadCustomerFile = reactExports.useMemo(() => {
+    return async (name) => {
+      await originalLoadCustomerFile(name);
+      setDirectShippingSearchKeyword("");
+      setKeyword("");
+    };
+  }, [originalLoadCustomerFile, setKeyword]);
+  const triggerCustomerFilesSelect = () => {
+    document.getElementById("customer-files-input")?.click();
+  };
+  const triggerImageFilesSelect = () => {
+    document.getElementById("image-files-input")?.click();
+  };
+  const [customerSearchKeyword, setCustomerSearchKeyword] = reactExports.useState("");
+  const [cartBouncing, setCartBouncing] = reactExports.useState(false);
+  const filteredCustomerFiles = customerFiles.filter(
+    (file) => file.name.toLowerCase().includes(customerSearchKeyword.toLowerCase())
+  );
   const filteredDirectShippings = reactExports.useMemo(() => {
     const list = uniqueValues["直送先名称"] || [];
     if (!directShippingSearchKeyword.trim()) return list;
@@ -2594,6 +2595,28 @@ function App() {
                   onKeyDown: handleSearchKeyDown,
                   className: "amazon-search-input",
                   autoComplete: "off"
+                }
+              ),
+              keyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setKeyword(""),
+                  style: {
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "#888",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                    padding: "4px",
+                    zIndex: 2
+                  },
+                  title: "検索をクリア",
+                  children: "×"
                 }
               ),
               isSearchFocused && (keyword ? suggestions.length > 0 : history.length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "search-history-dropdown", children: [
