@@ -333,8 +333,8 @@ export const useProductData = () => {
                 return;
             }
         } catch (err) {
-            if (err.name === 'AbortError') return;
-            console.warn('showDirectoryPicker failed or unavailable, falling back to file input:', err);
+            if (err.name === 'AbortError' || err.name === 'NotAllowedError') return;
+            console.warn('showDirectoryPicker unavailable, falling back to input:', err);
         }
 
         const input = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
@@ -362,8 +362,8 @@ export const useProductData = () => {
                 return;
             }
         } catch (err) {
-            if (err.name === 'AbortError') return;
-            console.warn('showDirectoryPicker failed for customer folder, falling back to folder input:', err);
+            if (err.name === 'AbortError' || err.name === 'NotAllowedError') return;
+            console.warn('showDirectoryPicker unavailable for customer folder, falling back to folder input:', err);
         }
 
         const input = document.getElementById('customer-folder-input') || document.getElementById('customer-files-input');
