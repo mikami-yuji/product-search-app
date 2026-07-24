@@ -307,18 +307,31 @@ export const useProductData = () => {
                     }
                 }
 
-                try {
-                    await cacheImage(rawName, file);
-                    await cacheImage(cleanedRawName, file);
-                    if (unpaddedName) await cacheImage(unpaddedName, file);
-                } catch {
-                    // スキップ
-                }
             }
 
             setImageFilesMap(newMap);
             setPermissionGranted(true);
             setError(null);
+
+            // バックグラウンドで非同期にIndexedDB保存処理（画面描画を0.1秒で最優先実行）
+            setTimeout(async () => {
+                for (const file of files) {
+                    const rawName = file.name.replace(/\.[^/.]+$/, '').trim();
+                    const cleanedRawName = rawName
+                        .replace(/,/g, '')
+                        .replace(/\.0+$/, '')
+                        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+                    const unpaddedName = cleanedRawName.replace(/^0+/, '');
+
+                    try {
+                        await cacheImage(rawName, file);
+                        await cacheImage(cleanedRawName, file);
+                        if (unpaddedName) await cacheImage(unpaddedName, file);
+                    } catch {
+                        // スキップ
+                    }
+                }
+            }, 50);
         } catch (err) {
             console.error('Error in handleImageFilesSelect:', err);
         } finally {
