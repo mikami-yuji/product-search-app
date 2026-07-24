@@ -1944,7 +1944,9 @@ const useProductData = () => {
     try {
       for (const file of files) {
         const rawName = file.name.replace(/\.[^/.]+$/, "");
+        const cleanedRawName = rawName.trim().replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
         await cacheImage(rawName, file);
+        await cacheImage(cleanedRawName, file);
         await cacheImage(file.name, file);
       }
       setPermissionGranted(true);
@@ -2675,8 +2677,8 @@ function App() {
           fileName || "ファイル選択"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
