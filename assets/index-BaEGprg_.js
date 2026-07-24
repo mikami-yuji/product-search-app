@@ -2105,11 +2105,6 @@ const useProductData = () => {
     setError(null);
   };
   const handleFolderSelect = async () => {
-    const input = document.getElementById("image-folder-input") || document.getElementById("image-files-input");
-    if (input) {
-      input.click();
-      return;
-    }
     try {
       if (isFileSystemSupported && window.showDirectoryPicker) {
         const handle = await window.showDirectoryPicker();
@@ -2117,11 +2112,14 @@ const useProductData = () => {
         setPermissionGranted(true);
         setError(null);
         await set("imageDirHandle", handle);
+        return;
       }
     } catch (err) {
-      if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
-        console.error("Error selecting image folder:", err);
-      }
+      if (err.name === "AbortError") return;
+    }
+    const input = document.getElementById("image-folder-input") || document.getElementById("image-files-input");
+    if (input) {
+      input.click();
     }
   };
   const handleCustomerFolderSelect = async () => {
@@ -2810,9 +2808,9 @@ function App() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-folder-input", name: "customerFolder", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-folder-input", name: "customerFolder", type: "file", onChange: handleCustomerFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-folder-input", name: "imageFolder", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-folder-input", name: "imageFolder", type: "file", onChange: handleImageFilesSelect, multiple: true, webkitdirectory: "", hidden: true }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
       ] })
     ] }) }),
