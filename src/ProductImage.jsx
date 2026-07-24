@@ -113,15 +113,25 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                     const kLower = key.toLowerCase();
                     const candidates = [
                         kLower,
+                        `${kLower}-01`,
+                        `${kLower}_01`,
+                        `${kLower}-00`,
+                        `${kLower}_00`,
+                        `${kLower}-0`,
+                        `${kLower}_0`,
                         `${kLower}a`,
                         `${kLower}_1`,
                         `${kLower}_a`,
                         `${kLower}-1`,
                         `${kLower}-a`,
                         `${customerPrefix}/${kLower}`,
+                        `${customerPrefix}/${kLower}-01`,
+                        `${customerPrefix}/${kLower}_01`,
                         `${customerPrefix}/${kLower}a`,
                         `${customerPrefix}/${kLower}_1`,
                         `${customerCode}/${kLower}`,
+                        `${customerCode}/${kLower}-01`,
+                        `${customerCode}/${kLower}_01`,
                         `${customerCode}/${kLower}a`,
                         `${customerCode}/${kLower}_1`
                     ].filter(Boolean);
