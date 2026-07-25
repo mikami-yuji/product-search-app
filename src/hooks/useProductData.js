@@ -435,7 +435,8 @@ export const useProductData = () => {
      */
     const handleFolderSelect = async () => {
         if (!isFileSystemSupported) {
-            const mobileInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
+            // スマホで「フォルダごと」一括選択させるため、webkitdirectory付きインプット(image-folder-input)を最優先起動
+            const mobileInput = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
             if (mobileInput) {
                 mobileInput.value = ''; // 同一選択や再選択でも確実に onChange を発火させるためのクリア
                 mobileInput.click();

@@ -537,9 +537,9 @@ function App() {
                 : (customerPermissionGranted ? '顧客選択済' : '顧客ファイル')}
             </button>
             <div className="header-image-btn-wrapper">
-              <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : 'スマホではフォルダ内の画像ファイルを選択してください'}>
+              <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : '画像フォルダを接続'}>
                 <FolderOpen size={18} />
-                {permissionGranted ? '画像接続済' : '画像選択'}
+                {permissionGranted ? '画像接続済' : '画像フォルダ'}
               </button>
             </div>
             <button onClick={() => document.getElementById('file-input')?.click()} className="amazon-btn amazon-btn-primary" title="Excelファイルを直接開く">
