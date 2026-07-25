@@ -28,8 +28,8 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onCl
                 <ProductImage
                     dirHandle={dirHandle}
                     imageFilesMap={imageFilesMap}
-                    filename={product['受注№']}
-                    productCode={product['商品コード']}
+                    filename={product['受注№'] || product['受注No'] || product['受注番号'] || product['№'] || product['No']}
+                    productCode={product['商品コード'] || product['商品CD'] || product['コード']}
                     customerFileName={customerFileName}
                     className="amazon-card-image"
                 />
