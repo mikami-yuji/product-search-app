@@ -2117,6 +2117,20 @@ const useProductData = () => {
           }
         }
       }
+      if (fileName) {
+        const custClean = String(fileName).replace(/\.xlsx?$/i, "").trim().toLowerCase();
+        const custCode = extractCustomerCode(fileName);
+        if (custClean) {
+          newMap.set(`${custClean}/${lowerFileName}`, file);
+          newMap.set(`${custClean}/${lowerRawName}`, file);
+          if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
+        }
+        if (custCode) {
+          newMap.set(`${custCode}/${lowerFileName}`, file);
+          newMap.set(`${custCode}/${lowerRawName}`, file);
+          if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
+        }
+      }
       const subParts = rawName.split(/[_#-]/);
       if (subParts.length > 1) {
         const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
@@ -2920,11 +2934,11 @@ function App() {
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-image-btn-wrapper", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? `画像フォルダ接続済み (${imageFolderName || "接続済み"})` : "画像フォルダを接続", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-            permissionGranted ? "画像接続済" : "画像フォルダ"
+            permissionGranted ? imageFolderName ? `画像接続: ${imageFolderName}` : "画像接続済" : "画像フォルダ"
           ] }),
-          !isFileSystemSupported2 && permissionGranted && imageFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-image-folder-badge", title: `取得元フォルダ: ${imageFolderName}`, children: [
+          permissionGranted && imageFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-image-folder-badge", title: `取得元フォルダ: ${imageFolderName}`, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-folder-prefix", children: "取得元:" }),
             " ",
             imageFolderName
