@@ -2,6 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { getCachedImage, cacheImage } from './utils/imageCache';
 import { findImageFileHandle } from './utils/imageLoader';
+import { generateOrderNoVariants, normalizeOrderNumber } from './utils/imageKeyUtils';
+
+/** @type {WeakMap<File, string>} */
+const objectUrlCache = new WeakMap();
+
+/**
+ * Fileオブジェクトからキャッシュ済みのObject URLを取得、または生成します。
+ * @param {File} file
+ * @returns {string} Object URL
+ */
+const getOrCreateObjectURL = (file) => {
+    if (objectUrlCache.has(file)) {
+        return objectUrlCache.get(file);
+    }
+    const url = URL.createObjectURL(file);
+    objectUrlCache.set(file, url);
+    return url;
+};
 
 /**
  * @typedef {Object} ProductImageProps
@@ -101,65 +119,17 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                 String(filename || '').trim()
             ])).filter(Boolean);
 
-            // 0. メモリ内のファイルマップ (スマホ・インプット選択用RAM節約型) から超高速探索
-            if (imageFilesMap && imageFilesMap.size > 0) {
-                const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, '').trim().toLowerCase() : '';
-                const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
-                const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
-
-                for (const key of searchKeys) {
-                    const kLower = key.toLowerCase();
-                    const candidates = [
-                        kLower,
-                        `${kLower}-01`,
-                        `${kLower}_01`,
-                        `${kLower}-00`,
-                        `${kLower}_00`,
-                        `${kLower}-0`,
-                        `${kLower}_0`,
-                        `${kLower}a`,
-                        `${kLower}_1`,
-                        `${kLower}_a`,
-                        `${kLower}-1`,
-                        `${kLower}-a`,
-                        `${customerPrefix}/${kLower}`,
-                        `${customerPrefix}/${kLower}-01`,
-                        `${customerPrefix}/${kLower}_01`,
-                        `${customerPrefix}/${kLower}a`,
-                        `${customerPrefix}/${kLower}_1`,
-                        `${customerCode}/${kLower}`,
-                        `${customerCode}/${kLower}-01`,
-                        `${customerCode}/${kLower}_01`,
-                        `${customerCode}/${kLower}a`,
-                        `${customerCode}/${kLower}_1`
-                    ].filter(Boolean);
-
-                    for (const cand of candidates) {
-                        const file = imageFilesMap.get(cand);
-                        if (file) {
-                            const objectUrl = URL.createObjectURL(file);
-                            if (isCancelled) {
-                                URL.revokeObjectURL(objectUrl);
-                                return;
-                            }
-                            updateImageUrl(objectUrl);
-                            setError(false);
-                            return;
-                        }
-                    }
-
-                    // あいまい前方一致探索 (フォールバック)
-                    for (const [mapKey, file] of imageFilesMap.entries()) {
-                        if (mapKey.startsWith(kLower) || (customerPrefix && mapKey.startsWith(`${customerPrefix}/${kLower}`))) {
-                            const objectUrl = URL.createObjectURL(file);
-                            if (isCancelled) {
-                                URL.revokeObjectURL(objectUrl);
-                                return;
-                            }
-                            updateImageUrl(objectUrl);
-                            setError(false);
-                            return;
-                        }
+            // 0. メモリ内のファイルマップ (スマホ・受注Noのみ超高速O(1)探索)
+            if (imageFilesMap && imageFilesMap.size > 0 && filename) {
+                const searchVariants = generateOrderNoVariants(filename);
+                for (const cand of searchVariants) {
+                    const file = imageFilesMap.get(cand);
+                    if (file) {
+                        const objectUrl = getOrCreateObjectURL(file);
+                        if (isCancelled) return;
+                        updateImageUrl(objectUrl);
+                        setError(false);
+                        return;
                     }
                 }
             }

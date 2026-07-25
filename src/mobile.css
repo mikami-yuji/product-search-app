@@ -28,6 +28,28 @@
     color: #555;
 }
 
+/* Customer Accordion Parent Section */
+.customer-accordion-section {
+    transition: all 0.3s ease;
+}
+
+.customer-accordion-header:hover {
+    background-color: var(--color-surface-hover, rgba(0, 0, 0, 0.02));
+    border-radius: var(--rounded-md, 8px);
+}
+
+.customer-summary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.summary-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
 /* Default state: Closed (Hidden) */
 .amazon-sidebar-content {
     display: none;

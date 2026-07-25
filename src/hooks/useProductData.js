@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
+import { extractCustomerCode, normalizeOrderNumber } from '../utils/imageKeyUtils';
+
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
 
@@ -136,7 +138,7 @@ export const useProductData = () => {
 
         // Initial check for 0 byte file (common with cloud placeholders)
         if (file.size === 0) {
-            console.log('File size is 0. Attempting to wake up cloud file...');
+            // Attempting to wake up cloud file
         }
 
         const readWithRetry = async (attempt = 1) => {
@@ -178,8 +180,6 @@ export const useProductData = () => {
             if (buffer.byteLength === 0) {
                 throw new Error('File is empty after retries');
             }
-
-            console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
 
             // Workerを使わずメインスレッドで直接パースを行う (UIフリーズ防止のため非同期マクロタスク内で実行)
             const parseExcelDirectly = () => {
@@ -257,7 +257,7 @@ export const useProductData = () => {
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
 
     /**
-     * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（無駄なディスク待機をゼロ化し一瞬で表示）
+     * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（受注Noのみで超高速O(1)検索可能にする）
      * @param {React.ChangeEvent<HTMLInputElement>} e
      */
     const handleImageFilesSelect = (e) => {
@@ -270,45 +270,19 @@ export const useProductData = () => {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const name = file.name;
-            const dotIdx = name.lastIndexOf('.');
-            const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
-            const lowerRawName = rawName.toLowerCase();
-            const lowerFileName = name.toLowerCase();
+            const normalized = normalizeOrderNumber(name);
 
-            newMap.set(lowerRawName, file);
-            newMap.set(lowerFileName, file);
+            if (normalized) {
+                newMap.set(normalized, file);
 
-            const cleaned = lowerRawName
-                .replace(/,/g, '')
-                .replace(/\.0+$/, '')
-                .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
-            if (cleaned !== lowerRawName) {
-                newMap.set(cleaned, file);
-            }
-            const unpadded = cleaned.replace(/^0+/, '');
-            if (unpadded && unpadded !== cleaned) {
-                newMap.set(unpadded, file);
-            }
-
-            const relPath = file.webkitRelativePath;
-            if (relPath) {
-                const parts = relPath.split('/');
-                if (parts.length > 1) {
-                    const folderSegment = parts[parts.length - 2].trim().toLowerCase();
-                    if (folderSegment) {
-                        newMap.set(`${folderSegment}/${lowerRawName}`, file);
-                        if (cleaned !== lowerRawName) {
-                            newMap.set(`${folderSegment}/${cleaned}`, file);
-                        }
-                        const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-                        if (codeMatch) {
-                            const code = codeMatch[1].toLowerCase();
-                            newMap.set(`${code}/${lowerRawName}`, file);
-                            if (cleaned !== lowerRawName) {
-                                newMap.set(`${code}/${cleaned}`, file);
-                            }
-                        }
-                    }
+                // ゼロ埋めなし・ゼロパディングのバリエーションも登録
+                const unpadded = normalized.replace(/^0+/, '');
+                if (unpadded && unpadded !== normalized) {
+                    newMap.set(unpadded, file);
+                }
+                if (unpadded) {
+                    newMap.set(unpadded.padStart(7, '0'), file);
+                    newMap.set(unpadded.padStart(8, '0'), file);
                 }
             }
         }
@@ -344,13 +318,16 @@ export const useProductData = () => {
 
     /**
      * Handle customer data folder selection and connection.
+     * スマホ等の File System API 非対応環境では customer-files-input を優先起動します。
      * @returns {Promise<void>}
      */
     const handleCustomerFolderSelect = async () => {
-        const input = document.getElementById('customer-folder-input') || document.getElementById('customer-files-input');
-        if (input) {
-            input.click();
-            return;
+        if (!isFileSystemSupported) {
+            const mobileInput = document.getElementById('customer-files-input') || document.getElementById('customer-folder-input');
+            if (mobileInput) {
+                mobileInput.click();
+                return;
+            }
         }
 
         try {
@@ -364,41 +341,73 @@ export const useProductData = () => {
                 setError(null);
                 await set('customerDirHandle', handle);
                 await set('customerFilesListCache', files.map(f => ({ name: f.name })));
+                
+                // 顧客ファイルが存在すれば先頭のファイルを自動読み込み
+                if (files.length > 0) {
+                    const firstFile = await files[0].handle.getFile();
+                    if (firstFile) {
+                        await processExcelFile(firstFile);
+                    }
+                }
+                return;
             }
         } catch (err) {
             if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
                 console.error('Error selecting customer folder:', err);
             }
         }
+
+        const fallbackInput = document.getElementById('customer-files-input') || document.getElementById('customer-folder-input');
+        if (fallbackInput) {
+            fallbackInput.click();
+        }
     };
 
     /**
      * Handle multiple customer files upload from input on mobile.
+     * 選択後に自動的に先頭の顧客ファイルを読み込みます。
      * @param {React.ChangeEvent<HTMLInputElement>} e
      * @returns {Promise<void>}
      */
     const handleCustomerFilesSelect = async (e) => {
-        const files = Array.from(e.target.files).filter(
+        const fileList = e.target.files;
+        if (!fileList || fileList.length === 0) return;
+
+        const files = Array.from(fileList).filter(
             file => file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
         );
+
+        if (files.length === 0) {
+            setError('有効なExcelファイル(.xlsx, .xls)が選択されていません');
+            return;
+        }
+
         const mappedFiles = files.map(file => ({
             name: file.name,
             file: file
         }));
         mappedFiles.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
         setCustomerFiles(mappedFiles);
-        setCustomerPermissionGranted(files.length > 0);
+        setCustomerPermissionGranted(true);
         setError(null);
-        // コメント: モバイル等の環境向けに、選択されたファイルをIndexedDBに丸ごとキャッシュする
+
         try {
-            await set('customerFilesCache', mappedFiles);
+            // モバイル環境向けに、軽量なファイル名リストのみをIndexedDBにキャッシュ（重いFileオブジェクトの複製遅延を防止）
+            const fileListCache = mappedFiles.map(f => ({ name: f.name }));
+            await set('customerFilesCache', fileListCache);
         } catch (err) {
             console.error('Failed to cache customer files:', err);
+        }
+
+        // 選択された顧客ファイルの先頭を自動的にロード
+        if (mappedFiles.length > 0 && mappedFiles[0].file) {
+            await processExcelFile(mappedFiles[0].file);
         }
     };
 
     /**
      * Load a specific customer file from the connected customer directory.
+     * 完全一致・拡張子なし一致・先頭の顧客コード（例: 22072）を考慮して照合します。
      * @param {string} name
      * @returns {Promise<void>}
      */
@@ -406,6 +415,9 @@ export const useProductData = () => {
         setIsLoading(true);
         try {
             let file;
+            const targetCustomerCode = extractCustomerCode(name);
+            const cleanTargetName = String(name).replace(/\.xlsx?$/i, '').trim().toLowerCase();
+
             if (isFileSystemSupported && customerDirHandle) {
                 // コメント: PC環境でリロード後などにパーミッションが切れている場合、オンデマンドでパーミッションを要求する
                 const options = { mode: 'read' };
@@ -416,14 +428,36 @@ export const useProductData = () => {
 
                 if (permission === 'granted') {
                     setCustomerPermissionGranted(true);
-                    const fileHandle = await customerDirHandle.getFileHandle(name);
-                    file = await fileHandle.getFile();
+                    try {
+                        const fileHandle = await customerDirHandle.getFileHandle(name);
+                        file = await fileHandle.getFile();
+                    } catch {
+                        // ファイル名で直接取得できなかった場合、拡張子や顧客コードによる柔軟検索
+                        const files = await getExcelFilesFromDir(customerDirHandle);
+                        const matched = files.find(f => {
+                            const cleanFName = f.name.replace(/\.xlsx?$/i, '').trim().toLowerCase();
+                            if (cleanFName === cleanTargetName) return true;
+                            if (targetCustomerCode && extractCustomerCode(f.name) === targetCustomerCode) return true;
+                            return false;
+                        });
+                        if (matched) {
+                            file = await matched.handle.getFile();
+                        }
+                    }
                 } else {
                     setCustomerPermissionGranted(false);
                     throw new Error('フォルダへのアクセス権限が許可されていません');
                 }
             } else {
-                const found = customerFiles.find(f => f.name === name);
+                let found = customerFiles.find(f => f.name === name);
+                if (!found) {
+                    found = customerFiles.find(f => {
+                        const cleanFName = String(f.name).replace(/\.xlsx?$/i, '').trim().toLowerCase();
+                        if (cleanFName === cleanTargetName) return true;
+                        if (targetCustomerCode && extractCustomerCode(f.name) === targetCustomerCode) return true;
+                        return false;
+                    });
+                }
                 if (found && found.file) {
                     file = found.file;
                 }

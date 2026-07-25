@@ -46,6 +46,13 @@ function App() {
     return true; // Default to open for SSR/build
   });
 
+  const [isCustomerAccordionOpen, setIsCustomerAccordionOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth > 480;
+    }
+    return true;
+  });
+
   // Initialize theme to light mode and clean up any dark mode classes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -552,162 +559,197 @@ function App() {
         <div className="amazon-main">
           {/* Sidebar Filters */}
           <aside className={`amazon-sidebar ${isFilterOpen ? 'open' : ''}`}>
-            {/* 顧客選択セクション */}
-            <div className="amazon-sidebar-section customer-section">
-              <div className="customer-section-header">
-                <h2>
-                  <Users size={18} className="section-title-icon" />
-                  {isFileSystemSupported ? '顧客選択' : '顧客ファイル選択'}
-                </h2>
-              </div>
-              {!customerPermissionGranted ? (
-                <div className="customer-connect-prompt">
-                  <p className="prompt-text">
-                    {isFileSystemSupported ? '顧客フォルダが接続されていません。' : '顧客ファイルが選択されていません。'}
-                  </p>
-                  <button 
-                    onClick={isFileSystemSupported ? handleCustomerFolderSelect : triggerCustomerFilesSelect} 
-                    className="amazon-btn amazon-btn-primary customer-connect-btn"
-                  >
-                    <FolderOpen size={16} /> {isFileSystemSupported ? '顧客フォルダを選択' : '顧客ファイルを選択'}
-                  </button>
+            {/* 顧客・直送先選択 親アコーディオンセクション */}
+            <div className={`amazon-sidebar-section customer-accordion-section ${isCustomerAccordionOpen ? 'open' : ''}`}>
+              <div 
+                className="amazon-sidebar-header customer-accordion-header" 
+                onClick={() => setIsCustomerAccordionOpen(!isCustomerAccordionOpen)}
+                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}
+              >
+                <div className="sidebar-header-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+                    <Users size={18} className="section-title-icon" />
+                    顧客・直送先選択
+                  </h2>
+                  <div className="sidebar-toggle-icon">
+                    {isCustomerAccordionOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </div>
                 </div>
-              ) : (
-                <div className="customer-select-controls">
-                  <div className="customer-search-box">
-                    <Search size={16} className="customer-search-icon" />
-                    <input
-                      type="text"
-                      placeholder="顧客名で検索..."
-                      value={customerSearchKeyword}
-                      onChange={e => setCustomerSearchKeyword(e.target.value)}
-                      className="customer-search-input"
-                    />
-                    {customerSearchKeyword && (
-                      <button 
-                        type="button" 
-                        className="search-clear-btn" 
-                        onClick={() => setCustomerSearchKeyword('')} 
-                        title="検索をクリア"
-                      >
-                        <X size={14} />
-                      </button>
+                
+                {/* 閉じている状態での選択サマリーバッジ */}
+                {!isCustomerAccordionOpen && (fileName || (filters['直送先名称'] && filters['直送先名称'].length > 0)) && (
+                  <div className="customer-summary-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.2rem' }}>
+                    {fileName && (
+                      <span className="summary-badge customer-badge" style={{ fontSize: '0.75rem', background: 'var(--color-surface-hover, #e8f0fe)', color: 'var(--color-primary, #1a73e8)', padding: '0.15rem 0.5rem', borderRadius: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {fileName.replace(/\.xlsx?$/, '')}
+                      </span>
+                    )}
+                    {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
+                      <span className="summary-badge shipping-badge" style={{ fontSize: '0.75rem', background: '#e6f4ea', color: '#137333', padding: '0.15rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <MapPin size={12} /> {filters['直送先名称'].join(', ')}
+                      </span>
                     )}
                   </div>
-                  
-                  {filteredCustomerFiles.length > 0 ? (
-                    <div className="customer-list-container">
-                      <ul className="customer-list">
-                        {filteredCustomerFiles.map(file => {
-                          const isCurrent = fileName === file.name;
-                          const rawName = file.name.replace(/\.xlsx?$/, '');
-                          const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
-                          const codeBadge = match ? match[1] : null;
-                          const displayName = match ? match[2] : rawName;
+                )}
+              </div>
 
-                          return (
-                            <li 
-                              key={file.name} 
-                              className={`customer-item ${isCurrent ? 'active' : ''}`}
-                              onClick={() => {
-                                if (!isCurrent) {
-                                  loadCustomerFile(file.name);
-                                }
-                              }}
+              {isCustomerAccordionOpen && (
+                <div className="customer-accordion-body" style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {/* 1. 顧客選択エリア */}
+                  <div className="customer-sub-block">
+                    <h3 className="sub-block-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
+                      {isFileSystemSupported ? '顧客選択' : '顧客ファイル選択'}
+                    </h3>
+                    {!customerPermissionGranted ? (
+                      <div className="customer-connect-prompt">
+                        <p className="prompt-text">
+                          {isFileSystemSupported ? '顧客フォルダが接続されていません。' : '顧客ファイルが選択されていません。'}
+                        </p>
+                        <button 
+                          onClick={isFileSystemSupported ? handleCustomerFolderSelect : triggerCustomerFilesSelect} 
+                          className="amazon-btn amazon-btn-primary customer-connect-btn"
+                        >
+                          <FolderOpen size={16} /> {isFileSystemSupported ? '顧客フォルダを選択' : '顧客ファイルを選択'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="customer-select-controls">
+                        <div className="customer-search-box">
+                          <Search size={16} className="customer-search-icon" />
+                          <input
+                            type="text"
+                            placeholder="顧客名で検索..."
+                            value={customerSearchKeyword}
+                            onChange={e => setCustomerSearchKeyword(e.target.value)}
+                            className="customer-search-input"
+                          />
+                          {customerSearchKeyword && (
+                            <button 
+                              type="button" 
+                              className="search-clear-btn" 
+                              onClick={() => setCustomerSearchKeyword('')} 
+                              title="検索をクリア"
                             >
-                              <div className="customer-item-main">
-                                {codeBadge && <span className="customer-code-badge">{codeBadge}</span>}
-                                <span className="customer-name-text" title={rawName}>
-                                  {displayName}
-                                </span>
-                              </div>
-                              {isCurrent && <Check size={16} className="active-check-icon" />}
-                            </li>
-                          );
-                        })}
-                      </ul>
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                        
+                        {filteredCustomerFiles.length > 0 ? (
+                          <div className="customer-list-container">
+                            <ul className="customer-list">
+                              {filteredCustomerFiles.map(file => {
+                                const isCurrent = fileName === file.name;
+                                const rawName = file.name.replace(/\.xlsx?$/, '');
+                                const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+                                const codeBadge = match ? match[1] : null;
+                                const displayName = match ? match[2] : rawName;
+
+                                return (
+                                  <li 
+                                    key={file.name} 
+                                    className={`customer-item ${isCurrent ? 'active' : ''}`}
+                                    onClick={() => {
+                                      if (!isCurrent) {
+                                        loadCustomerFile(file.name);
+                                      }
+                                    }}
+                                  >
+                                    <div className="customer-item-main">
+                                      {codeBadge && <span className="customer-code-badge">{codeBadge}</span>}
+                                      <span className="customer-name-text" title={rawName}>
+                                        {displayName}
+                                      </span>
+                                    </div>
+                                    {isCurrent && <Check size={16} className="active-check-icon" />}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="no-customers-text">該当する顧客が見つかりません</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. 直送先選択エリア */}
+                  {customerPermissionGranted && (
+                    <div className="customer-sub-block direct-shipping-sub-block" style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                      <div className="sub-block-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <h3 className="sub-block-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
+                          <MapPin size={14} /> 直送先選択
+                        </h3>
+                        {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); clearFilterKey('直送先名称'); }} 
+                            className="amazon-clear-btn" 
+                            title="直送先選択をクリア"
+                          >
+                            <FilterX size={14} />
+                            クリア ({filters['直送先名称'].length})
+                          </button>
+                        )}
+                      </div>
+                      <div className="customer-select-controls">
+                        <div className="customer-search-box">
+                          <Search size={16} className="customer-search-icon" />
+                          <input
+                            type="text"
+                            placeholder="直送先名で検索..."
+                            value={directShippingSearchKeyword}
+                            onChange={e => setDirectShippingSearchKeyword(e.target.value)}
+                            className="customer-search-input"
+                          />
+                          {directShippingSearchKeyword && (
+                            <button 
+                              type="button" 
+                              className="search-clear-btn" 
+                              onClick={() => setDirectShippingSearchKeyword('')} 
+                              title="検索をクリア"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                        
+                        {filteredDirectShippings.length > 0 ? (
+                          <div className="customer-list-container">
+                            <ul className="customer-list">
+                              {filteredDirectShippings.map(shipping => {
+                                const isSelected = filters['直送先名称'].includes(shipping);
+                                return (
+                                  <li 
+                                    key={shipping} 
+                                    className={`customer-item shipping-item ${isSelected ? 'active' : ''}`}
+                                    onClick={() => handleFilterChange('直送先名称', shipping)}
+                                  >
+                                    <div className="customer-item-main">
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        readOnly
+                                        className="shipping-checkbox"
+                                      />
+                                      <span className="customer-name-text" title={shipping}>
+                                        {shipping}
+                                      </span>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="no-customers-text">該当する直送先が見つかりません</p>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="no-customers-text">該当する顧客が見つかりません</p>
                   )}
                 </div>
               )}
             </div>
-
-            {/* 直送先選択セクション */}
-            {customerPermissionGranted && (
-              <div className="amazon-sidebar-section customer-section direct-shipping-section">
-                <div className="customer-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h2>
-                    <MapPin size={18} className="section-title-icon" />
-                    直送先選択
-                  </h2>
-                  {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); clearFilterKey('直送先名称'); }} 
-                      className="amazon-clear-btn" 
-                      title="直送先選択をクリア"
-                    >
-                      <FilterX size={14} />
-                      クリア ({filters['直送先名称'].length})
-                    </button>
-                  )}
-                </div>
-                <div className="customer-select-controls">
-                  <div className="customer-search-box">
-                    <Search size={16} className="customer-search-icon" />
-                    <input
-                      type="text"
-                      placeholder="直送先名で検索..."
-                      value={directShippingSearchKeyword}
-                      onChange={e => setDirectShippingSearchKeyword(e.target.value)}
-                      className="customer-search-input"
-                    />
-                    {directShippingSearchKeyword && (
-                      <button 
-                        type="button" 
-                        className="search-clear-btn" 
-                        onClick={() => setDirectShippingSearchKeyword('')} 
-                        title="検索をクリア"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {filteredDirectShippings.length > 0 ? (
-                    <div className="customer-list-container">
-                      <ul className="customer-list">
-                        {filteredDirectShippings.map(shipping => {
-                          const isSelected = filters['直送先名称'].includes(shipping);
-                          return (
-                            <li 
-                              key={shipping} 
-                              className={`customer-item shipping-item ${isSelected ? 'active' : ''}`}
-                              onClick={() => handleFilterChange('直送先名称', shipping)}
-                            >
-                              <div className="customer-item-main">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  readOnly
-                                  className="shipping-checkbox"
-                                />
-                                <span className="customer-name-text" title={shipping}>
-                                  {shipping}
-                                </span>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="no-customers-text">該当する直送先が見つかりません</p>
-                  )}
-                </div>
-              </div>
-            )}
             
             <div className="amazon-sidebar-section filter-panel-section">
               <div className="amazon-sidebar-header" onClick={() => setIsFilterOpen(!isFilterOpen)}>
