@@ -875,6 +875,18 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
             }
           }
         }
+        const cleanOrderNum = cleanKey(filename).replace(/^0+/, "");
+        if (cleanOrderNum && cleanOrderNum.length >= 3) {
+          for (const [mapKey, mapFile] of imageFilesMap.entries()) {
+            if (mapKey.includes(cleanOrderNum)) {
+              const objectUrl = getOrCreateObjectURL(mapFile);
+              if (isCancelled) return;
+              updateImageUrl(objectUrl);
+              setError(false);
+              return;
+            }
+          }
+        }
       }
       for (const key of searchKeys) {
         try {
@@ -2588,7 +2600,6 @@ function App() {
     lastModified,
     dirHandle,
     imageFilesMap,
-    imageFolderName,
     permissionGranted,
     customerPermissionGranted,
     customerFiles,
@@ -2933,17 +2944,10 @@ function App() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-image-btn-wrapper", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? `画像フォルダ接続済み (${imageFolderName || "接続済み"})` : "画像フォルダを接続", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-            permissionGranted ? imageFolderName ? `画像接続: ${imageFolderName}` : "画像接続済" : "画像フォルダ"
-          ] }),
-          permissionGranted && imageFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-image-folder-badge", title: `取得元フォルダ: ${imageFolderName}`, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-folder-prefix", children: "取得元:" }),
-            " ",
-            imageFolderName
-          ] })
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "header-image-btn-wrapper", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
+          permissionGranted ? "画像接続済" : "画像フォルダ"
+        ] }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => document.getElementById("file-input")?.click(), className: "amazon-btn amazon-btn-primary", title: "Excelファイルを直接開く", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
           fileName || "ファイル選択"
