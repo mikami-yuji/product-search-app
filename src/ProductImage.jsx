@@ -67,7 +67,7 @@ const getFileImageUrl = (file) => {
  * @param {ProductImageProps} props - プロパティ
  * @returns {React.ReactElement} - レンダリング要素
  */
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, className, onClick }) => {
     /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
@@ -299,6 +299,19 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
                 }
             }
 
+            // 4. Google Drive 共有画像フォールバック
+            if (driveFolderUrl && filename) {
+                const cleanOrderNum = cleanKey(filename);
+                if (cleanOrderNum) {
+                    const driveUrl = `https://lh3.googleusercontent.com/d/${cleanOrderNum}`;
+                    if (!isCancelled) {
+                        updateImageUrl(driveUrl);
+                        setError(false);
+                        return;
+                    }
+                }
+            }
+
             if (!isCancelled) {
                 setError(true);
             }
@@ -309,7 +322,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
         return () => {
             isCancelled = true;
         };
-    }, [dirHandle, imageFilesMap, filename, customerFileName, isVisible]);
+    }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, isVisible]);
 
     if (!isVisible) {
         return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;

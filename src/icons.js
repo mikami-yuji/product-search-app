@@ -1,3 +1,4 @@
+import Cloud from 'lucide-react/dist/esm/icons/cloud.js';
 import Upload from 'lucide-react/dist/esm/icons/upload.js';
 import Search from 'lucide-react/dist/esm/icons/search.js';
 import FileSpreadsheet from 'lucide-react/dist/esm/icons/file-spreadsheet.js';
@@ -64,5 +65,6 @@ export {
   Palette,
   Check,
   MapPin,
-  Users
+  Users,
+  Cloud
 };

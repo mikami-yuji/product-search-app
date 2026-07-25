@@ -30,6 +30,8 @@ const getExcelFilesFromDir = async (dirHandle) => {
 
 export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
 
+export const DEFAULT_GOOGLE_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE';
+
 export const useProductData = () => {
     const [data, setData] = useState([]);
     const [fileName, setFileName] = useState('');
@@ -43,6 +45,7 @@ export const useProductData = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
     const [imageFolderName, setImageFolderName] = useState('');
+    const [driveFolderUrl, setDriveFolderUrl] = useState(DEFAULT_GOOGLE_DRIVE_FOLDER);
 
     // Load cached data on mount
     useEffect(() => {
@@ -59,11 +62,13 @@ export const useProductData = () => {
                 const cachedDirHandle = await get('imageDirHandle');
                 const cachedCustomerDirHandle = isFileSystemSupported ? await get('customerDirHandle') : null;
                 const cachedImageFolderName = await get('imageFolderNameCache');
+                const cachedDriveFolderUrl = await get('driveFolderUrlCache');
 
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
                 if (cachedLastModified) setLastModified(cachedLastModified);
                 if (cachedImageFolderName) setImageFolderName(cachedImageFolderName);
+                if (cachedDriveFolderUrl) setDriveFolderUrl(cachedDriveFolderUrl);
                 
                 if (cachedDirHandle && isFileSystemSupported) {
                     setDirHandle(cachedDirHandle);
@@ -619,6 +624,16 @@ export const useProductData = () => {
         }
     };
 
+    const saveDriveFolderUrl = async (url) => {
+        const cleanUrl = String(url || '').trim();
+        setDriveFolderUrl(cleanUrl);
+        try {
+            await set('driveFolderUrlCache', cleanUrl);
+        } catch (err) {
+            console.error('Failed to cache drive folder URL:', err);
+        }
+    };
+
     return {
         data,
         fileName,
@@ -626,6 +641,8 @@ export const useProductData = () => {
         dirHandle,
         imageFilesMap,
         imageFolderName,
+        driveFolderUrl,
+        saveDriveFolderUrl,
         permissionGranted,
         customerDirHandle,
         customerPermissionGranted,
