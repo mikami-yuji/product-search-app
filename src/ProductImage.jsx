@@ -98,7 +98,9 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
     }, []);
 
     useEffect(() => {
-        if (!isVisible) return;
+        // スマホでメモリマップ(imageFilesMap)が存在する場合は遅延ロードの不発を防ぐため即時読み込みを許可
+        const shouldLoadDirectly = Boolean(imageFilesMap && imageFilesMap.size > 0);
+        if (!isVisible && !shouldLoadDirectly) return;
 
         let isCancelled = false;
 
