@@ -836,8 +836,18 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
         cleanKey(filename),
         String(filename || "").trim()
       ])).filter(Boolean);
-      if (imageFilesMap && imageFilesMap.size > 0 && filename) {
+      if (imageFilesMap && imageFilesMap.size > 0 && (filename || productCode)) {
         const searchVariants = generateOrderNoVariants(filename);
+        if (productCode) {
+          const cleanProductCode = cleanKey(productCode);
+          if (cleanProductCode && !searchVariants.includes(cleanProductCode)) {
+            searchVariants.push(cleanProductCode);
+            const unpaddedCode = cleanProductCode.replace(/^0+/, "");
+            if (unpaddedCode && !searchVariants.includes(unpaddedCode)) {
+              searchVariants.push(unpaddedCode);
+            }
+          }
+        }
         const extensions = ["", ".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
         const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
         const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
@@ -2112,6 +2122,17 @@ const useProductData = () => {
             newMap.set(unpaddedLast.padStart(7, "0"), file);
             newMap.set(unpaddedLast.padStart(8, "0"), file);
           }
+        }
+      }
+      const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
+      if (baseNumMatch) {
+        const pureNum = baseNumMatch[1];
+        newMap.set(pureNum, file);
+        const unpaddedPure = pureNum.replace(/^0+/, "");
+        if (unpaddedPure) {
+          newMap.set(unpaddedPure, file);
+          newMap.set(unpaddedPure.padStart(7, "0"), file);
+          newMap.set(unpaddedPure.padStart(8, "0"), file);
         }
       }
     }
