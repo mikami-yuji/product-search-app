@@ -164,6 +164,20 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                         }
                     }
                 }
+
+                // 強力フォールバック: 受注№数字が含まれる画像ファイルをマッピング内から逆引き・部分一致検出
+                const cleanOrderNum = cleanKey(filename).replace(/^0+/, '');
+                if (cleanOrderNum && cleanOrderNum.length >= 3) {
+                    for (const [mapKey, mapFile] of imageFilesMap.entries()) {
+                        if (mapKey.includes(cleanOrderNum)) {
+                            const objectUrl = getOrCreateObjectURL(mapFile);
+                            if (isCancelled) return;
+                            updateImageUrl(objectUrl);
+                            setError(false);
+                            return;
+                        }
+                    }
+                }
             }
 
             // 1. キャッシュから読み込みを試みる
