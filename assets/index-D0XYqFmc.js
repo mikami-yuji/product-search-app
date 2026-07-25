@@ -803,7 +803,7 @@ const getFileImageUrl = (file) => {
     reader.readAsDataURL(file);
   });
 };
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -989,14 +989,17 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
           }
         }
       }
-      if (driveFolderUrl && filename) {
-        const cleanOrderNum = cleanKey(filename);
-        if (cleanOrderNum) {
-          const driveUrl = `https://lh3.googleusercontent.com/d/${cleanOrderNum}`;
-          if (!isCancelled) {
-            updateImageUrl(driveUrl);
-            setError(false);
-            return;
+      if (driveImagesMap && driveImagesMap.size > 0 && filename) {
+        const searchVariants = generateOrderNoVariants(filename);
+        for (const cand of searchVariants) {
+          const fileId = driveImagesMap.get(cand);
+          if (fileId) {
+            const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+            if (!isCancelled) {
+              updateImageUrl(driveUrl);
+              setError(false);
+              return;
+            }
           }
         }
       }
@@ -1008,7 +1011,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, isVisible]);
+  }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -1567,7 +1570,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driveFolderUrl, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driveFolderUrl, driveImagesMap, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1591,6 +1594,7 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driv
         filename: product["受注№"],
         customerFileName,
         driveFolderUrl,
+        driveImagesMap,
         className: "amazon-card-image"
       }
     ) }),
@@ -1904,6 +1908,44 @@ const useCart = (showToast) => {
     cartItemCount
   };
 };
+const DEFAULT_GOOGLE_DRIVE_FOLDER = "https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE";
+const parseGoogleDriveFolderId = (input) => {
+  if (!input) return "";
+  const str = String(input).trim();
+  const match = str.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(str)) {
+    return str;
+  }
+  return "";
+};
+const fetchDriveFolderFiles = async (folderUrlOrId) => {
+  const folderId = parseGoogleDriveFolderId(folderUrlOrId);
+  const map = /* @__PURE__ */ new Map();
+  if (!folderId) return map;
+  try {
+    const res = await fetch(`https://drive.google.com/embeddedfolderview?id=${folderId}`);
+    if (res.ok) {
+      const html = await res.text();
+      const regex = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]*?class="entry-name[^">]*">([^<]+)</g;
+      let m;
+      while ((m = regex.exec(html)) !== null) {
+        const fileId = m[1];
+        const fileName = m[2].trim();
+        const normNo = normalizeOrderNumber(fileName);
+        map.set(fileName, fileId);
+        map.set(fileName.toLowerCase(), fileId);
+        if (normNo) {
+          map.set(normNo, fileId);
+          map.set(`${normNo}a`, fileId);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch Drive folder index:", err);
+  }
+  return map;
+};
 const REQUIRED_COLUMNS = ["受注№", "商品コード", "商品名"];
 const getExcelFilesFromDir = async (dirHandle) => {
   const files = [];
@@ -1922,7 +1964,6 @@ const getExcelFilesFromDir = async (dirHandle) => {
   return files;
 };
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
-const DEFAULT_GOOGLE_DRIVE_FOLDER = "https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE";
 const useProductData = () => {
   const [data, setData] = reactExports.useState([]);
   const [fileName, setFileName] = reactExports.useState("");
@@ -1937,6 +1978,7 @@ const useProductData = () => {
   const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
   const [imageFolderName, setImageFolderName] = reactExports.useState("");
   const [driveFolderUrl, setDriveFolderUrl] = reactExports.useState(DEFAULT_GOOGLE_DRIVE_FOLDER);
+  const [driveImagesMap, setDriveImagesMap] = reactExports.useState(/* @__PURE__ */ new Map());
   reactExports.useEffect(() => {
     const loadCachedData = async () => {
       try {
@@ -1998,6 +2040,20 @@ const useProductData = () => {
     };
     loadCachedData();
   }, []);
+  reactExports.useEffect(() => {
+    const loadDriveImagesMap = async () => {
+      if (!driveFolderUrl) return;
+      try {
+        const map = await fetchDriveFolderFiles(driveFolderUrl);
+        if (map && map.size > 0) {
+          setDriveImagesMap(new Map(map));
+        }
+      } catch (err) {
+        console.error("Failed to load Google Drive images map:", err);
+      }
+    };
+    loadDriveImagesMap();
+  }, [driveFolderUrl]);
   const validateData = (jsonData) => {
     if (!jsonData || jsonData.length === 0) {
       throw new Error("データが空です");
@@ -2396,6 +2452,7 @@ const useProductData = () => {
     imageFilesMap,
     imageFolderName,
     driveFolderUrl,
+    driveImagesMap,
     saveDriveFolderUrl,
     permissionGranted,
     customerDirHandle,
@@ -2654,6 +2711,7 @@ function App() {
     dirHandle,
     imageFilesMap,
     driveFolderUrl,
+    driveImagesMap,
     saveDriveFolderUrl,
     permissionGranted,
     customerPermissionGranted,
@@ -3427,6 +3485,7 @@ function App() {
             imageFilesMap,
             customerFileName: fileName,
             driveFolderUrl,
+            driveImagesMap,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
             keyword
