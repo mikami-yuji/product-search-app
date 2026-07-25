@@ -435,6 +435,7 @@ export const useProductData = () => {
         if (!isFileSystemSupported) {
             const mobileInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
             if (mobileInput) {
+                mobileInput.value = ''; // 同一選択や再選択でも確実に onChange を発火させるためのクリア
                 mobileInput.click();
                 return;
             }
