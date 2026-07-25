@@ -419,6 +419,11 @@ export const useProductData = () => {
         setImageFilesMap(new Map(newMap));
         setPermissionGranted(true);
         setError(null);
+
+        // デバッグ用通知: 読み込み完了数を画面にトースト通知
+        if (typeof window !== 'undefined' && window.alert) {
+            console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
+        }
     };
 
     /**
