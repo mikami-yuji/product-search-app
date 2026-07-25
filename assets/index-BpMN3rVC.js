@@ -712,13 +712,13 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 };
 const extractCustomerCode = (name) => {
   if (!name) return "";
-  const cleanName = String(name).replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).trim();
+  const cleanName = String(name).normalize("NFC").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).trim();
   const match = cleanName.match(/^([0-9]+)/);
   return match ? match[1] : "";
 };
 const normalizeOrderNumber = (val) => {
   if (val === null || val === void 0) return "";
-  const rawStr = String(val).trim();
+  const rawStr = String(val).normalize("NFC").trim();
   if (!rawStr) return "";
   return rawStr.replace(/\.[^/.]+$/, "").replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).toLowerCase().trim();
 };
@@ -770,13 +770,38 @@ const generateOrderNoVariants = (orderNo) => {
   return Array.from(variants);
 };
 const objectUrlCache = /* @__PURE__ */ new WeakMap();
-const getOrCreateObjectURL = (file) => {
-  if (objectUrlCache.has(file)) {
-    return objectUrlCache.get(file);
-  }
-  const url = URL.createObjectURL(file);
-  objectUrlCache.set(file, url);
-  return url;
+const getFileImageUrl = (file) => {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+    if (objectUrlCache.has(file)) {
+      resolve(objectUrlCache.get(file));
+      return;
+    }
+    try {
+      const url = URL.createObjectURL(file);
+      if (url && url.startsWith("blob:")) {
+        objectUrlCache.set(file, url);
+        resolve(url);
+        return;
+      }
+    } catch {
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      if (dataUrl) {
+        objectUrlCache.set(file, dataUrl);
+      }
+      resolve(dataUrl);
+    };
+    reader.onerror = () => {
+      resolve("");
+    };
+    reader.readAsDataURL(file);
+  });
 };
 const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
@@ -857,11 +882,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
               const targetKey = `${prefix}${cand}${ext}`;
               const file = imageFilesMap.get(targetKey);
               if (file) {
-                const objectUrl = getOrCreateObjectURL(file);
+                const objectUrl = await getFileImageUrl(file);
                 if (isCancelled) return;
-                updateImageUrl(objectUrl);
-                setError(false);
-                return;
+                if (objectUrl) {
+                  updateImageUrl(objectUrl);
+                  setError(false);
+                  return;
+                }
               }
             }
           }
@@ -870,11 +897,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
         if (cleanOrderNum && cleanOrderNum.length >= 3) {
           for (const [mapKey, mapFile] of imageFilesMap.entries()) {
             if (mapKey.includes(cleanOrderNum)) {
-              const objectUrl = getOrCreateObjectURL(mapFile);
+              const objectUrl = await getFileImageUrl(mapFile);
               if (isCancelled) return;
-              updateImageUrl(objectUrl);
-              setError(false);
-              return;
+              if (objectUrl) {
+                updateImageUrl(objectUrl);
+                setError(false);
+                return;
+              }
             }
           }
         }
@@ -2096,11 +2125,11 @@ const useProductData = () => {
           newMap.set(unpadded.padStart(8, "0"), file);
         }
       }
-      const relPath = file.webkitRelativePath;
+      const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize("NFC") : "";
       if (relPath) {
         const parts = relPath.split("/");
-        if (parts.length > 1) {
-          const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+        for (let p = 0; p < parts.length - 1; p++) {
+          const folderSegment = parts[p].trim().toLowerCase();
           if (folderSegment) {
             newMap.set(`${folderSegment}/${lowerRawName}`, file);
             newMap.set(`${folderSegment}/${lowerFileName}`, file);
@@ -2180,7 +2209,7 @@ const useProductData = () => {
       setImageFolderName(detectedFolderName);
       set("imageFolderNameCache", detectedFolderName).catch((err) => console.error("Failed to cache image folder name:", err));
     }
-    setImageFilesMap(newMap);
+    setImageFilesMap(new Map(newMap));
     setPermissionGranted(true);
     setError(null);
   };
