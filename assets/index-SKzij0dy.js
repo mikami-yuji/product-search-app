@@ -2024,6 +2024,11 @@ const useProductData = () => {
         setFileName(file.name);
         setLastModified(file.lastModified);
         setError(null);
+        const cleanCustFolderName = String(file.name).replace(/\.xlsx?$/i, "").trim();
+        if (cleanCustFolderName) {
+          setImageFolderName(cleanCustFolderName);
+          set("imageFolderNameCache", cleanCustFolderName).catch((err) => console.error("Failed to cache image folder name:", err));
+        }
         Promise.all([
           set("productData", parsedData),
           set("fileName", file.name),
@@ -2138,8 +2143,9 @@ const useProductData = () => {
         }
       }
     }
-    let detectedFolderName = "";
-    if (files.length > 0) {
+    let activeCustFolder = fileName ? String(fileName).replace(/\.xlsx?$/i, "").trim() : "";
+    let detectedFolderName = activeCustFolder;
+    if (!detectedFolderName && files.length > 0) {
       const firstRelPath = files[0].webkitRelativePath;
       if (firstRelPath) {
         const parts = firstRelPath.split("/");
