@@ -331,17 +331,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
         <div
             className={`product-image-container ${className || ''}`}
             onClick={() => onClick && onClick(imageUrl)}
-            style={{ cursor: onClick ? 'pointer' : 'default' }}
+            style={{ cursor: onClick ? 'pointer' : 'default', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
             <img
                 src={imageUrl}
                 alt={filename || '商品画像'}
-                className={`product-thumbnail image-fade-in ${isLoaded ? 'loaded' : ''}`}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                 onLoad={() => setIsLoaded(true)}
-                onError={() => {
-                    console.error(`Failed to load image for ${filename}`);
-                    setError(true);
-                }}
             />
         </div>
     );
