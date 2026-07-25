@@ -119,17 +119,21 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                 String(filename || '').trim()
             ])).filter(Boolean);
 
-            // 0. メモリ内のファイルマップ (スマホ・受注Noのみ超高速O(1)探索)
+            // 0. メモリ内のファイルマップ (スマホ・高速O(1)探索・拡張子付きバリエーション対応)
             if (imageFilesMap && imageFilesMap.size > 0 && filename) {
                 const searchVariants = generateOrderNoVariants(filename);
+                const extensions = ['', '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG', '.webp', '.WEBP'];
+
                 for (const cand of searchVariants) {
-                    const file = imageFilesMap.get(cand);
-                    if (file) {
-                        const objectUrl = getOrCreateObjectURL(file);
-                        if (isCancelled) return;
-                        updateImageUrl(objectUrl);
-                        setError(false);
-                        return;
+                    for (const ext of extensions) {
+                        const file = imageFilesMap.get(`${cand}${ext}`);
+                        if (file) {
+                            const objectUrl = getOrCreateObjectURL(file);
+                            if (isCancelled) return;
+                            updateImageUrl(objectUrl);
+                            setError(false);
+                            return;
+                        }
                     }
                 }
             }

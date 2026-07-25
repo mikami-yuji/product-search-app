@@ -263,7 +263,7 @@ export const useProductData = () => {
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
 
     /**
-     * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（受注Noのみで超高速O(1)検索可能にする）
+     * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（全バリエーションキーを網羅してPCと同等に一瞬で表示）
      * @param {React.ChangeEvent<HTMLInputElement>} e
      */
     const handleImageFilesSelect = (e) => {
@@ -276,19 +276,44 @@ export const useProductData = () => {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const name = file.name;
-            const normalized = normalizeOrderNumber(name);
+            const dotIdx = name.lastIndexOf('.');
+            const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+            const lowerRawName = rawName.toLowerCase();
+            const lowerFileName = name.toLowerCase();
 
-            if (normalized) {
-                newMap.set(normalized, file);
+            // 1. 完全一致ファイル名および小文字ファイル名
+            newMap.set(name, file);
+            newMap.set(lowerFileName, file);
+            newMap.set(rawName, file);
+            newMap.set(lowerRawName, file);
 
-                // ゼロ埋めなし・ゼロパディングのバリエーションも登録
-                const unpadded = normalized.replace(/^0+/, '');
-                if (unpadded && unpadded !== normalized) {
-                    newMap.set(unpadded, file);
-                }
+            // 2. 正規化・記号除去・全角半角キー
+            const cleaned = lowerRawName
+                .replace(/,/g, '')
+                .replace(/\.0+$/, '')
+                .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+
+            if (cleaned) {
+                newMap.set(cleaned, file);
+
+                const unpadded = cleaned.replace(/^0+/, '');
                 if (unpadded) {
+                    newMap.set(unpadded, file);
                     newMap.set(unpadded.padStart(7, '0'), file);
                     newMap.set(unpadded.padStart(8, '0'), file);
+                }
+            }
+
+            // 3. フォルダパスが含まれる場合（webkitRelativePath）
+            const relPath = file.webkitRelativePath;
+            if (relPath) {
+                const parts = relPath.split('/');
+                if (parts.length > 1) {
+                    const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+                    if (folderSegment) {
+                        newMap.set(`${folderSegment}/${lowerRawName}`, file);
+                        newMap.set(`${folderSegment}/${lowerFileName}`, file);
+                    }
                 }
             }
         }
@@ -300,9 +325,18 @@ export const useProductData = () => {
 
     /**
      * Handle image folder selection and connection.
+     * スマホ等の File System API 非対応環境では image-files-input を優先起動します。
      * @returns {Promise<void>}
      */
     const handleFolderSelect = async () => {
+        if (!isFileSystemSupported) {
+            const mobileInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
+            if (mobileInput) {
+                mobileInput.click();
+                return;
+            }
+        }
+
         try {
             if (isFileSystemSupported && window.showDirectoryPicker) {
                 const handle = await window.showDirectoryPicker();
@@ -316,9 +350,9 @@ export const useProductData = () => {
             if (err.name === 'AbortError') return;
         }
 
-        const input = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
-        if (input) {
-            input.click();
+        const fallbackInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
+        if (fallbackInput) {
+            fallbackInput.click();
         }
     };
 
