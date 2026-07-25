@@ -1975,6 +1975,7 @@ const useProductData = () => {
             setCustomerFiles(cachedCustomerFiles);
             setCustomerPermissionGranted(true);
           }
+          setPermissionGranted(false);
         }
       } catch (err) {
         console.error("Error loading cache:", err);
