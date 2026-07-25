@@ -120,8 +120,18 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
             ])).filter(Boolean);
 
             // 0. メモリ内のファイルマップ (スマホ・選択中顧客サブフォルダ優先O(1)探索)
-            if (imageFilesMap && imageFilesMap.size > 0 && filename) {
+            if (imageFilesMap && imageFilesMap.size > 0 && (filename || productCode)) {
                 const searchVariants = generateOrderNoVariants(filename);
+                if (productCode) {
+                    const cleanProductCode = cleanKey(productCode);
+                    if (cleanProductCode && !searchVariants.includes(cleanProductCode)) {
+                        searchVariants.push(cleanProductCode);
+                        const unpaddedCode = cleanProductCode.replace(/^0+/, '');
+                        if (unpaddedCode && !searchVariants.includes(unpaddedCode)) {
+                            searchVariants.push(unpaddedCode);
+                        }
+                    }
+                }
                 const extensions = ['', '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG', '.webp', '.WEBP'];
 
                 // 選択中の顧客名・顧客コードを抽出

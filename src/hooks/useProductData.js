@@ -351,6 +351,19 @@ export const useProductData = () => {
                     }
                 }
             }
+
+            // 5. 末尾のアルファベット枝番 (例: 44884A -> 44884) を除外した純粋数字キーの登録
+            const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
+            if (baseNumMatch) {
+                const pureNum = baseNumMatch[1];
+                newMap.set(pureNum, file);
+                const unpaddedPure = pureNum.replace(/^0+/, '');
+                if (unpaddedPure) {
+                    newMap.set(unpaddedPure, file);
+                    newMap.set(unpaddedPure.padStart(7, '0'), file);
+                    newMap.set(unpaddedPure.padStart(8, '0'), file);
+                }
+            }
         }
 
         // 選択された画像群からトップレベルフォルダ名を取得
