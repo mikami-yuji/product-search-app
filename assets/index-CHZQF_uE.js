@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as ChevronUp, k as ChevronDown, l as MapPin, m as Check, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-CS6S-NGL.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Cloud, j as Users, k as ChevronUp, l as ChevronDown, m as MapPin, n as Check, o as FunnelX, p as Tag, q as FileCode, L as LayoutGrid, r as List, s as Palette, t as Layers, u as Scale } from "./vendor-lucide-BXNhOfIE.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -803,7 +803,7 @@ const getFileImageUrl = (file) => {
     reader.readAsDataURL(file);
   });
 };
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -989,6 +989,17 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
           }
         }
       }
+      if (driveFolderUrl && filename) {
+        const cleanOrderNum = cleanKey(filename);
+        if (cleanOrderNum) {
+          const driveUrl = `https://lh3.googleusercontent.com/d/${cleanOrderNum}`;
+          if (!isCancelled) {
+            updateImageUrl(driveUrl);
+            setError(false);
+            return;
+          }
+        }
+      }
       if (!isCancelled) {
         setError(true);
       }
@@ -997,7 +1008,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, imageFilesMap, filename, customerFileName, isVisible]);
+  }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -1556,7 +1567,7 @@ const HighlightText = ({ text, keyword }) => {
     (part, i) => part.toLowerCase() === keyword.toLowerCase() ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-highlight", children: part }, i) : part
   ) });
 };
-const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driveFolderUrl, onClick, onAddToCart, keyword }) => {
   const getAgeColorClass = (dateStr) => {
     if (!dateStr) return "";
     const orderDate = new Date(dateStr);
@@ -1579,6 +1590,7 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onCl
         imageFilesMap,
         filename: product["受注№"],
         customerFileName,
+        driveFolderUrl,
         className: "amazon-card-image"
       }
     ) }),
@@ -1910,6 +1922,7 @@ const getExcelFilesFromDir = async (dirHandle) => {
   return files;
 };
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
+const DEFAULT_GOOGLE_DRIVE_FOLDER = "https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE";
 const useProductData = () => {
   const [data, setData] = reactExports.useState([]);
   const [fileName, setFileName] = reactExports.useState("");
@@ -1923,6 +1936,7 @@ const useProductData = () => {
   const [isLoading, setIsLoading] = reactExports.useState(false);
   const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
   const [imageFolderName, setImageFolderName] = reactExports.useState("");
+  const [driveFolderUrl, setDriveFolderUrl] = reactExports.useState(DEFAULT_GOOGLE_DRIVE_FOLDER);
   reactExports.useEffect(() => {
     const loadCachedData = async () => {
       try {
@@ -1933,10 +1947,12 @@ const useProductData = () => {
         const cachedDirHandle = await get("imageDirHandle");
         const cachedCustomerDirHandle = isFileSystemSupported ? await get("customerDirHandle") : null;
         const cachedImageFolderName = await get("imageFolderNameCache");
+        const cachedDriveFolderUrl = await get("driveFolderUrlCache");
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
         if (cachedImageFolderName) setImageFolderName(cachedImageFolderName);
+        if (cachedDriveFolderUrl) setDriveFolderUrl(cachedDriveFolderUrl);
         if (cachedDirHandle && isFileSystemSupported) {
           setDirHandle(cachedDirHandle);
           const options = { mode: "read" };
@@ -2363,6 +2379,15 @@ const useProductData = () => {
       setIsLoading(false);
     }
   };
+  const saveDriveFolderUrl = async (url) => {
+    const cleanUrl = String(url || "").trim();
+    setDriveFolderUrl(cleanUrl);
+    try {
+      await set("driveFolderUrlCache", cleanUrl);
+    } catch (err) {
+      console.error("Failed to cache drive folder URL:", err);
+    }
+  };
   return {
     data,
     fileName,
@@ -2370,6 +2395,8 @@ const useProductData = () => {
     dirHandle,
     imageFilesMap,
     imageFolderName,
+    driveFolderUrl,
+    saveDriveFolderUrl,
     permissionGranted,
     customerDirHandle,
     customerPermissionGranted,
@@ -2610,6 +2637,8 @@ function App() {
   const [activeSuggestionIdx, setActiveSuggestionIdx] = reactExports.useState(-1);
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = reactExports.useState("");
   const [showExcelDropdown, setShowExcelDropdown] = reactExports.useState(false);
+  const [showDriveModal, setShowDriveModal] = reactExports.useState(false);
+  const [inputDriveUrl, setInputDriveUrl] = reactExports.useState("");
   const [openFilters, setOpenFilters] = reactExports.useState({
     "種別": true,
     "重量": false,
@@ -2624,6 +2653,8 @@ function App() {
     lastModified,
     dirHandle,
     imageFilesMap,
+    driveFolderUrl,
+    saveDriveFolderUrl,
     permissionGranted,
     customerPermissionGranted,
     customerFiles,
@@ -2981,7 +3012,56 @@ function App() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-folder-input", name: "customerFolder", type: "file", onChange: handleCustomerFilesSelect, multiple: true, ...{ webkitdirectory: "", directory: "" }, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-folder-input", name: "imageFolder", type: "file", onChange: handleImageFilesSelect, multiple: true, ...{ webkitdirectory: "", directory: "" }, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => {
+          setInputDriveUrl(driveFolderUrl);
+          setShowDriveModal(true);
+        }, className: `amazon-btn ${driveFolderUrl ? "connected" : ""}`, title: "Google Drive連携設定", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { size: 18 }),
+          "Drive連携"
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowCacheManager(true), className: "amazon-btn", title: "キャッシュ管理", children: "キャッシュ" })
+      ] })
+    ] }) }),
+    showDriveModal && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-overlay", onClick: () => setShowDriveModal(false), children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-content", onClick: (e) => e.stopPropagation(), style: { maxWidth: "500px", padding: "24px" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { style: { margin: 0, fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { size: 20, color: "#0066c0" }),
+          "Google Drive 画像連携設定"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowDriveModal(false), style: { border: "none", background: "transparent", cursor: "pointer" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 20 }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { style: { fontSize: "13px", color: "#555", marginBottom: "16px", lineHeight: "1.5" }, children: [
+        "Google Drive の共有フォルダURLまたはフォルダIDを設定します。",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+        "設定すると、スマホ環境でも Google Drive 上の画像が自動参照・表示されます。"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginBottom: "20px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { style: { display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "6px" }, children: "共有フォルダURL / フォルダID:" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "text",
+            value: inputDriveUrl,
+            onChange: (e) => setInputDriveUrl(e.target.value),
+            placeholder: "https://drive.google.com/drive/folders/...",
+            style: { width: "100%", padding: "10px", fontSize: "13px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "flex-end", gap: "10px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setShowDriveModal(false), className: "amazon-btn", children: "キャンセル" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: () => {
+              saveDriveFolderUrl(inputDriveUrl);
+              setShowDriveModal(false);
+              showToast("Google Drive 連携URLを保存しました");
+            },
+            className: "amazon-btn amazon-btn-primary",
+            children: "保存して適用"
+          }
+        )
       ] })
     ] }) }),
     data.length > 0 || isLoading && fileName ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
@@ -3346,6 +3426,7 @@ function App() {
             dirHandle,
             imageFilesMap,
             customerFileName: fileName,
+            driveFolderUrl,
             onClick: () => setSelectedProduct(product),
             onAddToCart: addToCart,
             keyword
