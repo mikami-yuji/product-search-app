@@ -209,10 +209,16 @@ export const useProductData = () => {
                 const parsedData = await parseExcelDirectly();
                 validateData(parsedData);
                 setData(parsedData);
-                set('productData', parsedData);
-                set('fileName', file.name);
-                set('lastModified', file.lastModified);
+                setFileName(file.name);
+                setLastModified(file.lastModified);
                 setError(null);
+
+                // UI描画をブロックしないようバックグラウンドでIndexedDBに保存
+                Promise.all([
+                    set('productData', parsedData),
+                    set('fileName', file.name),
+                    set('lastModified', file.lastModified)
+                ]).catch(err => console.error('Failed to update IndexedDB cache in background:', err));
             } catch (err) {
                 console.error('Parsing failed:', err);
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
@@ -391,13 +397,9 @@ export const useProductData = () => {
         setCustomerPermissionGranted(true);
         setError(null);
 
-        try {
-            // モバイル環境向けに、軽量なファイル名リストのみをIndexedDBにキャッシュ（重いFileオブジェクトの複製遅延を防止）
-            const fileListCache = mappedFiles.map(f => ({ name: f.name }));
-            await set('customerFilesCache', fileListCache);
-        } catch (err) {
-            console.error('Failed to cache customer files:', err);
-        }
+        // モバイル環境向けに、軽量なファイル名リストのみをIndexedDBにキャッシュ（重いFileオブジェクトの複製遅延を防止）
+        const fileListCache = mappedFiles.map(f => ({ name: f.name }));
+        set('customerFilesCache', fileListCache).catch(err => console.error('Failed to cache customer files:', err));
 
         // 選択された顧客ファイルの先頭を自動的にロード
         if (mappedFiles.length > 0 && mappedFiles[0].file) {
