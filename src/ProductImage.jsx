@@ -316,10 +316,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     }
 
     if (error || !imageUrl) {
-        const debugTitle = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件, 受注№: ${filename || 'なし'}`;
+        const debugText = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件 / Key: ${filename || 'なし'}`;
         return (
-            <div className={`no-image ${className || ''}`} title={debugTitle}>
-                <ImageIcon size={24} />
+            <div className={`no-image ${className || ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '2px' }}>
+                <ImageIcon size={20} />
+                <span style={{ fontSize: '9px', color: '#555', wordBreak: 'break-all', textAlign: 'center', lineHeight: '1.1' }}>
+                    {debugText}
+                </span>
             </div>
         );
     }
