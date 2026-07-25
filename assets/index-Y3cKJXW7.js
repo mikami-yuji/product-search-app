@@ -1002,8 +1002,11 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
   if (error || !imageUrl) {
-    const debugTitle = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件, 受注№: ${filename || "なし"}`;
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `no-image ${className || ""}`, title: debugTitle, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 24 }) });
+    const debugText = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件 / Key: ${filename || "なし"}`;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `no-image ${className || ""}`, style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", padding: "2px" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 20 }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "9px", color: "#555", wordBreak: "break-all", textAlign: "center", lineHeight: "1.1" }, children: debugText })
+    ] });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "div",
