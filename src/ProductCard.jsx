@@ -86,12 +86,16 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onCl
 
 // Memoize to prevent unnecessary re-renders
 export default React.memo(ProductCard, (prevProps, nextProps) => {
-    // Only re-render if these props change
+    // Only skip re-render if ALL relevant props match, including imageFilesMap reference AND size
+    const prevMapSize = prevProps.imageFilesMap ? prevProps.imageFilesMap.size : 0;
+    const nextMapSize = nextProps.imageFilesMap ? nextProps.imageFilesMap.size : 0;
+
     return (
         prevProps.product['受注№'] === nextProps.product['受注№'] &&
         prevProps.keyword === nextProps.keyword &&
         prevProps.dirHandle === nextProps.dirHandle &&
         prevProps.imageFilesMap === nextProps.imageFilesMap &&
+        prevMapSize === nextMapSize &&
         prevProps.customerFileName === nextProps.customerFileName
     );
 });
