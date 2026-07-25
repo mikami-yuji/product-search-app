@@ -778,7 +778,7 @@ const getOrCreateObjectURL = (file) => {
   objectUrlCache.set(file, url);
   return url;
 };
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, productCode, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
@@ -837,18 +837,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
         cleanKey(filename),
         String(filename || "").trim()
       ])).filter(Boolean);
-      if (imageFilesMap && imageFilesMap.size > 0 && (filename || productCode)) {
+      if (imageFilesMap && imageFilesMap.size > 0 && filename) {
         const searchVariants = generateOrderNoVariants(filename);
-        if (productCode) {
-          const cleanProductCode = cleanKey(productCode);
-          if (cleanProductCode && !searchVariants.includes(cleanProductCode)) {
-            searchVariants.push(cleanProductCode);
-            const unpaddedCode = cleanProductCode.replace(/^0+/, "");
-            if (unpaddedCode && !searchVariants.includes(unpaddedCode)) {
-              searchVariants.push(unpaddedCode);
-            }
-          }
-        }
         const extensions = ["", ".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
         const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
         const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
@@ -1558,8 +1548,7 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onCl
       {
         dirHandle,
         imageFilesMap,
-        filename: product["受注№"] || product["受注No"] || product["受注番号"] || product["№"] || product["No"],
-        productCode: product["商品コード"] || product["商品CD"] || product["コード"],
+        filename: product["受注№"],
         customerFileName,
         className: "amazon-card-image"
       }
