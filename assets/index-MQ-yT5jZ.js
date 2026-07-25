@@ -1599,7 +1599,9 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, onCl
   ] });
 };
 const ProductCard$1 = React.memo(ProductCard, (prevProps, nextProps) => {
-  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle && prevProps.imageFilesMap === nextProps.imageFilesMap && prevProps.customerFileName === nextProps.customerFileName;
+  const prevMapSize = prevProps.imageFilesMap ? prevProps.imageFilesMap.size : 0;
+  const nextMapSize = nextProps.imageFilesMap ? nextProps.imageFilesMap.size : 0;
+  return prevProps.product["受注№"] === nextProps.product["受注№"] && prevProps.keyword === nextProps.keyword && prevProps.dirHandle === nextProps.dirHandle && prevProps.imageFilesMap === nextProps.imageFilesMap && prevMapSize === nextMapSize && prevProps.customerFileName === nextProps.customerFileName;
 });
 const Toast = ({ message, type = "success", isVisible, onClose }) => {
   reactExports.useEffect(() => {
