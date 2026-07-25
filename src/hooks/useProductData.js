@@ -103,6 +103,8 @@ export const useProductData = () => {
                         setCustomerFiles(cachedCustomerFiles);
                         setCustomerPermissionGranted(true);
                     }
+                    // スマホではリロード後にメモリ上のimageFilesMapが空になるため、初期化時はpermissionGrantedをfalseにする
+                    setPermissionGranted(false);
                 }
             } catch (err) {
                 console.error('Error loading cache:', err);
