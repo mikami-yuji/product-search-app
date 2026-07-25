@@ -24,11 +24,13 @@ describe('imageKeyUtils', () => {
 
   describe('generateOrderNoVariants', () => {
     it('should generate expected search variants for an order number', () => {
-      const variants = generateOrderNoVariants('1005235');
-      expect(variants).toContain('1005235');
-      expect(variants).toContain('1005235-01');
-      expect(variants).toContain('1005235_01');
-      expect(variants).toContain('1005235a');
+      const variants = generateOrderNoVariants('44884');
+      expect(variants).toContain('44884');
+      expect(variants).toContain('44884A');
+      expect(variants).toContain('44884C');
+      expect(variants).toContain('44884a');
+      expect(variants).toContain('44884-01');
+      expect(variants).toContain('44884_01');
       expect(variants.length).toBeGreaterThan(5);
     });
 

@@ -56,8 +56,10 @@ export const generateOrderNoVariants = (orderNo) => {
 
   const bases = Array.from(new Set([cleaned, unpadded, pad7, pad8])).filter(Boolean);
   const suffixes = [
-    '', '-01', '_01', '-00', '_00', '-0', '_0',
-    'a', '_1', '_a', '-1', '-a', ' (1)', '_01a', '-01a'
+    '', 'a', 'b', 'c', 'd', 'e', 'A', 'B', 'C', 'D', 'E',
+    '-01', '_01', '-00', '_00', '-0', '_0',
+    '_1', '_a', '_A', '_b', '_B', '_c', '_C',
+    '-1', '-a', '-A', ' (1)', '_01a', '-01a'
   ];
 
   /** @type {Set<string>} */
