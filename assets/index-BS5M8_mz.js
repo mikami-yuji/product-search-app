@@ -823,14 +823,17 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
       ])).filter(Boolean);
       if (imageFilesMap && imageFilesMap.size > 0 && filename) {
         const searchVariants = generateOrderNoVariants(filename);
+        const extensions = ["", ".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
         for (const cand of searchVariants) {
-          const file = imageFilesMap.get(cand);
-          if (file) {
-            const objectUrl = getOrCreateObjectURL(file);
-            if (isCancelled) return;
-            updateImageUrl(objectUrl);
-            setError(false);
-            return;
+          for (const ext of extensions) {
+            const file = imageFilesMap.get(`${cand}${ext}`);
+            if (file) {
+              const objectUrl = getOrCreateObjectURL(file);
+              if (isCancelled) return;
+              updateImageUrl(objectUrl);
+              setError(false);
+              return;
+            }
           }
         }
       }
@@ -2024,16 +2027,33 @@ const useProductData = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const name = file.name;
-      const normalized = normalizeOrderNumber(name);
-      if (normalized) {
-        newMap.set(normalized, file);
-        const unpadded = normalized.replace(/^0+/, "");
-        if (unpadded && unpadded !== normalized) {
-          newMap.set(unpadded, file);
-        }
+      const dotIdx = name.lastIndexOf(".");
+      const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+      const lowerRawName = rawName.toLowerCase();
+      const lowerFileName = name.toLowerCase();
+      newMap.set(name, file);
+      newMap.set(lowerFileName, file);
+      newMap.set(rawName, file);
+      newMap.set(lowerRawName, file);
+      const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      if (cleaned) {
+        newMap.set(cleaned, file);
+        const unpadded = cleaned.replace(/^0+/, "");
         if (unpadded) {
+          newMap.set(unpadded, file);
           newMap.set(unpadded.padStart(7, "0"), file);
           newMap.set(unpadded.padStart(8, "0"), file);
+        }
+      }
+      const relPath = file.webkitRelativePath;
+      if (relPath) {
+        const parts = relPath.split("/");
+        if (parts.length > 1) {
+          const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+          if (folderSegment) {
+            newMap.set(`${folderSegment}/${lowerRawName}`, file);
+            newMap.set(`${folderSegment}/${lowerFileName}`, file);
+          }
         }
       }
     }
@@ -2042,6 +2062,13 @@ const useProductData = () => {
     setError(null);
   };
   const handleFolderSelect = async () => {
+    if (!isFileSystemSupported) {
+      const mobileInput = document.getElementById("image-files-input") || document.getElementById("image-folder-input");
+      if (mobileInput) {
+        mobileInput.click();
+        return;
+      }
+    }
     try {
       if (isFileSystemSupported && window.showDirectoryPicker) {
         const handle = await window.showDirectoryPicker();
@@ -2054,9 +2081,9 @@ const useProductData = () => {
     } catch (err) {
       if (err.name === "AbortError") return;
     }
-    const input = document.getElementById("image-folder-input") || document.getElementById("image-files-input");
-    if (input) {
-      input.click();
+    const fallbackInput = document.getElementById("image-files-input") || document.getElementById("image-folder-input");
+    if (fallbackInput) {
+      fallbackInput.click();
     }
   };
   const handleCustomerFolderSelect = async () => {
