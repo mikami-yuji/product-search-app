@@ -331,6 +331,26 @@ export const useProductData = () => {
                     }
                 }
             }
+
+            // 4. アンダースコア・ハイフン区切りファイル名（例: 27099_1005235 や みどりフーズ_1005235）から受注№部分を自動抽出
+            const subParts = rawName.split(/[_#-]/);
+            if (subParts.length > 1) {
+                const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
+                const cleanLast = lastPart
+                    .replace(/,/g, '')
+                    .replace(/\.0+$/, '')
+                    .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+
+                if (cleanLast) {
+                    newMap.set(cleanLast, file);
+                    const unpaddedLast = cleanLast.replace(/^0+/, '');
+                    if (unpaddedLast) {
+                        newMap.set(unpaddedLast, file);
+                        newMap.set(unpaddedLast.padStart(7, '0'), file);
+                        newMap.set(unpaddedLast.padStart(8, '0'), file);
+                    }
+                }
+            }
         }
 
         // 選択された画像群からトップレベルフォルダ名を取得

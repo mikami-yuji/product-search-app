@@ -129,10 +129,12 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                 const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
                 const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
 
-                // 検索プレフィックス候補（優先順: 顧客フォルダ名/ > 顧客コード/ > 単体キー）
+                // 検索プレフィックス候補（優先順: 顧客フォルダ名/ > 顧客コード/ > アンダースコア連結 > 単体キー）
                 const prefixOptions = Array.from(new Set([
                     customerPrefix ? `${customerPrefix}/` : '',
                     customerCode ? `${customerCode}/` : '',
+                    customerCode ? `${customerCode}_` : '',
+                    customerPrefix ? `${customerPrefix}_` : '',
                     ''
                 ])).filter(Boolean);
                 if (!prefixOptions.includes('')) prefixOptions.push('');
