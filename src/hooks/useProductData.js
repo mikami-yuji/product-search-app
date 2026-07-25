@@ -217,6 +217,13 @@ export const useProductData = () => {
                 setLastModified(file.lastModified);
                 setError(null);
 
+                // 選択中顧客名に完全連動して、画像取得元フォルダ名を動的更新 (例: 16152_トーベイ（株）)
+                const cleanCustFolderName = String(file.name).replace(/\.xlsx?$/i, '').trim();
+                if (cleanCustFolderName) {
+                    setImageFolderName(cleanCustFolderName);
+                    set('imageFolderNameCache', cleanCustFolderName).catch(err => console.error('Failed to cache image folder name:', err));
+                }
+
                 // UI描画をブロックしないようバックグラウンドでIndexedDBに保存
                 Promise.all([
                     set('productData', parsedData),
@@ -366,9 +373,12 @@ export const useProductData = () => {
             }
         }
 
+        // 選択中の顧客ファイル名があれば優先して取得元表示にする
+        let activeCustFolder = fileName ? String(fileName).replace(/\.xlsx?$/i, '').trim() : '';
+
         // 選択された画像群からトップレベルフォルダ名を取得
-        let detectedFolderName = '';
-        if (files.length > 0) {
+        let detectedFolderName = activeCustFolder;
+        if (!detectedFolderName && files.length > 0) {
             const firstRelPath = files[0].webkitRelativePath;
             if (firstRelPath) {
                 const parts = firstRelPath.split('/');
