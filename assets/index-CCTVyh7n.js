@@ -830,6 +830,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
         const prefixOptions = Array.from(/* @__PURE__ */ new Set([
           customerPrefix ? `${customerPrefix}/` : "",
           customerCode ? `${customerCode}/` : "",
+          customerCode ? `${customerCode}_` : "",
+          customerPrefix ? `${customerPrefix}_` : "",
           ""
         ])).filter(Boolean);
         if (!prefixOptions.includes("")) prefixOptions.push("");
@@ -2080,6 +2082,20 @@ const useProductData = () => {
                 newMap.set(`${code}/${cleaned}`, file);
               }
             }
+          }
+        }
+      }
+      const subParts = rawName.split(/[_#-]/);
+      if (subParts.length > 1) {
+        const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
+        const cleanLast = lastPart.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+        if (cleanLast) {
+          newMap.set(cleanLast, file);
+          const unpaddedLast = cleanLast.replace(/^0+/, "");
+          if (unpaddedLast) {
+            newMap.set(unpaddedLast, file);
+            newMap.set(unpaddedLast.padStart(7, "0"), file);
+            newMap.set(unpaddedLast.padStart(8, "0"), file);
           }
         }
       }
