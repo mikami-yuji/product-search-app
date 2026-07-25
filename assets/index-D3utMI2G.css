@@ -3498,6 +3498,34 @@ html, body {
     line-height: 1.2;
 }
 
+/* Header Mobile Image Folder Badge */
+.header-image-btn-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.mobile-image-folder-badge {
+    font-size: 0.725rem;
+    color: #15803d;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 4px;
+    padding: 1px 6px;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.mobile-folder-prefix {
+    font-weight: 600;
+    color: #166534;
+    margin-right: 2px;
+}
+
 /* Default state: Closed (Hidden) */
 .amazon-sidebar-content {
     display: none;

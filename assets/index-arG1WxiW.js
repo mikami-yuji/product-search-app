@@ -1861,6 +1861,8 @@ const useProductData = () => {
   const [customerFiles, setCustomerFiles] = reactExports.useState([]);
   const [error, setError] = reactExports.useState(null);
   const [isLoading, setIsLoading] = reactExports.useState(false);
+  const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [imageFolderName, setImageFolderName] = reactExports.useState("");
   reactExports.useEffect(() => {
     const loadCachedData = async () => {
       try {
@@ -1870,9 +1872,11 @@ const useProductData = () => {
         const cachedLastModified = await get("lastModified");
         const cachedDirHandle = await get("imageDirHandle");
         const cachedCustomerDirHandle = isFileSystemSupported ? await get("customerDirHandle") : null;
+        const cachedImageFolderName = await get("imageFolderNameCache");
         if (cachedData) setData(cachedData);
         if (cachedFileName) setFileName(cachedFileName);
         if (cachedLastModified) setLastModified(cachedLastModified);
+        if (cachedImageFolderName) setImageFolderName(cachedImageFolderName);
         if (cachedDirHandle && isFileSystemSupported) {
           setDirHandle(cachedDirHandle);
           const options = { mode: "read" };
@@ -2030,7 +2034,6 @@ const useProductData = () => {
     if (!file) return;
     processExcelFile(file);
   };
-  const [imageFilesMap, setImageFilesMap] = reactExports.useState(/* @__PURE__ */ new Map());
   const handleImageFilesSelect = (e) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -2080,6 +2083,26 @@ const useProductData = () => {
           }
         }
       }
+    }
+    let detectedFolderName = "";
+    if (files.length > 0) {
+      const firstRelPath = files[0].webkitRelativePath;
+      if (firstRelPath) {
+        const parts = firstRelPath.split("/");
+        if (parts.length > 1) {
+          detectedFolderName = parts[0];
+        }
+      }
+      if (!detectedFolderName) {
+        const firstFileName = files[0].name;
+        const dotIdx = firstFileName.lastIndexOf(".");
+        const baseName = dotIdx > 0 ? firstFileName.substring(0, dotIdx) : firstFileName;
+        detectedFolderName = files.length === 1 ? baseName : `${baseName} 他${files.length}件`;
+      }
+    }
+    if (detectedFolderName) {
+      setImageFolderName(detectedFolderName);
+      set("imageFolderNameCache", detectedFolderName).catch((err) => console.error("Failed to cache image folder name:", err));
     }
     setImageFilesMap(newMap);
     setPermissionGranted(true);
@@ -2236,6 +2259,7 @@ const useProductData = () => {
     lastModified,
     dirHandle,
     imageFilesMap,
+    imageFolderName,
     permissionGranted,
     customerDirHandle,
     customerPermissionGranted,
@@ -2490,6 +2514,7 @@ function App() {
     lastModified,
     dirHandle,
     imageFilesMap,
+    imageFolderName,
     permissionGranted,
     customerPermissionGranted,
     customerFiles,
@@ -2834,9 +2859,16 @@ function App() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-          permissionGranted ? "画像接続済" : "画像フォルダ"
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-image-btn-wrapper", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
+            permissionGranted ? "画像接続済" : "画像フォルダ"
+          ] }),
+          !isFileSystemSupported2 && permissionGranted && imageFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-image-folder-badge", title: `取得元フォルダ: ${imageFolderName}`, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-folder-prefix", children: "取得元:" }),
+            " ",
+            imageFolderName
+          ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => document.getElementById("file-input")?.click(), className: "amazon-btn amazon-btn-primary", title: "Excelファイルを直接開く", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
