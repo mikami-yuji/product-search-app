@@ -339,6 +339,22 @@ export const useProductData = () => {
                 }
             }
 
+            // 3b. 選択中の顧客名・顧客コードプレフィックスを全自動バインド
+            if (fileName) {
+                const custClean = String(fileName).replace(/\.xlsx?$/i, '').trim().toLowerCase();
+                const custCode = extractCustomerCode(fileName);
+                if (custClean) {
+                    newMap.set(`${custClean}/${lowerFileName}`, file);
+                    newMap.set(`${custClean}/${lowerRawName}`, file);
+                    if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
+                }
+                if (custCode) {
+                    newMap.set(`${custCode}/${lowerFileName}`, file);
+                    newMap.set(`${custCode}/${lowerRawName}`, file);
+                    if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
+                }
+            }
+
             // 4. アンダースコア・ハイフン区切りファイル名（例: 27099_1005235 や みどりフーズ_1005235）から受注№部分を自動抽出
             const subParts = rawName.split(/[_#-]/);
             if (subParts.length > 1) {

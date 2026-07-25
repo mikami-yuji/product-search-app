@@ -537,11 +537,11 @@ function App() {
                 : (customerPermissionGranted ? '顧客選択済' : '顧客ファイル')}
             </button>
             <div className="header-image-btn-wrapper">
-              <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : '画像フォルダを接続'}>
+              <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? `画像フォルダ接続済み (${imageFolderName || '接続済み'})` : '画像フォルダを接続'}>
                 <FolderOpen size={18} />
-                {permissionGranted ? '画像接続済' : '画像フォルダ'}
+                {permissionGranted ? (imageFolderName ? `画像接続: ${imageFolderName}` : '画像接続済') : '画像フォルダ'}
               </button>
-              {!isFileSystemSupported && permissionGranted && imageFolderName && (
+              {permissionGranted && imageFolderName && (
                 <div className="mobile-image-folder-badge" title={`取得元フォルダ: ${imageFolderName}`}>
                   <span className="mobile-folder-prefix">取得元:</span> {imageFolderName}
                 </div>
