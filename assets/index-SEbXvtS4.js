@@ -1002,7 +1002,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
   if (error || !imageUrl) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `no-image ${className || ""}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 24 }) });
+    const debugTitle = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件, 受注№: ${filename || "なし"}`;
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `no-image ${className || ""}`, title: debugTitle, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { size: 24 }) });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "div",
@@ -2212,6 +2213,9 @@ const useProductData = () => {
     setImageFilesMap(new Map(newMap));
     setPermissionGranted(true);
     setError(null);
+    if (typeof window !== "undefined" && window.alert) {
+      console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
+    }
   };
   const handleFolderSelect = async () => {
     if (!isFileSystemSupported) {
