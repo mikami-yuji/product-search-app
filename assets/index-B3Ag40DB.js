@@ -1973,10 +1973,14 @@ const useProductData = () => {
         const parsedData = await parseExcelDirectly();
         validateData(parsedData);
         setData(parsedData);
-        set("productData", parsedData);
-        set("fileName", file.name);
-        set("lastModified", file.lastModified);
+        setFileName(file.name);
+        setLastModified(file.lastModified);
         setError(null);
+        Promise.all([
+          set("productData", parsedData),
+          set("fileName", file.name),
+          set("lastModified", file.lastModified)
+        ]).catch((err) => console.error("Failed to update IndexedDB cache in background:", err));
       } catch (err) {
         console.error("Parsing failed:", err);
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
@@ -2110,12 +2114,8 @@ const useProductData = () => {
     setCustomerFiles(mappedFiles);
     setCustomerPermissionGranted(true);
     setError(null);
-    try {
-      const fileListCache = mappedFiles.map((f) => ({ name: f.name }));
-      await set("customerFilesCache", fileListCache);
-    } catch (err) {
-      console.error("Failed to cache customer files:", err);
-    }
+    const fileListCache = mappedFiles.map((f) => ({ name: f.name }));
+    set("customerFilesCache", fileListCache).catch((err) => console.error("Failed to cache customer files:", err));
     if (mappedFiles.length > 0 && mappedFiles[0].file) {
       await processExcelFile(mappedFiles[0].file);
     }
