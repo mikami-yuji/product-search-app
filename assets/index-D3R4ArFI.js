@@ -824,15 +824,27 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
       if (imageFilesMap && imageFilesMap.size > 0 && filename) {
         const searchVariants = generateOrderNoVariants(filename);
         const extensions = ["", ".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG", ".webp", ".WEBP"];
-        for (const cand of searchVariants) {
-          for (const ext of extensions) {
-            const file = imageFilesMap.get(`${cand}${ext}`);
-            if (file) {
-              const objectUrl = getOrCreateObjectURL(file);
-              if (isCancelled) return;
-              updateImageUrl(objectUrl);
-              setError(false);
-              return;
+        const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
+        const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
+        const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
+        const prefixOptions = Array.from(/* @__PURE__ */ new Set([
+          customerPrefix ? `${customerPrefix}/` : "",
+          customerCode ? `${customerCode}/` : "",
+          ""
+        ])).filter(Boolean);
+        if (!prefixOptions.includes("")) prefixOptions.push("");
+        for (const prefix of prefixOptions) {
+          for (const cand of searchVariants) {
+            for (const ext of extensions) {
+              const targetKey = `${prefix}${cand}${ext}`;
+              const file = imageFilesMap.get(targetKey);
+              if (file) {
+                const objectUrl = getOrCreateObjectURL(file);
+                if (isCancelled) return;
+                updateImageUrl(objectUrl);
+                setError(false);
+                return;
+              }
             }
           }
         }
@@ -2053,6 +2065,18 @@ const useProductData = () => {
           if (folderSegment) {
             newMap.set(`${folderSegment}/${lowerRawName}`, file);
             newMap.set(`${folderSegment}/${lowerFileName}`, file);
+            if (cleaned) {
+              newMap.set(`${folderSegment}/${cleaned}`, file);
+            }
+            const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
+            if (codeMatch) {
+              const code = codeMatch[1].toLowerCase();
+              newMap.set(`${code}/${lowerRawName}`, file);
+              newMap.set(`${code}/${lowerFileName}`, file);
+              if (cleaned) {
+                newMap.set(`${code}/${cleaned}`, file);
+              }
+            }
           }
         }
       }
