@@ -989,17 +989,16 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
           }
         }
       }
-      if (driveImagesMap && driveImagesMap.size > 0 && filename) {
-        const searchVariants = generateOrderNoVariants(filename);
-        for (const cand of searchVariants) {
-          const fileId = driveImagesMap.get(cand);
-          if (fileId) {
-            const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
-            if (!isCancelled) {
-              updateImageUrl(driveUrl);
-              setError(false);
-              return;
-            }
+      if (driveFolderUrl && filename) {
+        const cleanOrderNum = cleanKey(filename);
+        if (cleanOrderNum) {
+          const matchedFileId = driveImagesMap && driveImagesMap.size > 0 ? driveImagesMap.get(cleanOrderNum) : null;
+          const targetId = matchedFileId || cleanOrderNum;
+          const driveUrl = `https://lh3.googleusercontent.com/d/${targetId}`;
+          if (!isCancelled) {
+            updateImageUrl(driveUrl);
+            setError(false);
+            return;
           }
         }
       }
@@ -1034,7 +1033,24 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
           src: imageUrl,
           alt: filename || "商品画像",
           style: { width: "100%", height: "100%", objectFit: "contain", display: "block" },
-          onLoad: () => setIsLoaded(true)
+          onLoad: () => setIsLoaded(true),
+          onError: () => {
+            if (imageUrl && imageUrl.includes("lh3.googleusercontent.com/d/")) {
+              const fileId = imageUrl.split("/d/")[1];
+              if (fileId) {
+                setImageUrl(`https://drive.google.com/thumbnail?id=${fileId}&sz=w800`);
+                return;
+              }
+            }
+            if (imageUrl && imageUrl.includes("drive.google.com/thumbnail")) {
+              const match = imageUrl.match(/id=([a-zA-Z0-9_-]+)/);
+              if (match && match[1]) {
+                setImageUrl(`https://drive.google.com/uc?export=view&id=${match[1]}`);
+                return;
+              }
+            }
+            setError(true);
+          }
         }
       )
     }
