@@ -119,20 +119,36 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
                 String(filename || '').trim()
             ])).filter(Boolean);
 
-            // 0. メモリ内のファイルマップ (スマホ・高速O(1)探索・拡張子付きバリエーション対応)
+            // 0. メモリ内のファイルマップ (スマホ・選択中顧客サブフォルダ優先O(1)探索)
             if (imageFilesMap && imageFilesMap.size > 0 && filename) {
                 const searchVariants = generateOrderNoVariants(filename);
                 const extensions = ['', '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG', '.webp', '.WEBP'];
 
-                for (const cand of searchVariants) {
-                    for (const ext of extensions) {
-                        const file = imageFilesMap.get(`${cand}${ext}`);
-                        if (file) {
-                            const objectUrl = getOrCreateObjectURL(file);
-                            if (isCancelled) return;
-                            updateImageUrl(objectUrl);
-                            setError(false);
-                            return;
+                // 選択中の顧客名・顧客コードを抽出
+                const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, '').trim().toLowerCase() : '';
+                const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
+                const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+
+                // 検索プレフィックス候補（優先順: 顧客フォルダ名/ > 顧客コード/ > 単体キー）
+                const prefixOptions = Array.from(new Set([
+                    customerPrefix ? `${customerPrefix}/` : '',
+                    customerCode ? `${customerCode}/` : '',
+                    ''
+                ])).filter(Boolean);
+                if (!prefixOptions.includes('')) prefixOptions.push('');
+
+                for (const prefix of prefixOptions) {
+                    for (const cand of searchVariants) {
+                        for (const ext of extensions) {
+                            const targetKey = `${prefix}${cand}${ext}`;
+                            const file = imageFilesMap.get(targetKey);
+                            if (file) {
+                                const objectUrl = getOrCreateObjectURL(file);
+                                if (isCancelled) return;
+                                updateImageUrl(objectUrl);
+                                setError(false);
+                                return;
+                            }
                         }
                     }
                 }

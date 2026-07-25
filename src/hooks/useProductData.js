@@ -313,6 +313,20 @@ export const useProductData = () => {
                     if (folderSegment) {
                         newMap.set(`${folderSegment}/${lowerRawName}`, file);
                         newMap.set(`${folderSegment}/${lowerFileName}`, file);
+                        if (cleaned) {
+                            newMap.set(`${folderSegment}/${cleaned}`, file);
+                        }
+
+                        // 先頭の顧客コード（例: 16152）を抽出してコードプレフィックスキーを登録
+                        const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
+                        if (codeMatch) {
+                            const code = codeMatch[1].toLowerCase();
+                            newMap.set(`${code}/${lowerRawName}`, file);
+                            newMap.set(`${code}/${lowerFileName}`, file);
+                            if (cleaned) {
+                                newMap.set(`${code}/${cleaned}`, file);
+                            }
+                        }
                     }
                 }
             }
