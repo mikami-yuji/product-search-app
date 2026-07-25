@@ -547,10 +547,10 @@ function App() {
               {fileName || 'ファイル選択'}
             </button>
             <input id="file-input" name="file" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
-            <input id="customer-files-input" name="customerFiles" type="file" accept=".xlsx,.xls" onChange={handleCustomerFilesSelect} multiple style={{ display: 'none' }} />
-            <input id="customer-folder-input" name="customerFolder" type="file" onChange={handleCustomerFilesSelect} multiple webkitdirectory="" style={{ display: 'none' }} />
-            <input id="image-files-input" name="imageFiles" type="file" accept="image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleImageFilesSelect} multiple style={{ display: 'none' }} />
-            <input id="image-folder-input" name="imageFolder" type="file" onChange={handleImageFilesSelect} multiple webkitdirectory="" style={{ display: 'none' }} />
+            <input id="customer-files-input" name="customerFiles" type="file" accept=".xlsx,.xls" onChange={handleCustomerFilesSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
+            <input id="customer-folder-input" name="customerFolder" type="file" onChange={handleCustomerFilesSelect} multiple {...{ webkitdirectory: '', directory: '' }} style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
+            <input id="image-files-input" name="imageFiles" type="file" accept="image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleImageFilesSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
+            <input id="image-folder-input" name="imageFolder" type="file" onChange={handleImageFilesSelect} multiple {...{ webkitdirectory: '', directory: '' }} style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <button onClick={() => setShowCacheManager(true)} className="amazon-btn" title="キャッシュ管理">
               キャッシュ
             </button>
