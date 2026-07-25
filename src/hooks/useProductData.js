@@ -41,6 +41,8 @@ export const useProductData = () => {
     const [customerFiles, setCustomerFiles] = useState([]);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [imageFilesMap, setImageFilesMap] = useState(new Map());
+    const [imageFolderName, setImageFolderName] = useState('');
 
     // Load cached data on mount
     useEffect(() => {
@@ -56,10 +58,12 @@ export const useProductData = () => {
                 const cachedLastModified = await get('lastModified');
                 const cachedDirHandle = await get('imageDirHandle');
                 const cachedCustomerDirHandle = isFileSystemSupported ? await get('customerDirHandle') : null;
+                const cachedImageFolderName = await get('imageFolderNameCache');
 
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
                 if (cachedLastModified) setLastModified(cachedLastModified);
+                if (cachedImageFolderName) setImageFolderName(cachedImageFolderName);
                 
                 if (cachedDirHandle && isFileSystemSupported) {
                     setDirHandle(cachedDirHandle);
@@ -259,9 +263,6 @@ export const useProductData = () => {
         processExcelFile(file);
     };
 
-    /** @type {[Map<string, File>, React.Dispatch<React.SetStateAction<Map<string, File>>>]} */
-    const [imageFilesMap, setImageFilesMap] = useState(new Map());
-
     /**
      * スマホ等のファイルインプット選択時に画像ファイル群をメモリマップ化（全バリエーションキーを網羅してPCと同等に一瞬で表示）
      * @param {React.ChangeEvent<HTMLInputElement>} e
@@ -330,6 +331,30 @@ export const useProductData = () => {
                     }
                 }
             }
+        }
+
+        // 選択された画像群からトップレベルフォルダ名を取得
+        let detectedFolderName = '';
+        if (files.length > 0) {
+            const firstRelPath = files[0].webkitRelativePath;
+            if (firstRelPath) {
+                const parts = firstRelPath.split('/');
+                if (parts.length > 1) {
+                    detectedFolderName = parts[0];
+                }
+            }
+            if (!detectedFolderName) {
+                // ファイル名からディレクトリ風表示を生成
+                const firstFileName = files[0].name;
+                const dotIdx = firstFileName.lastIndexOf('.');
+                const baseName = dotIdx > 0 ? firstFileName.substring(0, dotIdx) : firstFileName;
+                detectedFolderName = files.length === 1 ? baseName : `${baseName} 他${files.length}件`;
+            }
+        }
+
+        if (detectedFolderName) {
+            setImageFolderName(detectedFolderName);
+            set('imageFolderNameCache', detectedFolderName).catch(err => console.error('Failed to cache image folder name:', err));
         }
 
         setImageFilesMap(newMap);
@@ -532,6 +557,7 @@ export const useProductData = () => {
         lastModified,
         dirHandle,
         imageFilesMap,
+        imageFolderName,
         permissionGranted,
         customerDirHandle,
         customerPermissionGranted,
