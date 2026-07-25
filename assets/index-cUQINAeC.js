@@ -968,7 +968,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     return () => {
       isCancelled = true;
     };
-  }, [dirHandle, imageFilesMap, filename, customerFileName, productCode, isVisible]);
+  }, [dirHandle, imageFilesMap, filename, customerFileName, isVisible]);
   if (!isVisible) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: imgRef, className: `product-image-container ${className || ""} placeholder`, style: { minHeight: "100px", background: "#f0f0f0" } });
   }
@@ -985,11 +985,11 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
         "img",
         {
           src: imageUrl,
-          alt: filename || productCode,
+          alt: filename || "商品画像",
           className: `product-thumbnail image-fade-in ${isLoaded ? "loaded" : ""}`,
           onLoad: () => setIsLoaded(true),
           onError: () => {
-            console.error(`Failed to load image for ${filename || productCode}`);
+            console.error(`Failed to load image for ${filename}`);
             setError(true);
           }
         }
