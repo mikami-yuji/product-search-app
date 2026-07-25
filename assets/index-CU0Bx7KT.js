@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as Check, k as MapPin, l as FunnelX, m as ChevronUp, n as ChevronDown, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-Jg6Xo3NW.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as ChevronUp, k as ChevronDown, l as MapPin, m as Check, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-CS6S-NGL.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -710,6 +710,59 @@ const createProductHtmlString = async (products, fileName, dirHandle) => {
 </html>`;
   return htmlContent;
 };
+const extractCustomerCode = (name) => {
+  if (!name) return "";
+  const cleanName = String(name).replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).trim();
+  const match = cleanName.match(/^([0-9]+)/);
+  return match ? match[1] : "";
+};
+const normalizeOrderNumber = (val) => {
+  if (val === null || val === void 0) return "";
+  const rawStr = String(val).trim();
+  if (!rawStr) return "";
+  return rawStr.replace(/\.[^/.]+$/, "").replace(/,/g, "").replace(/\.0+$/, "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248)).toLowerCase().trim();
+};
+const generateOrderNoVariants = (orderNo) => {
+  const cleaned = normalizeOrderNumber(orderNo);
+  if (!cleaned) return [];
+  const unpadded = cleaned.replace(/^0+/, "");
+  const pad7 = unpadded ? unpadded.padStart(7, "0") : "";
+  const pad8 = unpadded ? unpadded.padStart(8, "0") : "";
+  const bases = Array.from(/* @__PURE__ */ new Set([cleaned, unpadded, pad7, pad8])).filter(Boolean);
+  const suffixes = [
+    "",
+    "-01",
+    "_01",
+    "-00",
+    "_00",
+    "-0",
+    "_0",
+    "a",
+    "_1",
+    "_a",
+    "-1",
+    "-a",
+    " (1)",
+    "_01a",
+    "-01a"
+  ];
+  const variants = /* @__PURE__ */ new Set();
+  for (const base of bases) {
+    for (const suf of suffixes) {
+      variants.add(`${base}${suf}`);
+    }
+  }
+  return Array.from(variants);
+};
+const objectUrlCache = /* @__PURE__ */ new WeakMap();
+const getOrCreateObjectURL = (file) => {
+  if (objectUrlCache.has(file)) {
+    return objectUrlCache.get(file);
+  }
+  const url = URL.createObjectURL(file);
+  objectUrlCache.set(file, url);
+  return url;
+};
 const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, productCode, className, onClick }) => {
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
@@ -768,60 +821,16 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
         cleanKey(filename),
         String(filename || "").trim()
       ])).filter(Boolean);
-      if (imageFilesMap && imageFilesMap.size > 0) {
-        const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, "").trim().toLowerCase() : "";
-        const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
-        const customerCode = codeMatch ? codeMatch[1].toLowerCase() : "";
-        for (const key of searchKeys) {
-          const kLower = key.toLowerCase();
-          const candidates = [
-            kLower,
-            `${kLower}-01`,
-            `${kLower}_01`,
-            `${kLower}-00`,
-            `${kLower}_00`,
-            `${kLower}-0`,
-            `${kLower}_0`,
-            `${kLower}a`,
-            `${kLower}_1`,
-            `${kLower}_a`,
-            `${kLower}-1`,
-            `${kLower}-a`,
-            `${customerPrefix}/${kLower}`,
-            `${customerPrefix}/${kLower}-01`,
-            `${customerPrefix}/${kLower}_01`,
-            `${customerPrefix}/${kLower}a`,
-            `${customerPrefix}/${kLower}_1`,
-            `${customerCode}/${kLower}`,
-            `${customerCode}/${kLower}-01`,
-            `${customerCode}/${kLower}_01`,
-            `${customerCode}/${kLower}a`,
-            `${customerCode}/${kLower}_1`
-          ].filter(Boolean);
-          for (const cand of candidates) {
-            const file = imageFilesMap.get(cand);
-            if (file) {
-              const objectUrl = URL.createObjectURL(file);
-              if (isCancelled) {
-                URL.revokeObjectURL(objectUrl);
-                return;
-              }
-              updateImageUrl(objectUrl);
-              setError(false);
-              return;
-            }
-          }
-          for (const [mapKey, file] of imageFilesMap.entries()) {
-            if (mapKey.startsWith(kLower) || customerPrefix && mapKey.startsWith(`${customerPrefix}/${kLower}`)) {
-              const objectUrl = URL.createObjectURL(file);
-              if (isCancelled) {
-                URL.revokeObjectURL(objectUrl);
-                return;
-              }
-              updateImageUrl(objectUrl);
-              setError(false);
-              return;
-            }
+      if (imageFilesMap && imageFilesMap.size > 0 && filename) {
+        const searchVariants = generateOrderNoVariants(filename);
+        for (const cand of searchVariants) {
+          const file = imageFilesMap.get(cand);
+          if (file) {
+            const objectUrl = getOrCreateObjectURL(file);
+            if (isCancelled) return;
+            updateImageUrl(objectUrl);
+            setError(false);
+            return;
           }
         }
       }
@@ -1909,9 +1918,7 @@ const useProductData = () => {
     setError(null);
     setFileName(file.name);
     setLastModified(file.lastModified);
-    if (file.size === 0) {
-      console.log("File size is 0. Attempting to wake up cloud file...");
-    }
+    if (file.size === 0) ;
     const readWithRetry = async (attempt = 1) => {
       const MAX_RETRIES = 3;
       const RETRY_DELAY = 1500;
@@ -1943,7 +1950,6 @@ const useProductData = () => {
       if (buffer.byteLength === 0) {
         throw new Error("File is empty after retries");
       }
-      console.log(`Buffer loaded: ${buffer.byteLength} bytes`);
       const parseExcelDirectly = () => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
@@ -2014,39 +2020,16 @@ const useProductData = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const name = file.name;
-      const dotIdx = name.lastIndexOf(".");
-      const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
-      const lowerRawName = rawName.toLowerCase();
-      const lowerFileName = name.toLowerCase();
-      newMap.set(lowerRawName, file);
-      newMap.set(lowerFileName, file);
-      const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-      if (cleaned !== lowerRawName) {
-        newMap.set(cleaned, file);
-      }
-      const unpadded = cleaned.replace(/^0+/, "");
-      if (unpadded && unpadded !== cleaned) {
-        newMap.set(unpadded, file);
-      }
-      const relPath = file.webkitRelativePath;
-      if (relPath) {
-        const parts = relPath.split("/");
-        if (parts.length > 1) {
-          const folderSegment = parts[parts.length - 2].trim().toLowerCase();
-          if (folderSegment) {
-            newMap.set(`${folderSegment}/${lowerRawName}`, file);
-            if (cleaned !== lowerRawName) {
-              newMap.set(`${folderSegment}/${cleaned}`, file);
-            }
-            const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-            if (codeMatch) {
-              const code = codeMatch[1].toLowerCase();
-              newMap.set(`${code}/${lowerRawName}`, file);
-              if (cleaned !== lowerRawName) {
-                newMap.set(`${code}/${cleaned}`, file);
-              }
-            }
-          }
+      const normalized = normalizeOrderNumber(name);
+      if (normalized) {
+        newMap.set(normalized, file);
+        const unpadded = normalized.replace(/^0+/, "");
+        if (unpadded && unpadded !== normalized) {
+          newMap.set(unpadded, file);
+        }
+        if (unpadded) {
+          newMap.set(unpadded.padStart(7, "0"), file);
+          newMap.set(unpadded.padStart(8, "0"), file);
         }
       }
     }
@@ -2073,10 +2056,12 @@ const useProductData = () => {
     }
   };
   const handleCustomerFolderSelect = async () => {
-    const input = document.getElementById("customer-folder-input") || document.getElementById("customer-files-input");
-    if (input) {
-      input.click();
-      return;
+    if (!isFileSystemSupported) {
+      const mobileInput = document.getElementById("customer-files-input") || document.getElementById("customer-folder-input");
+      if (mobileInput) {
+        mobileInput.click();
+        return;
+      }
     }
     try {
       if (isFileSystemSupported && window.showDirectoryPicker) {
@@ -2089,35 +2074,58 @@ const useProductData = () => {
         setError(null);
         await set("customerDirHandle", handle);
         await set("customerFilesListCache", files.map((f) => ({ name: f.name })));
+        if (files.length > 0) {
+          const firstFile = await files[0].handle.getFile();
+          if (firstFile) {
+            await processExcelFile(firstFile);
+          }
+        }
+        return;
       }
     } catch (err) {
       if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
         console.error("Error selecting customer folder:", err);
       }
     }
+    const fallbackInput = document.getElementById("customer-files-input") || document.getElementById("customer-folder-input");
+    if (fallbackInput) {
+      fallbackInput.click();
+    }
   };
   const handleCustomerFilesSelect = async (e) => {
-    const files = Array.from(e.target.files).filter(
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList).filter(
       (file) => file.name.endsWith(".xlsx") || file.name.endsWith(".xls")
     );
+    if (files.length === 0) {
+      setError("有効なExcelファイル(.xlsx, .xls)が選択されていません");
+      return;
+    }
     const mappedFiles = files.map((file) => ({
       name: file.name,
       file
     }));
     mappedFiles.sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true, sensitivity: "base" }));
     setCustomerFiles(mappedFiles);
-    setCustomerPermissionGranted(files.length > 0);
+    setCustomerPermissionGranted(true);
     setError(null);
     try {
-      await set("customerFilesCache", mappedFiles);
+      const fileListCache = mappedFiles.map((f) => ({ name: f.name }));
+      await set("customerFilesCache", fileListCache);
     } catch (err) {
       console.error("Failed to cache customer files:", err);
+    }
+    if (mappedFiles.length > 0 && mappedFiles[0].file) {
+      await processExcelFile(mappedFiles[0].file);
     }
   };
   const loadCustomerFile = async (name) => {
     setIsLoading(true);
     try {
       let file;
+      const targetCustomerCode = extractCustomerCode(name);
+      const cleanTargetName = String(name).replace(/\.xlsx?$/i, "").trim().toLowerCase();
       if (isFileSystemSupported && customerDirHandle) {
         const options = { mode: "read" };
         let permission = await customerDirHandle.queryPermission(options);
@@ -2126,14 +2134,35 @@ const useProductData = () => {
         }
         if (permission === "granted") {
           setCustomerPermissionGranted(true);
-          const fileHandle = await customerDirHandle.getFileHandle(name);
-          file = await fileHandle.getFile();
+          try {
+            const fileHandle = await customerDirHandle.getFileHandle(name);
+            file = await fileHandle.getFile();
+          } catch {
+            const files = await getExcelFilesFromDir(customerDirHandle);
+            const matched = files.find((f) => {
+              const cleanFName = f.name.replace(/\.xlsx?$/i, "").trim().toLowerCase();
+              if (cleanFName === cleanTargetName) return true;
+              if (targetCustomerCode && extractCustomerCode(f.name) === targetCustomerCode) return true;
+              return false;
+            });
+            if (matched) {
+              file = await matched.handle.getFile();
+            }
+          }
         } else {
           setCustomerPermissionGranted(false);
           throw new Error("フォルダへのアクセス権限が許可されていません");
         }
       } else {
-        const found = customerFiles.find((f) => f.name === name);
+        let found = customerFiles.find((f) => f.name === name);
+        if (!found) {
+          found = customerFiles.find((f) => {
+            const cleanFName = String(f.name).replace(/\.xlsx?$/i, "").trim().toLowerCase();
+            if (cleanFName === cleanTargetName) return true;
+            if (targetCustomerCode && extractCustomerCode(f.name) === targetCustomerCode) return true;
+            return false;
+          });
+        }
         if (found && found.file) {
           file = found.file;
         }
@@ -2367,6 +2396,12 @@ function App() {
   const [itemsPerPage] = reactExports.useState(20);
   const [showCacheManager, setShowCacheManager] = reactExports.useState(false);
   const [isFilterOpen, setIsFilterOpen] = reactExports.useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth > 480;
+    }
+    return true;
+  });
+  const [isCustomerAccordionOpen, setIsCustomerAccordionOpen] = reactExports.useState(() => {
     if (typeof window !== "undefined") {
       return window.innerWidth > 480;
     }
@@ -2766,148 +2801,174 @@ function App() {
     ] }) }),
     data.length > 0 || isLoading && fileName ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: `amazon-sidebar ${isFilterOpen ? "open" : ""}`, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
-            isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択"
-          ] }) }),
-          !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
-                className: "amazon-btn amazon-btn-primary customer-connect-btn",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
-                  " ",
-                  isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
-                ]
-              }
-            )
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  type: "text",
-                  placeholder: "顧客名で検索...",
-                  value: customerSearchKeyword,
-                  onChange: (e) => setCustomerSearchKeyword(e.target.value),
-                  className: "customer-search-input"
-                }
-              ),
-              customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  className: "search-clear-btn",
-                  onClick: () => setCustomerSearchKeyword(""),
-                  title: "検索をクリア",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                }
-              )
-            ] }),
-            filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
-              const isCurrent = fileName === file.name;
-              const rawName = file.name.replace(/\.xlsx?$/, "");
-              const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
-              const codeBadge = match ? match[1] : null;
-              const displayName = match ? match[2] : rawName;
-              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "li",
-                {
-                  className: `customer-item ${isCurrent ? "active" : ""}`,
-                  onClick: () => {
-                    if (!isCurrent) {
-                      loadCustomerFile(file.name);
-                    }
-                  },
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                      codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
-                    ] }),
-                    isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
-                  ]
-                },
-                file.name
-              );
-            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
-          ] })
-        ] }),
-        customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section customer-section direct-shipping-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-section-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 18, className: "section-title-icon" }),
-              "直送先選択"
-            ] }),
-            filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: (e) => {
-                  e.stopPropagation();
-                  clearFilterKey("直送先名称");
-                },
-                className: "amazon-clear-btn",
-                title: "直送先選択をクリア",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
-                  "クリア (",
-                  filters["直送先名称"].length,
-                  ")"
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  type: "text",
-                  placeholder: "直送先名で検索...",
-                  value: directShippingSearchKeyword,
-                  onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
-                  className: "customer-search-input"
-                }
-              ),
-              directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  type: "button",
-                  className: "search-clear-btn",
-                  onClick: () => setDirectShippingSearchKeyword(""),
-                  title: "検索をクリア",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
-                }
-              )
-            ] }),
-            filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
-              const isSelected = filters["直送先名称"].includes(shipping);
-              return /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "li",
-                {
-                  className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
-                  onClick: () => handleFilterChange("直送先名称", shipping),
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        type: "checkbox",
-                        checked: isSelected,
-                        readOnly: true,
-                        className: "shipping-checkbox"
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `amazon-sidebar-section customer-accordion-section ${isCustomerAccordionOpen ? "open" : ""}`, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "amazon-sidebar-header customer-accordion-header",
+              onClick: () => setIsCustomerAccordionOpen(!isCustomerAccordionOpen),
+              style: { cursor: "pointer", display: "flex", flexDirection: "column", gap: "0.4rem" },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", style: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }, children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { style: { display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, fontSize: "1rem", fontWeight: 600 }, children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
+                    "顧客・直送先選択"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isCustomerAccordionOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
+                ] }),
+                !isCustomerAccordionOpen && (fileName || filters["直送先名称"] && filters["直送先名称"].length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-summary-badges", style: { display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.2rem" }, children: [
+                  fileName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "summary-badge customer-badge", style: { fontSize: "0.75rem", background: "var(--color-surface-hover, #e8f0fe)", color: "var(--color-primary, #1a73e8)", padding: "0.15rem 0.5rem", borderRadius: "4px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: fileName.replace(/\.xlsx?$/, "") }),
+                  filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "summary-badge shipping-badge", style: { fontSize: "0.75rem", background: "#e6f4ea", color: "#137333", padding: "0.15rem 0.5rem", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "0.2rem" }, children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 12 }),
+                    " ",
+                    filters["直送先名称"].join(", ")
                   ] })
-                },
-                shipping
-              );
-            }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
+                ] })
+              ]
+            }
+          ),
+          isCustomerAccordionOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-accordion-body", style: { marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "1rem" }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-sub-block", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "sub-block-title", style: { fontSize: "0.85rem", fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: "0.5rem" }, children: isFileSystemSupported2 ? "顧客選択" : "顧客ファイル選択" }),
+              !customerPermissionGranted ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-connect-prompt", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "prompt-text", children: isFileSystemSupported2 ? "顧客フォルダが接続されていません。" : "顧客ファイルが選択されていません。" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    onClick: isFileSystemSupported2 ? handleCustomerFolderSelect : triggerCustomerFilesSelect,
+                    className: "amazon-btn amazon-btn-primary customer-connect-btn",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 16 }),
+                      " ",
+                      isFileSystemSupported2 ? "顧客フォルダを選択" : "顧客ファイルを選択"
+                    ]
+                  }
+                )
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "顧客名で検索...",
+                      value: customerSearchKeyword,
+                      onChange: (e) => setCustomerSearchKeyword(e.target.value),
+                      className: "customer-search-input"
+                    }
+                  ),
+                  customerSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "search-clear-btn",
+                      onClick: () => setCustomerSearchKeyword(""),
+                      title: "検索をクリア",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                    }
+                  )
+                ] }),
+                filteredCustomerFiles.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredCustomerFiles.map((file) => {
+                  const isCurrent = fileName === file.name;
+                  const rawName = file.name.replace(/\.xlsx?$/, "");
+                  const match = rawName.match(/^([0-9A-Za-z]+)[_\s-]+(.+)$/);
+                  const codeBadge = match ? match[1] : null;
+                  const displayName = match ? match[2] : rawName;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "li",
+                    {
+                      className: `customer-item ${isCurrent ? "active" : ""}`,
+                      onClick: () => {
+                        if (!isCurrent) {
+                          loadCustomerFile(file.name);
+                        }
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                          codeBadge && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-code-badge", children: codeBadge }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: rawName, children: displayName })
+                        ] }),
+                        isCurrent && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 16, className: "active-check-icon" })
+                      ]
+                    },
+                    file.name
+                  );
+                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する顧客が見つかりません" })
+              ] })
+            ] }),
+            customerPermissionGranted && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-sub-block direct-shipping-sub-block", style: { paddingTop: "0.75rem", borderTop: "1px solid var(--color-border)" }, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sub-block-header", style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }, children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "sub-block-title", style: { fontSize: "0.85rem", fontWeight: 600, color: "var(--color-text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem", margin: 0 }, children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 14 }),
+                  " 直送先選択"
+                ] }),
+                filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      clearFilterKey("直送先名称");
+                    },
+                    className: "amazon-clear-btn",
+                    title: "直送先選択をクリア",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FunnelX, { size: 14 }),
+                      "クリア (",
+                      filters["直送先名称"].length,
+                      ")"
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-select-controls", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-search-box", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { size: 16, className: "customer-search-icon" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "直送先名で検索...",
+                      value: directShippingSearchKeyword,
+                      onChange: (e) => setDirectShippingSearchKeyword(e.target.value),
+                      className: "customer-search-input"
+                    }
+                  ),
+                  directShippingSearchKeyword && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "search-clear-btn",
+                      onClick: () => setDirectShippingSearchKeyword(""),
+                      title: "検索をクリア",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 14 })
+                    }
+                  )
+                ] }),
+                filteredDirectShippings.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "customer-list-container", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "customer-list", children: filteredDirectShippings.map((shipping) => {
+                  const isSelected = filters["直送先名称"].includes(shipping);
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "li",
+                    {
+                      className: `customer-item shipping-item ${isSelected ? "active" : ""}`,
+                      onClick: () => handleFilterChange("直送先名称", shipping),
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-item-main", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "input",
+                          {
+                            type: "checkbox",
+                            checked: isSelected,
+                            readOnly: true,
+                            className: "shipping-checkbox"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "customer-name-text", title: shipping, children: shipping })
+                      ] })
+                    },
+                    shipping
+                  );
+                }) }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "no-customers-text", children: "該当する直送先が見つかりません" })
+              ] })
+            ] })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-sidebar-section filter-panel-section", children: [
