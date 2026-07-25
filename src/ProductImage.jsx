@@ -8,17 +8,45 @@ import { generateOrderNoVariants, normalizeOrderNumber } from './utils/imageKeyU
 const objectUrlCache = new WeakMap();
 
 /**
- * Fileオブジェクトからキャッシュ済みのObject URLを取得、または生成します。
+ * Fileオブジェクトから表示用URL (Blob URL または Data URL) を取得します。
+ * iOS Safari等のBlob URLバグ対策として FileReader による Data URL 読み込みもサポート。
  * @param {File} file
- * @returns {string} Object URL
+ * @returns {Promise<string>}
  */
-const getOrCreateObjectURL = (file) => {
-    if (objectUrlCache.has(file)) {
-        return objectUrlCache.get(file);
-    }
-    const url = URL.createObjectURL(file);
-    objectUrlCache.set(file, url);
-    return url;
+const getFileImageUrl = (file) => {
+    return new Promise((resolve) => {
+        if (!file) {
+            resolve('');
+            return;
+        }
+        if (objectUrlCache.has(file)) {
+            resolve(objectUrlCache.get(file));
+            return;
+        }
+        try {
+            const url = URL.createObjectURL(file);
+            if (url && url.startsWith('blob:')) {
+                objectUrlCache.set(file, url);
+                resolve(url);
+                return;
+            }
+        } catch {
+            // スキップして FileReader へフォールバック
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = String(reader.result || '');
+            if (dataUrl) {
+                objectUrlCache.set(file, dataUrl);
+            }
+            resolve(dataUrl);
+        };
+        reader.onerror = () => {
+            resolve('');
+        };
+        reader.readAsDataURL(file);
+    });
 };
 
 /**
@@ -147,11 +175,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
                             const targetKey = `${prefix}${cand}${ext}`;
                             const file = imageFilesMap.get(targetKey);
                             if (file) {
-                                const objectUrl = getOrCreateObjectURL(file);
+                                const objectUrl = await getFileImageUrl(file);
                                 if (isCancelled) return;
-                                updateImageUrl(objectUrl);
-                                setError(false);
-                                return;
+                                if (objectUrl) {
+                                    updateImageUrl(objectUrl);
+                                    setError(false);
+                                    return;
+                                }
                             }
                         }
                     }
@@ -162,11 +192,13 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
                 if (cleanOrderNum && cleanOrderNum.length >= 3) {
                     for (const [mapKey, mapFile] of imageFilesMap.entries()) {
                         if (mapKey.includes(cleanOrderNum)) {
-                            const objectUrl = getOrCreateObjectURL(mapFile);
+                            const objectUrl = await getFileImageUrl(mapFile);
                             if (isCancelled) return;
-                            updateImageUrl(objectUrl);
-                            setError(false);
-                            return;
+                            if (objectUrl) {
+                                updateImageUrl(objectUrl);
+                                setError(false);
+                                return;
+                            }
                         }
                     }
                 }

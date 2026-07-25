@@ -12,6 +12,7 @@
 export const extractCustomerCode = (name) => {
   if (!name) return '';
   const cleanName = String(name)
+    .normalize('NFC')
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .trim();
   const match = cleanName.match(/^([0-9]+)/);
@@ -20,14 +21,14 @@ export const extractCustomerCode = (name) => {
 
 /**
  * 受注Noや画像ファイル名から正規化されたベース文字列を取得します。
- * 全角英数字の半角化、カンマや拡張子の除去、ゼロ埋め処理を行います。
+ * 全角英数字の半角化、Unicode NFC正規化、カンマや拡張子の除去、ゼロ埋め処理を行います。
  *
  * @param {string|number} [val] - 受注Noまたは画像ファイル名
  * @returns {string} 正規化された文字列
  */
 export const normalizeOrderNumber = (val) => {
   if (val === null || val === undefined) return '';
-  const rawStr = String(val).trim();
+  const rawStr = String(val).normalize('NFC').trim();
   if (!rawStr) return '';
 
   return rawStr

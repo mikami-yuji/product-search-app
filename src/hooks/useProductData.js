@@ -312,12 +312,12 @@ export const useProductData = () => {
                 }
             }
 
-            // 3. フォルダパスが含まれる場合（webkitRelativePath）
-            const relPath = file.webkitRelativePath;
+            // 3. フォルダパスが含まれる場合（webkitRelativePath）- 全階層セグメントを登録
+            const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize('NFC') : '';
             if (relPath) {
                 const parts = relPath.split('/');
-                if (parts.length > 1) {
-                    const folderSegment = parts[parts.length - 2].trim().toLowerCase();
+                for (let p = 0; p < parts.length - 1; p++) {
+                    const folderSegment = parts[p].trim().toLowerCase();
                     if (folderSegment) {
                         newMap.set(`${folderSegment}/${lowerRawName}`, file);
                         newMap.set(`${folderSegment}/${lowerFileName}`, file);
@@ -416,7 +416,7 @@ export const useProductData = () => {
             set('imageFolderNameCache', detectedFolderName).catch(err => console.error('Failed to cache image folder name:', err));
         }
 
-        setImageFilesMap(newMap);
+        setImageFilesMap(new Map(newMap));
         setPermissionGranted(true);
         setError(null);
     };
