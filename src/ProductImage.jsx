@@ -67,7 +67,7 @@ const getFileImageUrl = (file) => {
  * @param {ProductImageProps} props - プロパティ
  * @returns {React.ReactElement} - レンダリング要素
  */
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, className, onClick }) => {
     /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
@@ -300,14 +300,17 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
             }
 
             // 4. Google Drive 共有画像フォールバック
-            if (driveFolderUrl && filename) {
-                const cleanOrderNum = cleanKey(filename);
-                if (cleanOrderNum) {
-                    const driveUrl = `https://lh3.googleusercontent.com/d/${cleanOrderNum}`;
-                    if (!isCancelled) {
-                        updateImageUrl(driveUrl);
-                        setError(false);
-                        return;
+            if (driveImagesMap && driveImagesMap.size > 0 && filename) {
+                const searchVariants = generateOrderNoVariants(filename);
+                for (const cand of searchVariants) {
+                    const fileId = driveImagesMap.get(cand);
+                    if (fileId) {
+                        const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+                        if (!isCancelled) {
+                            updateImageUrl(driveUrl);
+                            setError(false);
+                            return;
+                        }
                     }
                 }
             }
@@ -322,7 +325,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
         return () => {
             isCancelled = true;
         };
-    }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, isVisible]);
+    }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, isVisible]);
 
     if (!isVisible) {
         return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;

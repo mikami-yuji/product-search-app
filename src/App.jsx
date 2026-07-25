@@ -99,6 +99,7 @@ function App() {
     imageFilesMap,
     imageFolderName,
     driveFolderUrl,
+    driveImagesMap,
     saveDriveFolderUrl,
     permissionGranted,
     customerPermissionGranted,
@@ -1000,6 +1001,7 @@ function App() {
                     imageFilesMap={imageFilesMap}
                     customerFileName={fileName}
                     driveFolderUrl={driveFolderUrl}
+                    driveImagesMap={driveImagesMap}
                     onClick={() => setSelectedProduct(product)}
                     onAddToCart={addToCart}
                     keyword={keyword}

@@ -28,9 +28,9 @@ const getExcelFilesFromDir = async (dirHandle) => {
     return files;
 };
 
-export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
+import { DEFAULT_GOOGLE_DRIVE_FOLDER, fetchDriveFolderFiles, parseGoogleDriveFolderId } from '../utils/googleDriveApi';
 
-export const DEFAULT_GOOGLE_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE';
+export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
 
 export const useProductData = () => {
     const [data, setData] = useState([]);
@@ -46,6 +46,7 @@ export const useProductData = () => {
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
     const [imageFolderName, setImageFolderName] = useState('');
     const [driveFolderUrl, setDriveFolderUrl] = useState(DEFAULT_GOOGLE_DRIVE_FOLDER);
+    const [driveImagesMap, setDriveImagesMap] = useState(new Map());
 
     // Load cached data on mount
     useEffect(() => {
@@ -120,6 +121,22 @@ export const useProductData = () => {
         };
         loadCachedData();
     }, []);
+
+    // Google Drive の公開フォルダからファイル名と暗号化File IDの対照マップを全自動取得
+    useEffect(() => {
+        const loadDriveImagesMap = async () => {
+            if (!driveFolderUrl) return;
+            try {
+                const map = await fetchDriveFolderFiles(driveFolderUrl);
+                if (map && map.size > 0) {
+                    setDriveImagesMap(new Map(map));
+                }
+            } catch (err) {
+                console.error('Failed to load Google Drive images map:', err);
+            }
+        };
+        loadDriveImagesMap();
+    }, [driveFolderUrl]);
 
     const validateData = (jsonData) => {
         if (!jsonData || jsonData.length === 0) {
@@ -642,6 +659,7 @@ export const useProductData = () => {
         imageFilesMap,
         imageFolderName,
         driveFolderUrl,
+        driveImagesMap,
         saveDriveFolderUrl,
         permissionGranted,
         customerDirHandle,

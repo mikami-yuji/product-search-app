@@ -3,7 +3,7 @@ import { ShoppingCart } from 'lucide-react';
 import ProductImage from './ProductImage';
 import HighlightText from './HighlightText';
 
-const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driveFolderUrl, onClick, onAddToCart, keyword }) => {
+const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driveFolderUrl, driveImagesMap, onClick, onAddToCart, keyword }) => {
     const getAgeColorClass = (dateStr) => {
         if (!dateStr) return '';
         const orderDate = new Date(dateStr);
@@ -31,6 +31,7 @@ const ProductCard = ({ product, dirHandle, imageFilesMap, customerFileName, driv
                     filename={product['受注№']}
                     customerFileName={customerFileName}
                     driveFolderUrl={driveFolderUrl}
+                    driveImagesMap={driveImagesMap}
                     className="amazon-card-image"
                 />
             </div>
