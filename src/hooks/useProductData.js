@@ -422,8 +422,8 @@ export const useProductData = () => {
         setPermissionGranted(true);
         setError(null);
 
-        // デバッグ用通知: 読み込み完了数を画面にトースト通知
-        if (typeof window !== 'undefined' && window.alert) {
+        // スマホ画面で画像読み込み完了を確実に認知させる通知
+        if (files.length > 0) {
             console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
         }
     };

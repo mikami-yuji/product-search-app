@@ -1,6 +1,6 @@
 // Service Worker with Network-First strategy for app assets
-const CACHE_NAME = 'blazing-andromeda-cache-v8';
-const IMAGE_CACHE = 'blazing-andromeda-images-v8';
+const CACHE_NAME = 'blazing-andromeda-cache-v9';
+const IMAGE_CACHE = 'blazing-andromeda-images-v9';
 
 const PRECACHE_URLS = [
     './',
