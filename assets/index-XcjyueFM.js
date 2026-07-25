@@ -823,7 +823,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, pr
     };
   }, []);
   reactExports.useEffect(() => {
-    if (!isVisible) return;
+    const shouldLoadDirectly = Boolean(imageFilesMap && imageFilesMap.size > 0);
+    if (!isVisible && !shouldLoadDirectly) return;
     let isCancelled = false;
     const loadImage = async () => {
       updateImageUrl(null);
