@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
-import { extractCustomerCode, normalizeOrderNumber } from '../utils/imageKeyUtils';
+import { extractCustomerCode } from '../utils/imageKeyUtils';
 
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
@@ -28,8 +28,6 @@ const getExcelFilesFromDir = async (dirHandle) => {
     return files;
 };
 
-import { DEFAULT_GOOGLE_DRIVE_FOLDER, fetchDriveFolderFiles, parseGoogleDriveFolderId } from '../utils/googleDriveApi';
-
 export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
 
 export const useProductData = () => {
@@ -45,8 +43,6 @@ export const useProductData = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [imageFilesMap, setImageFilesMap] = useState(new Map());
     const [imageFolderName, setImageFolderName] = useState('');
-    const [driveFolderUrl, setDriveFolderUrl] = useState(DEFAULT_GOOGLE_DRIVE_FOLDER);
-    const [driveImagesMap, setDriveImagesMap] = useState(new Map());
 
     // Load cached data on mount
     useEffect(() => {
@@ -63,13 +59,11 @@ export const useProductData = () => {
                 const cachedDirHandle = await get('imageDirHandle');
                 const cachedCustomerDirHandle = isFileSystemSupported ? await get('customerDirHandle') : null;
                 const cachedImageFolderName = await get('imageFolderNameCache');
-                const cachedDriveFolderUrl = await get('driveFolderUrlCache');
 
                 if (cachedData) setData(cachedData);
                 if (cachedFileName) setFileName(cachedFileName);
                 if (cachedLastModified) setLastModified(cachedLastModified);
                 if (cachedImageFolderName) setImageFolderName(cachedImageFolderName);
-                if (cachedDriveFolderUrl) setDriveFolderUrl(cachedDriveFolderUrl);
                 
                 if (cachedDirHandle && isFileSystemSupported) {
                     setDirHandle(cachedDirHandle);
@@ -122,21 +116,7 @@ export const useProductData = () => {
         loadCachedData();
     }, []);
 
-    // Google Drive の公開フォルダからファイル名と暗号化File IDの対照マップを全自動取得
-    useEffect(() => {
-        const loadDriveImagesMap = async () => {
-            if (!driveFolderUrl) return;
-            try {
-                const map = await fetchDriveFolderFiles(driveFolderUrl);
-                if (map && map.size > 0) {
-                    setDriveImagesMap(new Map(map));
-                }
-            } catch (err) {
-                console.error('Failed to load Google Drive images map:', err);
-            }
-        };
-        loadDriveImagesMap();
-    }, [driveFolderUrl]);
+
 
     const validateData = (jsonData) => {
         if (!jsonData || jsonData.length === 0) {
@@ -641,16 +621,6 @@ export const useProductData = () => {
         }
     };
 
-    const saveDriveFolderUrl = async (url) => {
-        const cleanUrl = String(url || '').trim();
-        setDriveFolderUrl(cleanUrl);
-        try {
-            await set('driveFolderUrlCache', cleanUrl);
-        } catch (err) {
-            console.error('Failed to cache drive folder URL:', err);
-        }
-    };
-
     return {
         data,
         fileName,
@@ -658,9 +628,6 @@ export const useProductData = () => {
         dirHandle,
         imageFilesMap,
         imageFolderName,
-        driveFolderUrl,
-        driveImagesMap,
-        saveDriveFolderUrl,
         permissionGranted,
         customerDirHandle,
         customerPermissionGranted,

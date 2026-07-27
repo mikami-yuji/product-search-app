@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { createProductExcelWorkbook } from './utils/excelExporter';
 import { createProductHtmlString } from './utils/htmlExporter';
-import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin, ImageIcon, Cloud } from './icons';
+import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin, ImageIcon } from './icons';
 import './index.css';
 
 // Components
@@ -77,8 +77,7 @@ function App() {
   // Direct shipping search state
   const [directShippingSearchKeyword, setDirectShippingSearchKeyword] = useState('');
   const [showExcelDropdown, setShowExcelDropdown] = useState(false);
-  const [showDriveModal, setShowDriveModal] = useState(false);
-  const [inputDriveUrl, setInputDriveUrl] = useState('');
+
 
   // Sidebar Accordion Open States
   const [openFilters, setOpenFilters] = useState({
@@ -97,10 +96,6 @@ function App() {
     lastModified,
     dirHandle,
     imageFilesMap,
-    imageFolderName,
-    driveFolderUrl,
-    driveImagesMap,
-    saveDriveFolderUrl,
     permissionGranted,
     customerPermissionGranted,
     customerFiles,
@@ -556,58 +551,12 @@ function App() {
             <input id="customer-folder-input" name="customerFolder" type="file" onChange={handleCustomerFilesSelect} multiple {...{ webkitdirectory: '', directory: '' }} style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <input id="image-files-input" name="imageFiles" type="file" accept="image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleImageFilesSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <input id="image-folder-input" name="imageFolder" type="file" onChange={handleImageFilesSelect} multiple {...{ webkitdirectory: '', directory: '' }} style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
-            <button onClick={() => { setInputDriveUrl(driveFolderUrl); setShowDriveModal(true); }} className={`amazon-btn ${driveFolderUrl ? 'connected' : ''}`} title="Google Drive連携設定">
-              <Cloud size={18} />
-              Drive連携
-            </button>
             <button onClick={() => setShowCacheManager(true)} className="amazon-btn" title="キャッシュ管理">
               キャッシュ
             </button>
           </div>
         </div>
       </header>
-
-      {/* Google Drive 設定モーダル */}
-      {showDriveModal && (
-        <div className="modal-overlay" onClick={() => setShowDriveModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Cloud size={20} color="#0066c0" />
-                Google Drive 画像連携設定
-              </h3>
-              <button onClick={() => setShowDriveModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <p style={{ fontSize: '13px', color: '#555', marginBottom: '16px', lineHeight: '1.5' }}>
-              Google Drive の共有フォルダURLまたはフォルダIDを設定します。<br />
-              設定すると、スマホ環境でも Google Drive 上の画像が自動参照・表示されます。
-            </p>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>共有フォルダURL / フォルダID:</label>
-              <input
-                type="text"
-                value={inputDriveUrl}
-                onChange={e => setInputDriveUrl(e.target.value)}
-                placeholder="https://drive.google.com/drive/folders/..."
-                style={{ width: '100%', padding: '10px', fontSize: '13px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setShowDriveModal(false)} className="amazon-btn">キャンセル</button>
-              <button
-                onClick={() => {
-                  saveDriveFolderUrl(inputDriveUrl);
-                  setShowDriveModal(false);
-                  showToast('Google Drive 連携URLを保存しました');
-                }}
-                className="amazon-btn amazon-btn-primary"
-              >
-                保存して適用
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {data.length > 0 || (isLoading && fileName) ? (
         <div className="amazon-main">
@@ -1000,8 +949,6 @@ function App() {
                     dirHandle={dirHandle}
                     imageFilesMap={imageFilesMap}
                     customerFileName={fileName}
-                    driveFolderUrl={driveFolderUrl}
-                    driveImagesMap={driveImagesMap}
                     onClick={() => setSelectedProduct(product)}
                     onAddToCart={addToCart}
                     keyword={keyword}

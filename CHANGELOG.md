@@ -1,6 +1,14 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-07-25
+## [Unreleased] - 2026-07-27
+
+### Removed
+- **Google Drive 連携機能および関連ロジックの完全削除**
+  - CORSおよびGoogle Drive仕様変更により動作不可となっていた `embeddedfolderview` 経由の共有フォルダ自動取得ユーティリティ (`src/utils/googleDriveApi.js`) およびテストファイルを削除。
+  - ヘッダー内の「Drive連携」設定ボタン、URL登録モーダル、および関連する状態・エフェクト処理を整理。
+  - 実画像の表示は既存の「ローカル画像選択 / スマホ複数ファイル選択」およびIndexedDBキャッシュによって引き続き問題なく動作。
+
+## [0.9.0] - 2026-07-25
 
 ### Added
 - **Google Drive 画像自動取得連携機能（解法B）の実装完了**

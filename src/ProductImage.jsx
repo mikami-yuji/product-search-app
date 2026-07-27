@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { getCachedImage, cacheImage } from './utils/imageCache';
 import { findImageFileHandle } from './utils/imageLoader';
-import { generateOrderNoVariants, normalizeOrderNumber } from './utils/imageKeyUtils';
+import { generateOrderNoVariants } from './utils/imageKeyUtils';
 
 /** @type {WeakMap<File, string>} */
 const objectUrlCache = new WeakMap();
@@ -67,15 +67,13 @@ const getFileImageUrl = (file) => {
  * @param {ProductImageProps} props - プロパティ
  * @returns {React.ReactElement} - レンダリング要素
  */
-const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, className, onClick }) => {
+const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, className, onClick }) => {
     /** @type {[string|null, React.Dispatch<React.SetStateAction<string|null>>]} */
     const [imageUrl, setImageUrl] = useState(null);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [error, setError] = useState(false);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [isVisible, setIsVisible] = useState(false);
-    /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
-    const [isLoaded, setIsLoaded] = useState(false);
     /** @type {React.RefObject<HTMLDivElement>} */
     const imgRef = useRef(null);
 
@@ -104,7 +102,6 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
 
     // imageUrl の更新時に古い blob URL を安全に破棄するカスタム関数
     const updateImageUrl = (newUrl) => {
-        setIsLoaded(false);
         setImageUrl((prevUrl) => {
             if (prevUrl && prevUrl.startsWith('blob:') && prevUrl !== newUrl) {
                 URL.revokeObjectURL(prevUrl);
@@ -299,22 +296,6 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
                 }
             }
 
-            // 4. Google Drive 共有画像フォールバック（CORSブロックを回避し即時描画）
-            if (driveFolderUrl && filename) {
-                const cleanOrderNum = cleanKey(filename);
-                if (cleanOrderNum) {
-                    // driveImagesMap に ID があればそれを優先、なければオーダーキー直接参照
-                    const matchedFileId = (driveImagesMap && driveImagesMap.size > 0) ? driveImagesMap.get(cleanOrderNum) : null;
-                    const targetId = matchedFileId || cleanOrderNum;
-                    const driveUrl = `https://lh3.googleusercontent.com/d/${targetId}`;
-                    if (!isCancelled) {
-                        updateImageUrl(driveUrl);
-                        setError(false);
-                        return;
-                    }
-                }
-            }
-
             if (!isCancelled) {
                 setError(true);
             }
@@ -325,7 +306,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
         return () => {
             isCancelled = true;
         };
-    }, [dirHandle, imageFilesMap, filename, customerFileName, driveFolderUrl, driveImagesMap, isVisible]);
+    }, [dirHandle, imageFilesMap, filename, customerFileName, isVisible]);
 
     if (!isVisible) {
         return <div ref={imgRef} className={`product-image-container ${className || ''} placeholder`} style={{ minHeight: '100px', background: '#f0f0f0' }} />;
@@ -353,24 +334,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
                 src={imageUrl}
                 alt={filename || '商品画像'}
                 style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                onLoad={() => setIsLoaded(true)}
-                onError={() => {
-                    if (imageUrl && imageUrl.includes('lh3.googleusercontent.com/d/')) {
-                        const fileId = imageUrl.split('/d/')[1];
-                        if (fileId) {
-                            setImageUrl(`https://drive.google.com/thumbnail?id=${fileId}&sz=w800`);
-                            return;
-                        }
-                    }
-                    if (imageUrl && imageUrl.includes('drive.google.com/thumbnail')) {
-                        const match = imageUrl.match(/id=([a-zA-Z0-9_-]+)/);
-                        if (match && match[1]) {
-                            setImageUrl(`https://drive.google.com/uc?export=view&id=${match[1]}`);
-                            return;
-                        }
-                    }
-                    setError(true);
-                }}
+                onError={() => setError(true)}
             />
         </div>
     );
