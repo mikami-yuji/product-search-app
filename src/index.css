@@ -110,9 +110,28 @@ html, body {
   flex-shrink: 0;
 }
 
+.logo-text-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .amazon-logo h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.data-timestamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.725rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 400;
+  line-height: 1;
 }
 
 .amazon-search-bar {

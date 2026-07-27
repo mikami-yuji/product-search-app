@@ -444,15 +444,25 @@
     }
 
     .amazon-logo {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
         width: 100%;
         color: var(--color-surface);
     }
 
+    .logo-text-wrapper {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
     .amazon-logo h1 {
-        font-size: 1.2rem;
+        font-size: 1.05rem;
         font-weight: 700;
-        justify-content: center;
+        margin: 0;
+        line-height: 1.2;
     }
 
     .amazon-search-bar {

@@ -436,12 +436,12 @@ function App() {
       <header className="amazon-header">
         <div className="amazon-header-content">
           <div className="amazon-logo">
-            <FileSpreadsheet size={28} />
-            <div>
+            <FileSpreadsheet size={22} />
+            <div className="logo-text-wrapper">
               <h1>商品検索</h1>
               {lastModified && (
                 <div className="data-timestamp" title="データの更新日時">
-                  <Clock size={12} />
+                  <Clock size={11} />
                   <span>更新: {formatDate(lastModified)}</span>
                 </div>
               )}
