@@ -2861,11 +2861,11 @@ function App() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBanner, { error, onClose: clearError }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "amazon-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-header-content", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-logo", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 28 }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(FileSpreadsheet, { size: 22 }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "logo-text-wrapper", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "商品検索" }),
           lastModified && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "data-timestamp", title: "データの更新日時", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { size: 12 }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { size: 11 }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               "更新: ",
               formatDate(lastModified)
