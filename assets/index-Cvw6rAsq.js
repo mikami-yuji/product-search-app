@@ -807,6 +807,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
   const [imageUrl, setImageUrl] = reactExports.useState(null);
   const [error, setError] = reactExports.useState(false);
   const [isVisible, setIsVisible] = reactExports.useState(false);
+  const [isLoaded, setIsLoaded] = reactExports.useState(false);
   const imgRef = reactExports.useRef(null);
   reactExports.useEffect(() => {
     const observer = new IntersectionObserver(
@@ -828,6 +829,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
     };
   }, []);
   const updateImageUrl = (newUrl) => {
+    setIsLoaded(false);
     setImageUrl((prevUrl) => {
       if (prevUrl && prevUrl.startsWith("blob:") && prevUrl !== newUrl) {
         URL.revokeObjectURL(prevUrl);
@@ -846,9 +848,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
     };
   }, []);
   reactExports.useEffect(() => {
-    const shouldLoadDirectly = Boolean(
-      imageFilesMap && imageFilesMap.size > 0 || driveFolderUrl || driveImagesMap && driveImagesMap.size > 0
-    );
+    const shouldLoadDirectly = Boolean(imageFilesMap && imageFilesMap.size > 0);
     if (!isVisible && !shouldLoadDirectly) return;
     let isCancelled = false;
     const loadImage = async () => {
@@ -889,6 +889,20 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
                   setError(false);
                   return;
                 }
+              }
+            }
+          }
+        }
+        const cleanOrderNum = cleanKey(filename).replace(/^0+/, "");
+        if (cleanOrderNum && cleanOrderNum.length >= 3) {
+          for (const [mapKey, mapFile] of imageFilesMap.entries()) {
+            if (mapKey.includes(cleanOrderNum)) {
+              const objectUrl = await getFileImageUrl(mapFile);
+              if (isCancelled) return;
+              if (objectUrl) {
+                updateImageUrl(objectUrl);
+                setError(false);
+                return;
               }
             }
           }
@@ -976,19 +990,11 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
         }
       }
       if (driveFolderUrl && filename) {
-        let matchedFileId = null;
-        if (driveImagesMap && driveImagesMap.size > 0) {
-          const searchVariants = generateOrderNoVariants(filename);
-          for (const cand of searchVariants) {
-            const fileId = driveImagesMap.get(cand);
-            if (fileId) {
-              matchedFileId = fileId;
-              break;
-            }
-          }
-        }
-        if (matchedFileId) {
-          const driveUrl = `https://lh3.googleusercontent.com/d/${matchedFileId}`;
+        const cleanOrderNum = cleanKey(filename);
+        if (cleanOrderNum) {
+          const matchedFileId = driveImagesMap && driveImagesMap.size > 0 ? driveImagesMap.get(cleanOrderNum) : null;
+          const targetId = matchedFileId || cleanOrderNum;
+          const driveUrl = `https://lh3.googleusercontent.com/d/${targetId}`;
           if (!isCancelled) {
             updateImageUrl(driveUrl);
             setError(false);
@@ -1027,6 +1033,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
           src: imageUrl,
           alt: filename || "商品画像",
           style: { width: "100%", height: "100%", objectFit: "contain", display: "block" },
+          onLoad: () => setIsLoaded(true),
           onError: () => {
             if (imageUrl && imageUrl.includes("lh3.googleusercontent.com/d/")) {
               const fileId = imageUrl.split("/d/")[1];
@@ -1932,54 +1939,26 @@ const fetchDriveFolderFiles = async (folderUrlOrId) => {
   const folderId = parseGoogleDriveFolderId(folderUrlOrId);
   const map = /* @__PURE__ */ new Map();
   if (!folderId) return map;
-  const targetUrl = `https://drive.google.com/embeddedfolderview?id=${folderId}`;
-  const proxyEndpoints = [
-    `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    targetUrl
-  ];
-  let htmlContent = "";
-  for (const endpoint of proxyEndpoints) {
-    try {
-      const res = await fetch(endpoint, { cache: "no-store" });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && (text.includes("data-id") || text.includes("entry-name"))) {
-          htmlContent = text;
-          break;
-        }
-      }
-    } catch {
-    }
-  }
-  if (!htmlContent) return map;
   try {
-    const regexHtml = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]*?class="entry-name[^">]*">([^<]+)</g;
-    let m;
-    while ((m = regexHtml.exec(htmlContent)) !== null) {
-      const fileId = m[1];
-      const fileName = m[2].trim();
-      const searchVariants = generateOrderNoVariants(fileName);
-      map.set(fileName, fileId);
-      map.set(fileName.toLowerCase(), fileId);
-      for (const variant of searchVariants) {
-        map.set(variant, fileId);
-      }
-    }
-    const regexJson = /"([a-zA-Z0-9_-]{25,})",\s*\[\s*"([^"]+\.(?:jpg|jpeg|png|webp|JPG|JPEG|PNG|WEBP))"/g;
-    let j;
-    while ((j = regexJson.exec(htmlContent)) !== null) {
-      const fileId = j[1];
-      const fileName = j[2].trim();
-      const searchVariants = generateOrderNoVariants(fileName);
-      map.set(fileName, fileId);
-      map.set(fileName.toLowerCase(), fileId);
-      for (const variant of searchVariants) {
-        map.set(variant, fileId);
+    const res = await fetch(`https://drive.google.com/embeddedfolderview?id=${folderId}`);
+    if (res.ok) {
+      const html = await res.text();
+      const regex = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]*?class="entry-name[^">]*">([^<]+)</g;
+      let m;
+      while ((m = regex.exec(html)) !== null) {
+        const fileId = m[1];
+        const fileName = m[2].trim();
+        const normNo = normalizeOrderNumber(fileName);
+        map.set(fileName, fileId);
+        map.set(fileName.toLowerCase(), fileId);
+        if (normNo) {
+          map.set(normNo, fileId);
+          map.set(`${normNo}a`, fileId);
+        }
       }
     }
   } catch (err) {
-    console.error("Failed to parse Drive folder HTML:", err);
+    console.error("Failed to fetch Drive folder index:", err);
   }
   return map;
 };
@@ -1999,96 +1978,6 @@ const getExcelFilesFromDir = async (dirHandle) => {
     console.error("Error reading directory entries:", err);
   }
   return files;
-};
-const buildImageFilesMap = (files, currentFileName, existingMap = null) => {
-  const newMap = existingMap ? new Map(existingMap) : /* @__PURE__ */ new Map();
-  if (!files || files.length === 0) return newMap;
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (!file || !file.name) continue;
-    const name = file.name;
-    const dotIdx = name.lastIndexOf(".");
-    const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
-    const lowerRawName = rawName.toLowerCase();
-    const lowerFileName = name.toLowerCase();
-    newMap.set(name, file);
-    newMap.set(lowerFileName, file);
-    newMap.set(rawName, file);
-    newMap.set(lowerRawName, file);
-    const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-    if (cleaned) {
-      newMap.set(cleaned, file);
-      const unpadded = cleaned.replace(/^0+/, "");
-      if (unpadded) {
-        newMap.set(unpadded, file);
-        newMap.set(unpadded.padStart(7, "0"), file);
-        newMap.set(unpadded.padStart(8, "0"), file);
-      }
-    }
-    const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize("NFC") : "";
-    if (relPath) {
-      const parts = relPath.split("/");
-      for (let p = 0; p < parts.length - 1; p++) {
-        const folderSegment = parts[p].trim().toLowerCase();
-        if (folderSegment) {
-          newMap.set(`${folderSegment}/${lowerRawName}`, file);
-          newMap.set(`${folderSegment}/${lowerFileName}`, file);
-          if (cleaned) {
-            newMap.set(`${folderSegment}/${cleaned}`, file);
-          }
-          const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-          if (codeMatch) {
-            const code = codeMatch[1].toLowerCase();
-            newMap.set(`${code}/${lowerRawName}`, file);
-            newMap.set(`${code}/${lowerFileName}`, file);
-            if (cleaned) {
-              newMap.set(`${code}/${cleaned}`, file);
-            }
-          }
-        }
-      }
-    }
-    if (currentFileName) {
-      const custClean = String(currentFileName).replace(/\.xlsx?$/i, "").trim().toLowerCase();
-      const custCode = extractCustomerCode(currentFileName);
-      if (custClean) {
-        newMap.set(`${custClean}/${lowerFileName}`, file);
-        newMap.set(`${custClean}/${lowerRawName}`, file);
-        if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
-      }
-      if (custCode) {
-        newMap.set(`${custCode}/${lowerFileName}`, file);
-        newMap.set(`${custCode}/${lowerRawName}`, file);
-        if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
-      }
-    }
-    const subParts = rawName.split(/[_#-]/);
-    if (subParts.length > 1) {
-      const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
-      const cleanLast = lastPart.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-      if (cleanLast) {
-        newMap.set(cleanLast, file);
-        const unpaddedLast = cleanLast.replace(/^0+/, "");
-        if (unpaddedLast) {
-          newMap.set(unpaddedLast, file);
-          newMap.set(unpaddedLast.padStart(7, "0"), file);
-          newMap.set(unpaddedLast.padStart(8, "0"), file);
-        }
-      }
-    }
-    const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
-    if (baseNumMatch) {
-      const pureNum = baseNumMatch[1];
-      newMap.set(pureNum, file);
-      const unpaddedPure = pureNum.replace(/^0+/, "");
-      if (unpaddedPure) {
-        newMap.set(unpaddedPure, file);
-        newMap.set(unpaddedPure.padStart(7, "0"), file);
-        newMap.set(unpaddedPure.padStart(8, "0"), file);
-      }
-    }
-  }
-  return newMap;
 };
 const isFileSystemSupported = typeof window !== "undefined" && !!window.showDirectoryPicker;
 const useProductData = () => {
@@ -2156,19 +2045,7 @@ const useProductData = () => {
             setCustomerFiles(cachedCustomerFiles);
             setCustomerPermissionGranted(true);
           }
-          try {
-            const cachedFiles = await get("imageFilesBlobListCache");
-            if (cachedFiles && cachedFiles.length > 0) {
-              const restoredMap = buildImageFilesMap(cachedFiles, cachedFileName);
-              setImageFilesMap(restoredMap);
-              setPermissionGranted(restoredMap.size > 0);
-            } else {
-              setPermissionGranted(false);
-            }
-          } catch (mapErr) {
-            console.error("Failed to restore imageFilesMap from cache:", mapErr);
-            setPermissionGranted(false);
-          }
+          setPermissionGranted(false);
         }
       } catch (err) {
         console.error("Error loading cache:", err);
@@ -2209,19 +2086,6 @@ const useProductData = () => {
     setError(null);
     setFileName(file.name);
     setLastModified(file.lastModified);
-    const customerCode = extractCustomerCode(file.name);
-    if (customerCode) {
-      try {
-        const cachedCustomerFiles = await get(`customerImagesCache_${customerCode}`);
-        if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
-          const restoredMap = buildImageFilesMap(cachedCustomerFiles, file.name, imageFilesMap);
-          setImageFilesMap(restoredMap);
-          setPermissionGranted(restoredMap.size > 0);
-        }
-      } catch (err) {
-        console.error("Failed to load auto customer image cache:", err);
-      }
-    }
     if (file.size === 0) ;
     const readWithRetry = async (attempt = 1) => {
       const MAX_RETRIES = 3;
@@ -2328,7 +2192,91 @@ const useProductData = () => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList);
-    const newMap = buildImageFilesMap(files, fileName, imageFilesMap);
+    const newMap = new Map(imageFilesMap);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const name = file.name;
+      const dotIdx = name.lastIndexOf(".");
+      const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+      const lowerRawName = rawName.toLowerCase();
+      const lowerFileName = name.toLowerCase();
+      newMap.set(name, file);
+      newMap.set(lowerFileName, file);
+      newMap.set(rawName, file);
+      newMap.set(lowerRawName, file);
+      const cleaned = lowerRawName.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      if (cleaned) {
+        newMap.set(cleaned, file);
+        const unpadded = cleaned.replace(/^0+/, "");
+        if (unpadded) {
+          newMap.set(unpadded, file);
+          newMap.set(unpadded.padStart(7, "0"), file);
+          newMap.set(unpadded.padStart(8, "0"), file);
+        }
+      }
+      const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize("NFC") : "";
+      if (relPath) {
+        const parts = relPath.split("/");
+        for (let p = 0; p < parts.length - 1; p++) {
+          const folderSegment = parts[p].trim().toLowerCase();
+          if (folderSegment) {
+            newMap.set(`${folderSegment}/${lowerRawName}`, file);
+            newMap.set(`${folderSegment}/${lowerFileName}`, file);
+            if (cleaned) {
+              newMap.set(`${folderSegment}/${cleaned}`, file);
+            }
+            const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
+            if (codeMatch) {
+              const code = codeMatch[1].toLowerCase();
+              newMap.set(`${code}/${lowerRawName}`, file);
+              newMap.set(`${code}/${lowerFileName}`, file);
+              if (cleaned) {
+                newMap.set(`${code}/${cleaned}`, file);
+              }
+            }
+          }
+        }
+      }
+      if (fileName) {
+        const custClean = String(fileName).replace(/\.xlsx?$/i, "").trim().toLowerCase();
+        const custCode = extractCustomerCode(fileName);
+        if (custClean) {
+          newMap.set(`${custClean}/${lowerFileName}`, file);
+          newMap.set(`${custClean}/${lowerRawName}`, file);
+          if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
+        }
+        if (custCode) {
+          newMap.set(`${custCode}/${lowerFileName}`, file);
+          newMap.set(`${custCode}/${lowerRawName}`, file);
+          if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
+        }
+      }
+      const subParts = rawName.split(/[_#-]/);
+      if (subParts.length > 1) {
+        const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
+        const cleanLast = lastPart.replace(/,/g, "").replace(/\.0+$/, "").replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+        if (cleanLast) {
+          newMap.set(cleanLast, file);
+          const unpaddedLast = cleanLast.replace(/^0+/, "");
+          if (unpaddedLast) {
+            newMap.set(unpaddedLast, file);
+            newMap.set(unpaddedLast.padStart(7, "0"), file);
+            newMap.set(unpaddedLast.padStart(8, "0"), file);
+          }
+        }
+      }
+      const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
+      if (baseNumMatch) {
+        const pureNum = baseNumMatch[1];
+        newMap.set(pureNum, file);
+        const unpaddedPure = pureNum.replace(/^0+/, "");
+        if (unpaddedPure) {
+          newMap.set(unpaddedPure, file);
+          newMap.set(unpaddedPure.padStart(7, "0"), file);
+          newMap.set(unpaddedPure.padStart(8, "0"), file);
+        }
+      }
+    }
     let activeCustFolder = fileName ? String(fileName).replace(/\.xlsx?$/i, "").trim() : "";
     let detectedFolderName = activeCustFolder;
     if (!detectedFolderName && files.length > 0) {
@@ -2350,54 +2298,16 @@ const useProductData = () => {
       setImageFolderName(detectedFolderName);
       set("imageFolderNameCache", detectedFolderName).catch((err) => console.error("Failed to cache image folder name:", err));
     }
-    setImageFilesMap(newMap);
-    setPermissionGranted(newMap.size > 0);
+    setImageFilesMap(new Map(newMap));
+    setPermissionGranted(true);
     setError(null);
-    const saveImageMapToCache = async () => {
-      try {
-        await set("imageFilesBlobListCache", files);
-        const currentCustCode = extractCustomerCode(fileName);
-        if (currentCustCode) {
-          await set(`customerImagesCache_${currentCustCode}`, files);
-        }
-      } catch (cacheErr) {
-        console.error("Failed to cache image files list in IndexedDB:", cacheErr);
-      }
-    };
-    saveImageMapToCache();
     if (files.length > 0) {
       console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
     }
   };
-  const handleUnifiedSelect = async (e) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-    const allFiles = Array.from(fileList);
-    const excelFiles = allFiles.filter((f) => f.name.endsWith(".xlsx") || f.name.endsWith(".xls"));
-    const imageFiles = allFiles.filter((f) => /\.(png|jpe?g|webp)$/i.test(f.name));
-    if (excelFiles.length > 0) {
-      const firstExcel = excelFiles[0];
-      await processExcelFile(firstExcel);
-    }
-    if (imageFiles.length > 0) {
-      const targetCustName = excelFiles.length > 0 ? excelFiles[0].name : fileName;
-      const newMap = buildImageFilesMap(imageFiles, targetCustName, imageFilesMap);
-      setImageFilesMap(newMap);
-      setPermissionGranted(newMap.size > 0);
-      try {
-        await set("imageFilesBlobListCache", imageFiles);
-        const custCode = extractCustomerCode(targetCustName);
-        if (custCode) {
-          await set(`customerImagesCache_${custCode}`, imageFiles);
-        }
-      } catch (cacheErr) {
-        console.error("Failed to cache unified image files:", cacheErr);
-      }
-    }
-  };
   const handleFolderSelect = async () => {
     if (!isFileSystemSupported) {
-      const mobileInput = document.getElementById("image-files-input") || document.getElementById("image-folder-input");
+      const mobileInput = document.getElementById("image-folder-input") || document.getElementById("image-files-input");
       if (mobileInput) {
         mobileInput.value = "";
         mobileInput.click();
@@ -2572,7 +2482,6 @@ const useProductData = () => {
     handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
-    handleUnifiedSelect,
     loadCustomerFile,
     clearError: () => setError(null)
   };
@@ -2820,6 +2729,7 @@ function App() {
     driveFolderUrl,
     driveImagesMap,
     saveDriveFolderUrl,
+    permissionGranted,
     customerPermissionGranted,
     customerFiles,
     error,
@@ -2830,7 +2740,6 @@ function App() {
     handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
-    handleUnifiedSelect,
     loadCustomerFile: originalLoadCustomerFile,
     clearError
   } = useProductData();
@@ -3164,27 +3073,15 @@ function App() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "header-image-btn-wrapper", children: (() => {
-          const isImageConnected = Boolean(isFileSystemSupported2 && dirHandle || imageFilesMap && imageFilesMap.size > 0);
-          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              onClick: handleFolderSelect,
-              className: `amazon-btn ${isImageConnected ? "connected" : ""}`,
-              title: isFileSystemSupported2 ? isImageConnected ? "画像フォルダ接続済み" : "画像フォルダを接続" : isImageConnected ? "画像選択済み" : "画像ファイルを全選択 (複数選択可)",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
-                isFileSystemSupported2 ? isImageConnected ? "画像接続済" : "画像フォルダ" : isImageConnected ? "画像選択済" : "画像ファイル選択"
-              ]
-            }
-          );
-        })() }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => document.getElementById("unified-files-input")?.click(), className: "amazon-btn amazon-btn-primary", title: "Excelと画像群を1回の操作でまとめて読み込み", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "header-image-btn-wrapper", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleFolderSelect, className: `amazon-btn ${permissionGranted ? "connected" : ""}`, title: permissionGranted ? "画像フォルダ接続済み" : "画像フォルダを接続", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderOpen, { size: 18 }),
+          permissionGranted ? "画像接続済" : "画像フォルダ"
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => document.getElementById("file-input")?.click(), className: "amazon-btn amazon-btn-primary", title: "Excelファイルを直接開く", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { size: 18 }),
-          fileName ? "Excel・画像を一括選択" : "顧客・画像を一括選択"
+          fileName || "ファイル選択"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "file-input", name: "file", type: "file", accept: ".xlsx,.xls", onChange: handleFileUpload, hidden: true }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "unified-files-input", name: "unifiedFiles", type: "file", accept: ".xlsx,.xls,image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleUnifiedSelect, multiple: true, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-files-input", name: "customerFiles", type: "file", accept: ".xlsx,.xls", onChange: handleCustomerFilesSelect, multiple: true, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "customer-folder-input", name: "customerFolder", type: "file", onChange: handleCustomerFilesSelect, multiple: true, ...{ webkitdirectory: "", directory: "" }, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "image-files-input", name: "imageFiles", type: "file", accept: "image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG", onChange: handleImageFilesSelect, multiple: true, style: { position: "absolute", left: "-9999px", opacity: 0 } }),
@@ -3613,7 +3510,7 @@ function App() {
         )) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "amazon-table-container fade-in-up", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "amazon-table", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: col }, col)) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, driveFolderUrl, driveImagesMap, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, `${row["受注№"] || row["商品コード"] || idx}`)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { onClick: () => setSelectedProduct(row), style: { cursor: "pointer" }, children: columns.map((col) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: col === "画像" ? /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(HighlightText, { text: row[col], keyword }) }, col)) }, `${row["受注№"] || row["商品コード"] || idx}`)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-table-cards", children: paginatedData.map((row, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
@@ -3627,7 +3524,7 @@ function App() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-id", children: row["商品コード"] })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-body", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, driveFolderUrl, driveImagesMap, onClick: (url) => setModalImage(url) }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mobile-card-field", style: { gridColumn: "span 2", display: "flex", justifyContent: "center", marginBottom: "0.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProductImage$1, { dirHandle, imageFilesMap, filename: row["受注№"], productCode: row["商品コード"], customerFileName: fileName, onClick: (url) => setModalImage(url) }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mobile-card-field", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-label", children: "受注№" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mobile-card-value", children: row["受注№"] })
