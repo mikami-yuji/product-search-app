@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { getCachedImage, cacheImage } from './utils/imageCache';
 import { findImageFileHandle } from './utils/imageLoader';
-import { generateOrderNoVariants } from './utils/imageKeyUtils';
+import { generateOrderNoVariants, normalizeOrderNumber } from './utils/imageKeyUtils';
 
 /** @type {WeakMap<File, string>} */
 const objectUrlCache = new WeakMap();
@@ -74,6 +74,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
     const [error, setError] = useState(false);
     /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
     const [isVisible, setIsVisible] = useState(false);
+    /** @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]} */
+    const [isLoaded, setIsLoaded] = useState(false);
     /** @type {React.RefObject<HTMLDivElement>} */
     const imgRef = useRef(null);
 
@@ -102,6 +104,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
 
     // imageUrl の更新時に古い blob URL を安全に破棄するカスタム関数
     const updateImageUrl = (newUrl) => {
+        setIsLoaded(false);
         setImageUrl((prevUrl) => {
             if (prevUrl && prevUrl.startsWith('blob:') && prevUrl !== newUrl) {
                 URL.revokeObjectURL(prevUrl);
@@ -123,12 +126,8 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
     }, []);
 
     useEffect(() => {
-        // スマホでメモリマップ(imageFilesMap)またはDrive連携が存在する場合は遅延ロードの不発を防ぐため即時読み込みを許可
-        const shouldLoadDirectly = Boolean(
-            (imageFilesMap && imageFilesMap.size > 0) || 
-            driveFolderUrl || 
-            (driveImagesMap && driveImagesMap.size > 0)
-        );
+        // スマホでメモリマップ(imageFilesMap)が存在する場合は遅延ロードの不発を防ぐため即時読み込みを許可
+        const shouldLoadDirectly = Boolean(imageFilesMap && imageFilesMap.size > 0);
         if (!isVisible && !shouldLoadDirectly) return;
 
         let isCancelled = false;
@@ -183,6 +182,22 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
                                     setError(false);
                                     return;
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // 強力フォールバック: 受注№数字が含まれる画像ファイルをマッピング内から逆引き・部分一致検出
+                const cleanOrderNum = cleanKey(filename).replace(/^0+/, '');
+                if (cleanOrderNum && cleanOrderNum.length >= 3) {
+                    for (const [mapKey, mapFile] of imageFilesMap.entries()) {
+                        if (mapKey.includes(cleanOrderNum)) {
+                            const objectUrl = await getFileImageUrl(mapFile);
+                            if (isCancelled) return;
+                            if (objectUrl) {
+                                updateImageUrl(objectUrl);
+                                setError(false);
+                                return;
                             }
                         }
                     }
@@ -286,20 +301,12 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
 
             // 4. Google Drive 共有画像フォールバック（CORSブロックを回避し即時描画）
             if (driveFolderUrl && filename) {
-                let matchedFileId = null;
-                if (driveImagesMap && driveImagesMap.size > 0) {
-                    const searchVariants = generateOrderNoVariants(filename);
-                    for (const cand of searchVariants) {
-                        const fileId = driveImagesMap.get(cand);
-                        if (fileId) {
-                            matchedFileId = fileId;
-                            break;
-                        }
-                    }
-                }
-
-                if (matchedFileId) {
-                    const driveUrl = `https://lh3.googleusercontent.com/d/${matchedFileId}`;
+                const cleanOrderNum = cleanKey(filename);
+                if (cleanOrderNum) {
+                    // driveImagesMap に ID があればそれを優先、なければオーダーキー直接参照
+                    const matchedFileId = (driveImagesMap && driveImagesMap.size > 0) ? driveImagesMap.get(cleanOrderNum) : null;
+                    const targetId = matchedFileId || cleanOrderNum;
+                    const driveUrl = `https://lh3.googleusercontent.com/d/${targetId}`;
                     if (!isCancelled) {
                         updateImageUrl(driveUrl);
                         setError(false);
@@ -346,6 +353,7 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, dr
                 src={imageUrl}
                 alt={filename || '商品画像'}
                 style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                onLoad={() => setIsLoaded(true)}
                 onError={() => {
                     if (imageUrl && imageUrl.includes('lh3.googleusercontent.com/d/')) {
                         const fileId = imageUrl.split('/d/')[1];

@@ -97,9 +97,11 @@ function App() {
     lastModified,
     dirHandle,
     imageFilesMap,
+    imageFolderName,
     driveFolderUrl,
     driveImagesMap,
     saveDriveFolderUrl,
+    permissionGranted,
     customerPermissionGranted,
     customerFiles,
     error,
@@ -110,7 +112,6 @@ function App() {
     handleImageFilesSelect,
     handleCustomerFolderSelect,
     handleCustomerFilesSelect,
-    handleUnifiedSelect,
     loadCustomerFile: originalLoadCustomerFile,
     clearError,
   } = useProductData();
@@ -541,32 +542,16 @@ function App() {
                 : (customerPermissionGranted ? '顧客選択済' : '顧客ファイル')}
             </button>
             <div className="header-image-btn-wrapper">
-              {(() => {
-                const isImageConnected = Boolean((isFileSystemSupported && dirHandle) || (imageFilesMap && imageFilesMap.size > 0));
-                return (
-                  <button 
-                    onClick={handleFolderSelect} 
-                    className={`amazon-btn ${isImageConnected ? 'connected' : ''}`} 
-                    title={
-                      isFileSystemSupported
-                        ? (isImageConnected ? '画像フォルダ接続済み' : '画像フォルダを接続')
-                        : (isImageConnected ? '画像選択済み' : '画像ファイルを全選択 (複数選択可)')
-                    }
-                  >
-                    <FolderOpen size={18} />
-                    {isFileSystemSupported
-                      ? (isImageConnected ? '画像接続済' : '画像フォルダ')
-                      : (isImageConnected ? '画像選択済' : '画像ファイル選択')}
-                  </button>
-                );
-              })()}
+              <button onClick={handleFolderSelect} className={`amazon-btn ${permissionGranted ? 'connected' : ''}`} title={permissionGranted ? '画像フォルダ接続済み' : '画像フォルダを接続'}>
+                <FolderOpen size={18} />
+                {permissionGranted ? '画像接続済' : '画像フォルダ'}
+              </button>
             </div>
-            <button onClick={() => document.getElementById('unified-files-input')?.click()} className="amazon-btn amazon-btn-primary" title="Excelと画像群を1回の操作でまとめて読み込み">
+            <button onClick={() => document.getElementById('file-input')?.click()} className="amazon-btn amazon-btn-primary" title="Excelファイルを直接開く">
               <Upload size={18} />
-              {fileName ? 'Excel・画像を一括選択' : '顧客・画像を一括選択'}
+              {fileName || 'ファイル選択'}
             </button>
             <input id="file-input" name="file" type="file" accept=".xlsx,.xls" onChange={handleFileUpload} hidden />
-            <input id="unified-files-input" name="unifiedFiles" type="file" accept=".xlsx,.xls,image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleUnifiedSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <input id="customer-files-input" name="customerFiles" type="file" accept=".xlsx,.xls" onChange={handleCustomerFilesSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <input id="customer-folder-input" name="customerFolder" type="file" onChange={handleCustomerFilesSelect} multiple {...{ webkitdirectory: '', directory: '' }} style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
             <input id="image-files-input" name="imageFiles" type="file" accept="image/*,.jpg,.jpeg,.png,.JPG,.JPEG,.PNG" onChange={handleImageFilesSelect} multiple style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
@@ -1036,7 +1021,7 @@ function App() {
                         {columns.map(col => (
                           <td key={col}>
                             {col === '画像' ? (
-                              <ProductImage dirHandle={dirHandle} imageFilesMap={imageFilesMap} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} driveFolderUrl={driveFolderUrl} driveImagesMap={driveImagesMap} onClick={url => setModalImage(url)} />
+                              <ProductImage dirHandle={dirHandle} imageFilesMap={imageFilesMap} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} onClick={url => setModalImage(url)} />
                             ) : (
                               <HighlightText text={row[col]} keyword={keyword} />
                             )}
@@ -1067,7 +1052,7 @@ function App() {
                       
                       <div className="mobile-card-body">
                         <div className="mobile-card-field" style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-                          <ProductImage dirHandle={dirHandle} imageFilesMap={imageFilesMap} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} driveFolderUrl={driveFolderUrl} driveImagesMap={driveImagesMap} onClick={url => setModalImage(url)} />
+                          <ProductImage dirHandle={dirHandle} imageFilesMap={imageFilesMap} filename={row['受注№']} productCode={row['商品コード']} customerFileName={fileName} onClick={url => setModalImage(url)} />
                         </div>
                         
                         <div className="mobile-card-field">

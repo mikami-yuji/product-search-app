@@ -2,7 +2,7 @@
  * @fileoverview Google Drive 共有フォルダURL解析および画像URL生成ユーティリティ
  */
 
-import { generateOrderNoVariants } from './imageKeyUtils';
+import { generateOrderNoVariants, normalizeOrderNumber } from './imageKeyUtils';
 
 export const DEFAULT_GOOGLE_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1kmoJG4MiZ40gBa6azE3J-l6W_GzeQUxE';
 
@@ -53,77 +53,39 @@ export const getGoogleDriveDirectDownloadUrl = (fileId) => {
 };
 
 /**
- * Google Drive 共有フォルダ内の画像ファイル名とFile IDのマッピングを全自動構築します。
- * CORSブロックを回避するため複数のプロキシを順次試行し、共有フォルダのHTMLから
- * ファイル名と暗号化 File ID を一括抽出して、受注№の各バリエーションキーにバインドします。
+ * Google Drive 共有フォルダ内の画像ファイル名とFile IDのマッピングを構築します。
+ * 共有フォルダの公開HTMLからファイル名と暗号化File IDを全自動抽出し、受注№キーにバインドします。
  *
  * @param {string} folderUrlOrId - Google Drive の共有URLまたはフォルダID
- * @returns {Promise<Map<string, string>>} キー: 正規化された受注№・枝番・ファイル名、値: Google Drive File ID
+ * @returns {Promise<Map<string, string>>} キー: 正規化された受注№やファイル名、値: Google Drive File ID
  */
 export const fetchDriveFolderFiles = async (folderUrlOrId) => {
   const folderId = parseGoogleDriveFolderId(folderUrlOrId);
   const map = new Map();
   if (!folderId) return map;
 
-  const targetUrl = `https://drive.google.com/embeddedfolderview?id=${folderId}`;
-  const proxyEndpoints = [
-    `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    targetUrl
-  ];
-
-  let htmlContent = '';
-  for (const endpoint of proxyEndpoints) {
-    try {
-      const res = await fetch(endpoint, { cache: 'no-store' });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && (text.includes('data-id') || text.includes('entry-name'))) {
-          htmlContent = text;
-          break;
-        }
-      }
-    } catch {
-      // 次のプロキシへフォールバック
-    }
-  }
-
-  if (!htmlContent) return map;
-
   try {
-    // 1. HTML構造 (data-id 及び class="entry-name") からの抽出
-    const regexHtml = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]*?class="entry-name[^">]*">([^<]+)</g;
-    let m;
-    while ((m = regexHtml.exec(htmlContent)) !== null) {
-      const fileId = m[1];
-      const fileName = m[2].trim();
-      const searchVariants = generateOrderNoVariants(fileName);
-      
-      map.set(fileName, fileId);
-      map.set(fileName.toLowerCase(), fileId);
+    const res = await fetch(`https://drive.google.com/embeddedfolderview?id=${folderId}`);
+    if (res.ok) {
+      const html = await res.text();
+      // data-id および entry-name クラスからのID・ファイル名抽出
+      const regex = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]*?class="entry-name[^">]*">([^<]+)</g;
+      let m;
+      while ((m = regex.exec(html)) !== null) {
+        const fileId = m[1];
+        const fileName = m[2].trim();
+        const normNo = normalizeOrderNumber(fileName);
 
-      for (const variant of searchVariants) {
-        map.set(variant, fileId);
-      }
-    }
-
-    // 2. JSデータ配列 (JSONレスポンス構造) からの抽出フォールバック
-    const regexJson = /"([a-zA-Z0-9_-]{25,})",\s*\[\s*"([^"]+\.(?:jpg|jpeg|png|webp|JPG|JPEG|PNG|WEBP))"/g;
-    let j;
-    while ((j = regexJson.exec(htmlContent)) !== null) {
-      const fileId = j[1];
-      const fileName = j[2].trim();
-      const searchVariants = generateOrderNoVariants(fileName);
-
-      map.set(fileName, fileId);
-      map.set(fileName.toLowerCase(), fileId);
-
-      for (const variant of searchVariants) {
-        map.set(variant, fileId);
+        map.set(fileName, fileId);
+        map.set(fileName.toLowerCase(), fileId);
+        if (normNo) {
+          map.set(normNo, fileId);
+          map.set(`${normNo}a`, fileId);
+        }
       }
     }
   } catch (err) {
-    console.error('Failed to parse Drive folder HTML:', err);
+    console.error('Failed to fetch Drive folder index:', err);
   }
 
   return map;

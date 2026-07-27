@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
-import { extractCustomerCode } from '../utils/imageKeyUtils';
+import { extractCustomerCode, normalizeOrderNumber } from '../utils/imageKeyUtils';
 
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
@@ -28,128 +28,7 @@ const getExcelFilesFromDir = async (dirHandle) => {
     return files;
 };
 
-import { DEFAULT_GOOGLE_DRIVE_FOLDER, fetchDriveFolderFiles } from '../utils/googleDriveApi';
-
-/**
- * 与えられた File 配列から全バリエーションキーの Map を構築します。
- * @param {File[]} files - 画像ファイル配列
- * @param {string} [currentFileName] - 選択中の顧客ファイル名
- * @param {Map<string, File>} [existingMap] - 既存の画像ファイルマップ
- * @returns {Map<string, File>} 構築された Map
- */
-const buildImageFilesMap = (files, currentFileName, existingMap = null) => {
-    const newMap = existingMap ? new Map(existingMap) : new Map();
-    if (!files || files.length === 0) return newMap;
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file || !file.name) continue;
-        const name = file.name;
-        const dotIdx = name.lastIndexOf('.');
-        const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
-        const lowerRawName = rawName.toLowerCase();
-        const lowerFileName = name.toLowerCase();
-
-        // 1. 完全一致ファイル名および小文字ファイル名
-        newMap.set(name, file);
-        newMap.set(lowerFileName, file);
-        newMap.set(rawName, file);
-        newMap.set(lowerRawName, file);
-
-        // 2. 正規化・記号除去・全角半角キー
-        const cleaned = lowerRawName
-            .replace(/,/g, '')
-            .replace(/\.0+$/, '')
-            .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
-
-        if (cleaned) {
-            newMap.set(cleaned, file);
-
-            const unpadded = cleaned.replace(/^0+/, '');
-            if (unpadded) {
-                newMap.set(unpadded, file);
-                newMap.set(unpadded.padStart(7, '0'), file);
-                newMap.set(unpadded.padStart(8, '0'), file);
-            }
-        }
-
-        // 3. フォルダパスが含まれる場合（webkitRelativePath）- 全階層セグメントを登録
-        const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize('NFC') : '';
-        if (relPath) {
-            const parts = relPath.split('/');
-            for (let p = 0; p < parts.length - 1; p++) {
-                const folderSegment = parts[p].trim().toLowerCase();
-                if (folderSegment) {
-                    newMap.set(`${folderSegment}/${lowerRawName}`, file);
-                    newMap.set(`${folderSegment}/${lowerFileName}`, file);
-                    if (cleaned) {
-                        newMap.set(`${folderSegment}/${cleaned}`, file);
-                    }
-
-                    const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
-                    if (codeMatch) {
-                        const code = codeMatch[1].toLowerCase();
-                        newMap.set(`${code}/${lowerRawName}`, file);
-                        newMap.set(`${code}/${lowerFileName}`, file);
-                        if (cleaned) {
-                            newMap.set(`${code}/${cleaned}`, file);
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3b. 選択中の顧客名・顧客コードプレフィックスを全自動バインド
-        if (currentFileName) {
-            const custClean = String(currentFileName).replace(/\.xlsx?$/i, '').trim().toLowerCase();
-            const custCode = extractCustomerCode(currentFileName);
-            if (custClean) {
-                newMap.set(`${custClean}/${lowerFileName}`, file);
-                newMap.set(`${custClean}/${lowerRawName}`, file);
-                if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
-            }
-            if (custCode) {
-                newMap.set(`${custCode}/${lowerFileName}`, file);
-                newMap.set(`${custCode}/${lowerRawName}`, file);
-                if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
-            }
-        }
-
-        // 4. アンダースコア・ハイフン区切りファイル名から受注№部分を自動抽出
-        const subParts = rawName.split(/[_#-]/);
-        if (subParts.length > 1) {
-            const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
-            const cleanLast = lastPart
-                .replace(/,/g, '')
-                .replace(/\.0+$/, '')
-                .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
-
-            if (cleanLast) {
-                newMap.set(cleanLast, file);
-                const unpaddedLast = cleanLast.replace(/^0+/, '');
-                if (unpaddedLast) {
-                    newMap.set(unpaddedLast, file);
-                    newMap.set(unpaddedLast.padStart(7, '0'), file);
-                    newMap.set(unpaddedLast.padStart(8, '0'), file);
-                }
-            }
-        }
-
-        // 5. 末尾のアルファベット枝番を除外した純粋数字キーの登録
-        const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
-        if (baseNumMatch) {
-            const pureNum = baseNumMatch[1];
-            newMap.set(pureNum, file);
-            const unpaddedPure = pureNum.replace(/^0+/, '');
-            if (unpaddedPure) {
-                newMap.set(unpaddedPure, file);
-                newMap.set(unpaddedPure.padStart(7, '0'), file);
-                newMap.set(unpaddedPure.padStart(8, '0'), file);
-            }
-        }
-    }
-    return newMap;
-};
+import { DEFAULT_GOOGLE_DRIVE_FOLDER, fetchDriveFolderFiles, parseGoogleDriveFolderId } from '../utils/googleDriveApi';
 
 export const isFileSystemSupported = typeof window !== 'undefined' && !!window.showDirectoryPicker;
 
@@ -194,6 +73,7 @@ export const useProductData = () => {
                 
                 if (cachedDirHandle && isFileSystemSupported) {
                     setDirHandle(cachedDirHandle);
+                    // コメント: 保存済みフォルダの権限を確認し、既に許可されていれば接続済みにする
                     const options = { mode: 'read' };
                     const permission = await cachedDirHandle.queryPermission(options);
                     if (permission === 'granted') {
@@ -213,6 +93,7 @@ export const useProductData = () => {
                         files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' }));
                         setCustomerFiles(files);
                     } else {
+                        // コメント: パーミッションが一時的に切れていても、以前取得したファイル名一覧のキャッシュがあれば表示を維持する
                         const cachedCustomerFilesList = await get('customerFilesListCache');
                         if (cachedCustomerFilesList && cachedCustomerFilesList.length > 0) {
                             setCustomerFiles(cachedCustomerFilesList);
@@ -222,26 +103,14 @@ export const useProductData = () => {
                         }
                     }
                 } else if (!isFileSystemSupported) {
+                    // コメント: モバイル環境などの場合は、IndexedDBに保存されたファイル名およびFileオブジェクトのリストを復元する
                     const cachedCustomerFiles = await get('customerFilesCache');
                     if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
                         setCustomerFiles(cachedCustomerFiles);
                         setCustomerPermissionGranted(true);
                     }
-                    
-                    // モバイル環境でIndexedDBに保存済みの画像Fileリスト(imageFilesBlobListCache)を非同期復元
-                    try {
-                        const cachedFiles = await get('imageFilesBlobListCache');
-                        if (cachedFiles && cachedFiles.length > 0) {
-                            const restoredMap = buildImageFilesMap(cachedFiles, cachedFileName);
-                            setImageFilesMap(restoredMap);
-                            setPermissionGranted(restoredMap.size > 0);
-                        } else {
-                            setPermissionGranted(false);
-                        }
-                    } catch (mapErr) {
-                        console.error('Failed to restore imageFilesMap from cache:', mapErr);
-                        setPermissionGranted(false);
-                    }
+                    // スマホではリロード後にメモリ上のimageFilesMapが空になるため、初期化時はpermissionGrantedをfalseにする
+                    setPermissionGranted(false);
                 }
             } catch (err) {
                 console.error('Error loading cache:', err);
@@ -286,7 +155,6 @@ export const useProductData = () => {
 
     /**
      * Process the Excel file and update state/cache.
-     * 顧客コード（例: 16152）に対応する画像キャッシュが存在する場合は全自動で復元連動します。
      * @param {File} file
      * @returns {Promise<void>}
      */
@@ -295,22 +163,6 @@ export const useProductData = () => {
         setError(null);
         setFileName(file.name);
         setLastModified(file.lastModified);
-
-        // 選択された顧客ファイル名から顧客コードを抽出
-        const customerCode = extractCustomerCode(file.name);
-        if (customerCode) {
-            try {
-                // 顧客コード別の保存済み画像リストを IndexedDB から自動検索・連動復元
-                const cachedCustomerFiles = await get(`customerImagesCache_${customerCode}`);
-                if (cachedCustomerFiles && cachedCustomerFiles.length > 0) {
-                    const restoredMap = buildImageFilesMap(cachedCustomerFiles, file.name, imageFilesMap);
-                    setImageFilesMap(restoredMap);
-                    setPermissionGranted(restoredMap.size > 0);
-                }
-            } catch (err) {
-                console.error('Failed to load auto customer image cache:', err);
-            }
-        }
 
         // Initial check for 0 byte file (common with cloud placeholders)
         if (file.size === 0) {
@@ -451,7 +303,115 @@ export const useProductData = () => {
         if (!fileList || fileList.length === 0) return;
 
         const files = Array.from(fileList);
-        const newMap = buildImageFilesMap(files, fileName, imageFilesMap);
+        const newMap = new Map(imageFilesMap);
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const name = file.name;
+            const dotIdx = name.lastIndexOf('.');
+            const rawName = dotIdx > 0 ? name.substring(0, dotIdx).trim() : name.trim();
+            const lowerRawName = rawName.toLowerCase();
+            const lowerFileName = name.toLowerCase();
+
+            // 1. 完全一致ファイル名および小文字ファイル名
+            newMap.set(name, file);
+            newMap.set(lowerFileName, file);
+            newMap.set(rawName, file);
+            newMap.set(lowerRawName, file);
+
+            // 2. 正規化・記号除去・全角半角キー
+            const cleaned = lowerRawName
+                .replace(/,/g, '')
+                .replace(/\.0+$/, '')
+                .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+
+            if (cleaned) {
+                newMap.set(cleaned, file);
+
+                const unpadded = cleaned.replace(/^0+/, '');
+                if (unpadded) {
+                    newMap.set(unpadded, file);
+                    newMap.set(unpadded.padStart(7, '0'), file);
+                    newMap.set(unpadded.padStart(8, '0'), file);
+                }
+            }
+
+            // 3. フォルダパスが含まれる場合（webkitRelativePath）- 全階層セグメントを登録
+            const relPath = file.webkitRelativePath ? String(file.webkitRelativePath).normalize('NFC') : '';
+            if (relPath) {
+                const parts = relPath.split('/');
+                for (let p = 0; p < parts.length - 1; p++) {
+                    const folderSegment = parts[p].trim().toLowerCase();
+                    if (folderSegment) {
+                        newMap.set(`${folderSegment}/${lowerRawName}`, file);
+                        newMap.set(`${folderSegment}/${lowerFileName}`, file);
+                        if (cleaned) {
+                            newMap.set(`${folderSegment}/${cleaned}`, file);
+                        }
+
+                        // 先頭の顧客コード（例: 16152）を抽出してコードプレフィックスキーを登録
+                        const codeMatch = folderSegment.match(/^([0-9a-z]+)/i);
+                        if (codeMatch) {
+                            const code = codeMatch[1].toLowerCase();
+                            newMap.set(`${code}/${lowerRawName}`, file);
+                            newMap.set(`${code}/${lowerFileName}`, file);
+                            if (cleaned) {
+                                newMap.set(`${code}/${cleaned}`, file);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3b. 選択中の顧客名・顧客コードプレフィックスを全自動バインド
+            if (fileName) {
+                const custClean = String(fileName).replace(/\.xlsx?$/i, '').trim().toLowerCase();
+                const custCode = extractCustomerCode(fileName);
+                if (custClean) {
+                    newMap.set(`${custClean}/${lowerFileName}`, file);
+                    newMap.set(`${custClean}/${lowerRawName}`, file);
+                    if (cleaned) newMap.set(`${custClean}/${cleaned}`, file);
+                }
+                if (custCode) {
+                    newMap.set(`${custCode}/${lowerFileName}`, file);
+                    newMap.set(`${custCode}/${lowerRawName}`, file);
+                    if (cleaned) newMap.set(`${custCode}/${cleaned}`, file);
+                }
+            }
+
+            // 4. アンダースコア・ハイフン区切りファイル名（例: 27099_1005235 や みどりフーズ_1005235）から受注№部分を自動抽出
+            const subParts = rawName.split(/[_#-]/);
+            if (subParts.length > 1) {
+                const lastPart = subParts[subParts.length - 1].trim().toLowerCase();
+                const cleanLast = lastPart
+                    .replace(/,/g, '')
+                    .replace(/\.0+$/, '')
+                    .replace(/[ａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+
+                if (cleanLast) {
+                    newMap.set(cleanLast, file);
+                    const unpaddedLast = cleanLast.replace(/^0+/, '');
+                    if (unpaddedLast) {
+                        newMap.set(unpaddedLast, file);
+                        newMap.set(unpaddedLast.padStart(7, '0'), file);
+                        newMap.set(unpaddedLast.padStart(8, '0'), file);
+                    }
+                }
+            }
+
+            // 5. 末尾のアルファベット枝番 (例: 44884A -> 44884) を除外した純粋数字キーの登録
+            const baseNumMatch = lowerRawName.match(/^([0-9]+)[a-z]+$/i);
+            if (baseNumMatch) {
+                const pureNum = baseNumMatch[1];
+                newMap.set(pureNum, file);
+                const unpaddedPure = pureNum.replace(/^0+/, '');
+                if (unpaddedPure) {
+                    newMap.set(unpaddedPure, file);
+                    newMap.set(unpaddedPure.padStart(7, '0'), file);
+                    newMap.set(unpaddedPure.padStart(8, '0'), file);
+                }
+            }
+        }
 
         // 選択中の顧客ファイル名があれば優先して取得元表示にする
         let activeCustFolder = fileName ? String(fileName).replace(/\.xlsx?$/i, '').trim() : '';
@@ -480,63 +440,13 @@ export const useProductData = () => {
             set('imageFolderNameCache', detectedFolderName).catch(err => console.error('Failed to cache image folder name:', err));
         }
 
-        setImageFilesMap(newMap);
-        setPermissionGranted(newMap.size > 0);
+        setImageFilesMap(new Map(newMap));
+        setPermissionGranted(true);
         setError(null);
 
-        // バックグラウンドで非ブロッキング非同期により IndexedDB キャッシュへ無重複 File/Blob 配列を保存
-        const saveImageMapToCache = async () => {
-            try {
-                await set('imageFilesBlobListCache', files);
-                const currentCustCode = extractCustomerCode(fileName);
-                if (currentCustCode) {
-                    await set(`customerImagesCache_${currentCustCode}`, files);
-                }
-            } catch (cacheErr) {
-                console.error('Failed to cache image files list in IndexedDB:', cacheErr);
-            }
-        };
-        saveImageMapToCache();
-
-        // スマホ画面で画像読み込み完了を認知させる通知
+        // スマホ画面で画像読み込み完了を確実に認知させる通知
         if (files.length > 0) {
             console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
-        }
-    };
-
-    /**
-     * Excelファイルと画像ファイル群を1回の操作でまとめて一括読み込みする統合ハンドラー
-     * @param {React.ChangeEvent<HTMLInputElement>} e
-     * @returns {Promise<void>}
-     */
-    const handleUnifiedSelect = async (e) => {
-        const fileList = e.target.files;
-        if (!fileList || fileList.length === 0) return;
-
-        const allFiles = Array.from(fileList);
-        const excelFiles = allFiles.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xls'));
-        const imageFiles = allFiles.filter(f => /\.(png|jpe?g|webp)$/i.test(f.name));
-
-        if (excelFiles.length > 0) {
-            const firstExcel = excelFiles[0];
-            await processExcelFile(firstExcel);
-        }
-
-        if (imageFiles.length > 0) {
-            const targetCustName = excelFiles.length > 0 ? excelFiles[0].name : fileName;
-            const newMap = buildImageFilesMap(imageFiles, targetCustName, imageFilesMap);
-            setImageFilesMap(newMap);
-            setPermissionGranted(newMap.size > 0);
-
-            try {
-                await set('imageFilesBlobListCache', imageFiles);
-                const custCode = extractCustomerCode(targetCustName);
-                if (custCode) {
-                    await set(`customerImagesCache_${custCode}`, imageFiles);
-                }
-            } catch (cacheErr) {
-                console.error('Failed to cache unified image files:', cacheErr);
-            }
         }
     };
 
@@ -547,8 +457,8 @@ export const useProductData = () => {
      */
     const handleFolderSelect = async () => {
         if (!isFileSystemSupported) {
-            // スマホ環境（!isFileSystemSupported）では <input type="file" multiple> (image-files-input) を最優先起動
-            const mobileInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
+            // スマホで「フォルダごと」一括選択させるため、webkitdirectory付きインプット(image-folder-input)を最優先起動
+            const mobileInput = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
             if (mobileInput) {
                 mobileInput.value = ''; // 同一選択や再選択でも確実に onChange を発火させるためのクリア
                 mobileInput.click();
@@ -763,7 +673,6 @@ export const useProductData = () => {
         handleImageFilesSelect,
         handleCustomerFolderSelect,
         handleCustomerFilesSelect,
-        handleUnifiedSelect,
         loadCustomerFile,
         clearError: () => setError(null)
     };
