@@ -1,7 +1,7 @@
 import { R as React, r as reactExports, j as jsxRuntimeExports, l as libExports, c as clientExports } from "./vendor-react-CBbpK88z.js";
 import { E as ExcelJS } from "./vendor-exceljs-CW5FfZEm.js";
 import { a as get, d as del, s as set, k as keys, F as Fuse } from "./vendor-DFy2ZtwE.js";
-import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as ChevronUp, k as ChevronDown, l as MapPin, m as Check, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-CS6S-NGL.js";
+import { I as Image, S as ShoppingCart, T as Trash2, M as Minus, P as Plus, C as ChevronLeft, a as ChevronRight, b as CircleCheckBig, c as CircleAlert, X, D as Database, R as RotateCcw, F as FileX, d as RefreshCw, e as FileSpreadsheet, f as Clock, g as Search, h as FolderOpen, U as Upload, i as Users, j as MapPin, k as ChevronUp, l as ChevronDown, m as Check, n as FunnelX, o as Tag, p as FileCode, L as LayoutGrid, q as List, r as Palette, s as Layers, t as Scale } from "./vendor-lucide-Do-Owapt.js";
 import { r as readSync, u as utils } from "./vendor-xlsx-_ZWWUOoK.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -2990,23 +2990,22 @@ function App() {
             {
               className: "amazon-sidebar-header customer-accordion-header",
               onClick: () => setIsCustomerAccordionOpen(!isCustomerAccordionOpen),
-              style: { cursor: "pointer", display: "flex", flexDirection: "column", gap: "0.4rem" },
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "sidebar-header-title", style: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }, children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { style: { display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, fontSize: "1rem", fontWeight: 600 }, children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 18, className: "section-title-icon" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-header-main", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "sidebar-header-title", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { size: 17, className: "section-title-icon" }),
                     "顧客・直送先選択"
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isCustomerAccordionOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
-                ] }),
-                !isCustomerAccordionOpen && (fileName || filters["直送先名称"] && filters["直送先名称"].length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-summary-badges", style: { display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.2rem" }, children: [
-                  fileName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "summary-badge customer-badge", style: { fontSize: "0.75rem", background: "var(--color-surface-hover, #e8f0fe)", color: "var(--color-primary, #1a73e8)", padding: "0.15rem 0.5rem", borderRadius: "4px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: fileName.replace(/\.xlsx?$/, "") }),
-                  filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "summary-badge shipping-badge", style: { fontSize: "0.75rem", background: "#e6f4ea", color: "#137333", padding: "0.15rem 0.5rem", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "0.2rem" }, children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 12 }),
-                    " ",
-                    filters["直送先名称"].join(", ")
+                  !isCustomerAccordionOpen && (fileName || filters["直送先名称"] && filters["直送先名称"].length > 0) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "customer-summary-badges", children: [
+                    fileName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "summary-badge customer-badge", children: fileName.replace(/\.xlsx?$/, "") }),
+                    filters["直送先名称"] && filters["直送先名称"].length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "summary-badge shipping-badge", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(MapPin, { size: 11 }),
+                      " ",
+                      filters["直送先名称"].join(", ")
+                    ] })
                   ] })
-                ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sidebar-toggle-icon", children: isCustomerAccordionOpen ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 18 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 18 }) })
               ]
             }
           ),
