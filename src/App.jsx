@@ -567,33 +567,33 @@ function App() {
               <div 
                 className="amazon-sidebar-header customer-accordion-header" 
                 onClick={() => setIsCustomerAccordionOpen(!isCustomerAccordionOpen)}
-                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}
               >
-                <div className="sidebar-header-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, fontSize: '1rem', fontWeight: 600 }}>
-                    <Users size={18} className="section-title-icon" />
+                <div className="customer-header-main">
+                  <h2 className="sidebar-header-title">
+                    <Users size={17} className="section-title-icon" />
                     顧客・直送先選択
                   </h2>
-                  <div className="sidebar-toggle-icon">
-                    {isCustomerAccordionOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                  </div>
+                  
+                  {/* 閉じている状態での選択サマリーバッジ */}
+                  {!isCustomerAccordionOpen && (fileName || (filters['直送先名称'] && filters['直送先名称'].length > 0)) && (
+                    <div className="customer-summary-badges">
+                      {fileName && (
+                        <span className="summary-badge customer-badge">
+                          {fileName.replace(/\.xlsx?$/, '')}
+                        </span>
+                      )}
+                      {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
+                        <span className="summary-badge shipping-badge">
+                          <MapPin size={11} /> {filters['直送先名称'].join(', ')}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                
-                {/* 閉じている状態での選択サマリーバッジ */}
-                {!isCustomerAccordionOpen && (fileName || (filters['直送先名称'] && filters['直送先名称'].length > 0)) && (
-                  <div className="customer-summary-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.2rem' }}>
-                    {fileName && (
-                      <span className="summary-badge customer-badge" style={{ fontSize: '0.75rem', background: 'var(--color-surface-hover, #e8f0fe)', color: 'var(--color-primary, #1a73e8)', padding: '0.15rem 0.5rem', borderRadius: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {fileName.replace(/\.xlsx?$/, '')}
-                      </span>
-                    )}
-                    {filters['直送先名称'] && filters['直送先名称'].length > 0 && (
-                      <span className="summary-badge shipping-badge" style={{ fontSize: '0.75rem', background: '#e6f4ea', color: '#137333', padding: '0.15rem 0.5rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <MapPin size={12} /> {filters['直送先名称'].join(', ')}
-                      </span>
-                    )}
-                  </div>
-                )}
+
+                <div className="sidebar-toggle-icon">
+                  {isCustomerAccordionOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
               </div>
 
               {isCustomerAccordionOpen && (
