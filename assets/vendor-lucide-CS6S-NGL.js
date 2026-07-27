@@ -74,10 +74,6 @@ const createLucideIcon = (iconName, iconNode) => {
   Component.displayName = toPascalCase(iconName);
   return Component;
 };
-const __iconNode$w = [
-  ["path", { d: "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z", key: "p7xjir" }]
-];
-const Cloud = createLucideIcon("cloud", __iconNode$w);
 const __iconNode$v = [
   ["path", { d: "M12 3v12", key: "1x0j5s" }],
   ["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
@@ -346,17 +342,16 @@ export {
   Clock as f,
   Search as g,
   FolderOpen as h,
-  Cloud as i,
-  Users as j,
-  ChevronUp as k,
-  ChevronDown as l,
-  MapPin as m,
-  Check as n,
-  FunnelX as o,
-  Tag as p,
-  FileCode as q,
-  List as r,
-  Palette as s,
-  Layers as t,
-  Scale as u
+  Users as i,
+  ChevronUp as j,
+  ChevronDown as k,
+  MapPin as l,
+  Check as m,
+  FunnelX as n,
+  Tag as o,
+  FileCode as p,
+  List as q,
+  Palette as r,
+  Layers as s,
+  Scale as t
 };
