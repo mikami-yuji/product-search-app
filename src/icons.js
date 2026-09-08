@@ -33,6 +33,7 @@ import MapPin from 'lucide-react/dist/esm/icons/map-pin.js';
 import Users from 'lucide-react/dist/esm/icons/users.js';
 import Mail from 'lucide-react/dist/esm/icons/mail.js';
 import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in.js';
+import Printer from 'lucide-react/dist/esm/icons/printer.js';
 
 export {
   Upload,
@@ -70,5 +71,6 @@ export {
   Users,
   Mail,
   ZoomIn,
+  Printer,
   Cloud
 };

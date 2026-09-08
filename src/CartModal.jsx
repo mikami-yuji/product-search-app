@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ShoppingCart, Trash2, Minus, Plus, Mail } from './icons';
+import { ShoppingCart, Trash2, Minus, Plus, Mail, Printer } from './icons';
 import { useReactToPrint } from 'react-to-print';
 import OrderSheet from './OrderSheet';
 
@@ -147,27 +147,77 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                         <span>合計:</span>
                         <span className="cart-total-price">¥{total.toLocaleString()}</span>
                     </div>
-                    <div className="cart-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div className="cart-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', width: '100%' }}>
                         <button
-                            className="cart-print-btn"
+                            className="cart-action-btn cart-print-btn"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                color: '#ffffff',
+                                backgroundColor: '#059669',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '0.85rem 1rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                gap: '8px'
+                            }}
                             onClick={handlePrint}
+                            title="発注書を印刷またはPDFとして出力します"
                         >
-                            発注書作成
+                            <Printer size={18} />
+                            <span>発注書作成</span>
                         </button>
                         <button
-                            className="cart-checkout-btn"
-                            style={{ backgroundColor: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            className="cart-action-btn cart-mail-btn"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                color: '#ffffff',
+                                backgroundColor: '#0284c7',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '0.85rem 1rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                gap: '8px'
+                            }}
                             onClick={handleOpenMailer}
                             title="スマホ・PCのメールアプリを起動して注文文章を入力します"
                         >
-                            <Mail size={16} />
-                            メール起動
+                            <Mail size={18} />
+                            <span>メール起動</span>
                         </button>
                         <button
-                            className={`cart-checkout-btn ${copied ? 'copied' : ''}`}
+                            className={`cart-action-btn cart-copy-btn ${copied ? 'copied' : ''}`}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                color: '#ffffff',
+                                backgroundColor: copied ? '#16a34a' : '#1e3a8a',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '0.85rem 1rem',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                gap: '8px'
+                            }}
                             onClick={handleCopyEmail}
+                            title="メール送信用の注文文章をクリップボードにコピーします"
                         >
-                            {copied ? '✓ コピーしました！' : '文章コピー'}
+                            <span>{copied ? '✓ コピーしました！' : '文章コピー'}</span>
                         </button>
                     </div>
                 </div>

@@ -638,28 +638,72 @@ html, body {
   color: #B12704;
 }
 
-.cart-checkout-btn {
+.cart-action-btn,
+.cart-checkout-btn,
+.cart-print-btn {
   width: 100%;
-  padding: 1rem;
-  background-color: var(--amazon-orange);
-  color: var(--amazon-dark);
+  padding: 0.875rem 1rem;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  color: #ffffff !important;
+  gap: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  text-decoration: none;
 }
 
-.cart-checkout-btn:hover {
-  background-color: #F08804;
+.cart-action-btn:hover,
+.cart-checkout-btn:hover,
+.cart-print-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  color: #ffffff !important;
 }
 
+.cart-action-btn:active,
+.cart-checkout-btn:active,
+.cart-print-btn:active {
+  transform: scale(0.98);
+}
+
+.cart-print-btn {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+.cart-print-btn:hover {
+  background-color: #047857 !important;
+}
+
+.cart-mail-btn {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+.cart-mail-btn:hover {
+  background-color: #0369a1 !important;
+}
+
+.cart-copy-btn {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+.cart-copy-btn:hover {
+  background-color: #1e40af !important;
+}
+
+.cart-copy-btn.copied,
 .cart-checkout-btn.copied {
-  background-color: #067D62;
-  border-color: #067D62;
+  background-color: #16a34a !important;
+  color: #ffffff !important;
 }
 
 /* Amazon Table */
