@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
 import { extractCustomerCode } from '../utils/imageKeyUtils';
 import { saveStoredImagesBatch, loadAllStoredImagesMap } from '../utils/imageCache';
+import { normalizeProductRows } from '../utils/excelUtils';
 
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
@@ -222,7 +223,8 @@ export const useProductData = () => {
             };
 
             try {
-                const parsedData = await parseExcelDirectly();
+                const rawParsedData = await parseExcelDirectly();
+                const parsedData = normalizeProductRows(rawParsedData);
                 validateData(parsedData);
                 setData(parsedData);
                 setFileName(file.name);

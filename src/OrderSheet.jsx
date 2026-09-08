@@ -1,6 +1,11 @@
 import React from 'react';
 import './OrderSheet.css';
 
+const parsePrice = (val) => {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/,/g, '')) || 0;
+};
+
 const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref) => {
     const formatDate = (dateObj) => {
         const d = dateObj || new Date();
@@ -59,8 +64,8 @@ const OrderSheet = React.forwardRef(({ cart, totalAmount, date, fileName }, ref)
                     </thead>
                     <tbody>
                         {cart.map((item, index) => {
-                            const price = parseFloat(item['単価']) || 0;
-                            const printingCost = parseFloat(item['印刷代']) || 0;
+                            const price = parsePrice(item['単価']);
+                            const printingCost = parsePrice(item['印刷代']);
                             const itemTotal = (price * item.quantity) + printingCost;
 
                             return (

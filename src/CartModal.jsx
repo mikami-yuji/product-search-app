@@ -1,7 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { ShoppingCart, Trash2, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, Trash2, Minus, Plus, Mail } from './icons';
 import { useReactToPrint } from 'react-to-print';
 import OrderSheet from './OrderSheet';
+
+const parsePrice = (val) => {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/,/g, '')) || 0;
+};
 
 const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, fileName }) => {
     const [copied, setCopied] = useState(false);
@@ -55,6 +60,17 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
         }
     };
 
+    const handleOpenMailer = () => {
+        const emailText = generateEmailText();
+        const companyName = fileName
+            ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社")
+            : "発注依頼";
+        const todayStr = new Date().toLocaleDateString('ja-JP');
+        const subject = `【注文依頼】${companyName} (${todayStr})`;
+        const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailText)}`;
+        window.location.href = mailtoUrl;
+    };
+
     if (!cart || cart.length === 0) {
         return (
             <div className="modal-overlay" onClick={onClose}>
@@ -83,8 +99,8 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                 </div>
                 <div className="cart-items">
                     {cart.map((item, index) => {
-                        const price = parseFloat(item['単価']) || 0;
-                        const printingCost = parseFloat(item['印刷代']) || 0;
+                        const price = parsePrice(item['単価']);
+                        const printingCost = parsePrice(item['印刷代']);
                         const itemTotal = (price * item.quantity) + printingCost;
 
                         return (
@@ -131,7 +147,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                         <span>合計:</span>
                         <span className="cart-total-price">¥{total.toLocaleString()}</span>
                     </div>
-                    <div className="cart-actions">
+                    <div className="cart-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                             className="cart-print-btn"
                             onClick={handlePrint}
@@ -139,10 +155,19 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onRemove, onClear, total, 
                             発注書作成
                         </button>
                         <button
+                            className="cart-checkout-btn"
+                            style={{ backgroundColor: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            onClick={handleOpenMailer}
+                            title="スマホ・PCのメールアプリを起動して注文文章を入力します"
+                        >
+                            <Mail size={16} />
+                            メール起動
+                        </button>
+                        <button
                             className={`cart-checkout-btn ${copied ? 'copied' : ''}`}
                             onClick={handleCopyEmail}
                         >
-                            {copied ? '✓ コピーしました！' : 'メール文章をコピー'}
+                            {copied ? '✓ コピーしました！' : '文章コピー'}
                         </button>
                     </div>
                 </div>

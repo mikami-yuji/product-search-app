@@ -31,6 +31,8 @@ import Palette from 'lucide-react/dist/esm/icons/palette.js';
 import Check from 'lucide-react/dist/esm/icons/check.js';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin.js';
 import Users from 'lucide-react/dist/esm/icons/users.js';
+import Mail from 'lucide-react/dist/esm/icons/mail.js';
+import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in.js';
 
 export {
   Upload,
@@ -66,5 +68,7 @@ export {
   Check,
   MapPin,
   Users,
+  Mail,
+  ZoomIn,
   Cloud
 };

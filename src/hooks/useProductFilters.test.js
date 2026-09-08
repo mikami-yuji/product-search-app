@@ -214,4 +214,31 @@ describe('useProductFilters', () => {
             expect(result.current.currentPage).toBe(1);
         });
     });
+
+    /**
+     * @returns {void}
+     */
+    it('半角および全角スペース区切りの複数ワードAND検索が正しく絞り込みを行うこと', () => {
+        const { result } = renderHook(() => useProductFilters(mockProducts));
+
+        // 半角スペース区切り「PET 青」
+        act(() => {
+            result.current.setKeyword('PET 青');
+        });
+        expect(result.current.filteredData).toHaveLength(1);
+        expect(result.current.filteredData[0]['受注№']).toBe('ORD-AAA');
+
+        // 全角スペース区切り「紙コップ クラフト」
+        act(() => {
+            result.current.setKeyword('紙コップ\u3000クラフト');
+        });
+        expect(result.current.filteredData).toHaveLength(1);
+        expect(result.current.filteredData[0]['受注№']).toBe('ORD-DDD');
+
+        // 該当なしの組み合わせ「PET クラフト」
+        act(() => {
+            result.current.setKeyword('PET クラフト');
+        });
+        expect(result.current.filteredData).toHaveLength(0);
+    });
 });

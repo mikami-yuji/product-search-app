@@ -135,13 +135,30 @@ export const useProductFilters = (data) => {
         });
     }, [data, searchKeys]);
 
-    // キーワード検索の中間結果キャッシュ（1キーストロークにつき Fuse.search を1度だけ実行）
+    // キーワード検索の中間結果キャッシュ（単一単語はFuseあいまい検索、複数単語スペース区切りは高速AND検索）
     const searchResultData = useMemo(() => {
         if (!keyword || !keyword.trim() || !fuseInstance) {
             return data;
         }
-        return fuseInstance.search(keyword.trim()).map(res => res.item);
-    }, [data, keyword, fuseInstance]);
+        const tokens = keyword.trim().split(/\s+/).filter(Boolean);
+        if (tokens.length === 0) return data;
+
+        if (tokens.length === 1) {
+            return fuseInstance.search(tokens[0]).map(res => res.item);
+        }
+
+        // 複数単語スペース区切りのAND検索
+        return data.filter(item => {
+            return tokens.every(tok => {
+                const lowerTok = tok.toLowerCase();
+                return searchKeys.some(key => {
+                    const val = item[key];
+                    if (val == null) return false;
+                    return String(val).toLowerCase().includes(lowerTok);
+                });
+            });
+        });
+    }, [data, keyword, fuseInstance, searchKeys]);
 
     // 各フィルターカテゴリ内の各値について、他のフィルターが適用された状態での該当件数（ファセットカウント）を算出
     const facetCounts = useMemo(() => {

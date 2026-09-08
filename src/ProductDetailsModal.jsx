@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon, ZoomIn } from 'lucide-react';
 import './product-details-modal.css';
 
 /**
@@ -14,9 +14,10 @@ import './product-details-modal.css';
  * @param {() => void} props.onPrev - 前の商品を表示するイベントハンドラ
  * @param {boolean} props.hasNext - 次の商品があるかどうか
  * @param {boolean} props.hasPrev - 前の商品があるかどうか
+ * @param {(url: string) => void} [props.onImageClick] - 画像クリック時の拡大ハンドラ
  * @returns {React.JSX.Element | null} モーダルのJSX要素
  */
-const ProductDetailsModal = ({ product, onClose, dirHandle, imageFilesMap, customerFileName, onNext, onPrev, hasNext, hasPrev }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle, imageFilesMap, customerFileName, onNext, onPrev, hasNext, hasPrev, onImageClick }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
     const [isSwitching, setIsSwitching] = useState(false);
@@ -214,11 +215,29 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, imageFilesMap, custo
                         {availableImages.length > 0 ? (
                             <div className="product-details-main-image-container">
                                 {currentImage ? (
-                                    <img
-                                        src={currentImage.url}
-                                        alt={`${product['タイトル']} - ${currentImage.suffix}`}
-                                        className={`product-details-image ${isSwitching ? 'switching' : ''}`}
-                                    />
+                                    <div 
+                                        className="product-details-image-clickable-wrapper"
+                                        onClick={() => onImageClick && onImageClick(currentImage.url)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (onImageClick) onImageClick(currentImage.url);
+                                            }
+                                        }}
+                                        title="クリックして全画面拡大表示"
+                                    >
+                                        <img
+                                            src={currentImage.url}
+                                            alt={`${product['タイトル'] || product['商品名']} - ${currentImage.suffix}`}
+                                            className={`product-details-image ${isSwitching ? 'switching' : ''}`}
+                                        />
+                                        <div className="product-details-zoom-badge">
+                                            <ZoomIn size={15} />
+                                            <span>全画面拡大</span>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="no-image"><ImageIcon size={64} /></div>
                                 )}

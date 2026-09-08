@@ -1148,11 +1148,21 @@ html, body {
   }
 }
 
+.image-preview-overlay {
+  z-index: 2500 !important;
+  background-color: rgba(10, 15, 29, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: zoom-out;
+  padding: 1rem;
+  animation: fadeInBg 0.2s ease forwards;
+}
+
 .image-modal-content {
   background-color: transparent;
   border-radius: 0;
-  max-width: 95vw;
-  max-height: 95vh;
+  max-width: 98vw;
+  max-height: 96vh;
   position: relative;
   display: flex;
   align-items: center;
@@ -1161,10 +1171,42 @@ html, body {
 
 .modal-image-large {
   max-width: 100%;
-  max-height: 95vh;
+  max-height: 94vh;
   object-fit: contain;
   border-radius: 0.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.zoomable-image {
+  cursor: zoom-out;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: scaleUpShow 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.image-preview-close {
+  position: absolute;
+  top: -1.5rem;
+  right: -1rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: none;
+  font-size: 1.8rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2600;
+  transition: all 0.2s ease;
+}
+
+.image-preview-close:hover {
+  background: var(--amazon-accent);
+  color: #111;
+  transform: scale(1.1);
 }
 
 /* Product Image Styles */

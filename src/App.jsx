@@ -1125,7 +1125,6 @@ function App() {
       )}
 
       {/* Modals */}
-      <ImageModal imageUrl={modalImage} onClose={() => setModalImage(null)} />
       <ProductDetailsModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
@@ -1136,7 +1135,9 @@ function App() {
         onPrev={handlePrevProduct}
         hasNext={hasNext}
         hasPrev={hasPrev}
+        onImageClick={(url) => setModalImage(url)}
       />
+      <ImageModal imageUrl={modalImage} onClose={() => setModalImage(null)} />
       {showCart && (
         <CartModal cart={cart} onClose={() => setShowCart(false)} onUpdateQuantity={updateCartQuantity} onRemove={removeFromCart} onClear={clearCart} total={cartTotal} fileName={fileName} />
       )}
