@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Trash2, RefreshCw, FileX, RotateCcw } from './icons';
-import { getCacheStats, clearImageCache } from './utils/imageCache';
+import { getCacheStats, clearImageCache, clearStoredMobileImages } from './utils/imageCache';
 import { del } from 'idb-keyval';
 
 const CacheManager = ({ onClose }) => {
@@ -17,11 +17,12 @@ const CacheManager = ({ onClose }) => {
     }, []);
 
     const handleClearImages = async () => {
-        if (!confirm('すべての画像キャッシュを削除しますか？\n（画像は再度読み込まれます）')) return;
+        if (!confirm('すべての画像キャッシュ（端末保存画像を含む）を削除しますか？\n（次回はフォルダ再選択が必要になります）')) return;
 
         setIsClearing(true);
         try {
             await clearImageCache();
+            await clearStoredMobileImages();
             await loadStats();
             alert('画像キャッシュをクリアしました');
         } catch {
@@ -43,6 +44,7 @@ const CacheManager = ({ onClose }) => {
             await del('customerDirHandle');
             await del('customerFilesCache');
             await del('customerFilesListCache');
+            await clearStoredMobileImages();
             alert('全データおよびフォルダ接続情報をクリアしました。\n画面を初期状態に再読み込みします。');
             window.location.reload();
         } catch (err) {
@@ -71,6 +73,7 @@ const CacheManager = ({ onClose }) => {
             }
             // Clear IndexedDB / Image cache
             await clearImageCache();
+            await clearStoredMobileImages();
             await del('productData');
             await del('fileName');
             await del('lastModified');

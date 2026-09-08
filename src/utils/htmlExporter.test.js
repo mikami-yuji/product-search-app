@@ -43,6 +43,35 @@ describe('createProductHtmlString', () => {
     expect(html).not.toContain('印刷代');
   });
 
+  it('should escape HTML special characters to prevent XSS', async () => {
+    const maliciousProducts = [
+      {
+        '受注№': '99999<script>alert("xss")</script>',
+        '商品コード': 'CODE" onclick="alert(1)',
+        'タイトル': '<b>悪意あるタイトル</b> & "ダブルクォート"',
+        '商品名': '<b>悪意あるタイトル</b> & "ダブルクォート"',
+        '種別': '既製品',
+        '形状': '単袋',
+        '材質名称': '<img src=x onerror=alert(1)>',
+        '重量': '10g',
+        'JANコード': '0000',
+        '最新受注日': '2026-07-01'
+      }
+    ];
+
+    const html = await createProductHtmlString(maliciousProducts, '<script>evil</script>.xlsx', null);
+
+    // Verify special characters are escaped and not rendered as raw tags
+    expect(html).not.toContain('<script>alert("xss")</script>');
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).not.toContain('<script>evil</script>');
+
+    expect(html).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).toContain('&lt;script&gt;evil&lt;/script&gt;');
+    expect(html).toContain('&lt;b&gt;悪意あるタイトル&lt;/b&gt; &amp; &quot;ダブルクォート&quot;');
+  });
+
   it('should throw an error for empty products', async () => {
     await expect(createProductHtmlString([], 'test.xlsx', null)).rejects.toThrow('出力するデータがありません');
     await expect(createProductHtmlString(null, 'test.xlsx', null)).rejects.toThrow();

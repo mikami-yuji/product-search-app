@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { get, set } from 'idb-keyval';
 import { extractCustomerCode } from '../utils/imageKeyUtils';
+import { saveStoredImagesBatch, loadAllStoredImagesMap } from '../utils/imageCache';
 
 // Required columns for validation
 const REQUIRED_COLUMNS = ['受注№', '商品コード', '商品名'];
@@ -103,7 +104,14 @@ export const useProductData = () => {
                         setCustomerFiles(cachedCustomerFiles);
                         setCustomerPermissionGranted(true);
                     }
-                    // スマホではリロード後にメモリ上のimageFilesMapが空になるため、初期化時はpermissionGrantedをfalseにする
+                }
+
+                // スマホまたはPC：IndexedDBに永続保存された画像マップを自動復元
+                const storedImages = await loadAllStoredImagesMap();
+                if (storedImages && storedImages.size > 0) {
+                    setImageFilesMap(storedImages);
+                    setPermissionGranted(true);
+                } else if (!isFileSystemSupported) {
                     setPermissionGranted(false);
                 }
             } catch (err) {
@@ -427,6 +435,10 @@ export const useProductData = () => {
         // スマホ画面で画像読み込み完了を確実に認知させる通知
         if (files.length > 0) {
             console.log(`[ImageLoader] Loaded ${files.length} images into map. Total keys: ${newMap.size}`);
+            // UIをブロックしないよう非同期バックグラウンドでIndexedDBに永続保存
+            saveStoredImagesBatch(files, fileName).catch(err => {
+                console.error('Failed to persist mobile images to IndexedDB:', err);
+            });
         }
     };
 
@@ -437,8 +449,8 @@ export const useProductData = () => {
      */
     const handleFolderSelect = async () => {
         if (!isFileSystemSupported) {
-            // スマホで「フォルダごと」一括選択させるため、webkitdirectory付きインプット(image-folder-input)を最優先起動
-            const mobileInput = document.getElementById('image-folder-input') || document.getElementById('image-files-input');
+            // スマホ環境では multiple なファイルインプットを最優先起動
+            const mobileInput = document.getElementById('image-files-input') || document.getElementById('image-folder-input');
             if (mobileInput) {
                 mobileInput.value = ''; // 同一選択や再選択でも確実に onChange を発火させるためのクリア
                 mobileInput.click();
@@ -610,6 +622,15 @@ export const useProductData = () => {
 
             if (file) {
                 await processExcelFile(file);
+
+                // スマホ環境等でメモリ上の画像マップが未初期化の場合、IndexedDBから自動復元
+                if (!isFileSystemSupported && (!imageFilesMap || imageFilesMap.size === 0)) {
+                    const storedImages = await loadAllStoredImagesMap();
+                    if (storedImages && storedImages.size > 0) {
+                        setImageFilesMap(storedImages);
+                        setPermissionGranted(true);
+                    }
+                }
             } else {
                 throw new Error('ファイルが見つかりません');
             }

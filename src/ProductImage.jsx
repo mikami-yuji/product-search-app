@@ -183,22 +183,6 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
                         }
                     }
                 }
-
-                // 強力フォールバック: 受注№数字が含まれる画像ファイルをマッピング内から逆引き・部分一致検出
-                const cleanOrderNum = cleanKey(filename).replace(/^0+/, '');
-                if (cleanOrderNum && cleanOrderNum.length >= 3) {
-                    for (const [mapKey, mapFile] of imageFilesMap.entries()) {
-                        if (mapKey.includes(cleanOrderNum)) {
-                            const objectUrl = await getFileImageUrl(mapFile);
-                            if (isCancelled) return;
-                            if (objectUrl) {
-                                updateImageUrl(objectUrl);
-                                setError(false);
-                                return;
-                            }
-                        }
-                    }
-                }
             }
 
             // 1. キャッシュから読み込みを試みる
@@ -313,13 +297,10 @@ const ProductImage = ({ dirHandle, imageFilesMap, filename, customerFileName, cl
     }
 
     if (error || !imageUrl) {
-        const debugText = `Map: ${imageFilesMap ? imageFilesMap.size : 0}件 / Key: ${filename || 'なし'}`;
         return (
-            <div className={`no-image ${className || ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '2px' }}>
-                <ImageIcon size={20} />
-                <span style={{ fontSize: '9px', color: '#555', wordBreak: 'break-all', textAlign: 'center', lineHeight: '1.1' }}>
-                    {debugText}
-                </span>
+            <div className={`no-image ${className || ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px', color: '#94a3b8' }}>
+                <ImageIcon size={22} strokeWidth={1.5} />
+                <span style={{ fontSize: '10px', letterSpacing: '0.02em', color: '#94a3b8' }}>No Image</span>
             </div>
         );
     }

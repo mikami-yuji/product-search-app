@@ -117,6 +117,32 @@ export const useProductFilters = (data) => {
         return Array.from(matches);
     }, [data, keyword, searchScope]);
 
+    // 検索スコープに応じた対象キーの定義
+    const searchKeys = useMemo(() => {
+        if (searchScope === 'title') return ['タイトル', '商品名'];
+        if (searchScope === 'code') return ['受注№', '商品コード', 'JANコード'];
+        return ['タイトル', '商品名', '受注№', '商品コード', '材質名称', '直送先名称', '形状', 'JANコード'];
+    }, [searchScope]);
+
+    // Fuse.js インスタンスのキャッシュ（data または searchScope 変更時のみ再生成）
+    const fuseInstance = useMemo(() => {
+        if (!data || data.length === 0) return null;
+        return new Fuse(data, {
+            keys: searchKeys,
+            threshold: 0.3,
+            ignoreLocation: true,
+            useExtendedSearch: true
+        });
+    }, [data, searchKeys]);
+
+    // キーワード検索の中間結果キャッシュ（1キーストロークにつき Fuse.search を1度だけ実行）
+    const searchResultData = useMemo(() => {
+        if (!keyword || !keyword.trim() || !fuseInstance) {
+            return data;
+        }
+        return fuseInstance.search(keyword.trim()).map(res => res.item);
+    }, [data, keyword, fuseInstance]);
+
     // 各フィルターカテゴリ内の各値について、他のフィルターが適用された状態での該当件数（ファセットカウント）を算出
     const facetCounts = useMemo(() => {
         const counts = {};
@@ -125,69 +151,40 @@ export const useProductFilters = (data) => {
         filterKeys.forEach(activeKey => {
             counts[activeKey] = {};
             
-            // activeKey以外のフィルター条件と、キーワード検索を適用した中間結果を得る
-            let tempResult = data;
-
-            // 1. キーワード検索の適用
-            if (keyword) {
-                const keys = searchScope === 'all'
-                    ? ['タイトル', '商品名', '受注№', '商品コード', '材質名称', '直送先名称', '形状', 'JANコード']
-                    : searchScope === 'title'
-                    ? ['タイトル', '商品名']
-                    : ['受注№', '商品コード', 'JANコード'];
-
-                const fuse = new Fuse(data, {
-                    keys: keys,
-                    threshold: 0.3,
-                    ignoreLocation: true,
-                    useExtendedSearch: true
-                });
-                tempResult = fuse.search(keyword).map(res => res.item);
-            }
-
-            // 2. 他のフィルターの適用
-            tempResult = tempResult.filter(item => {
+            // activeKey以外のフィルター条件を適用した中間結果
+            const tempResult = searchResultData.filter(item => {
                 return filterKeys.every(k => {
-                    if (k === activeKey) return true; // このフィルターは無視
+                    if (k === activeKey) return true;
                     const selectedValues = filters[k];
                     if (!selectedValues || selectedValues.length === 0) return true;
                     return selectedValues.includes(String(item[k]));
                 });
             });
 
-            // 3. activeKeyのユニークな各値について、件数をカウント
+            // O(N) の単一走査で件数を集計
+            const countMap = {};
+            for (let i = 0; i < tempResult.length; i++) {
+                const val = String(tempResult[i][activeKey] || '');
+                if (val) {
+                    countMap[val] = (countMap[val] || 0) + 1;
+                }
+            }
+
             const uniqueVals = uniqueValues[activeKey] || [];
-            uniqueVals.forEach(val => {
-                counts[activeKey][val] = tempResult.filter(item => String(item[activeKey]) === String(val)).length;
-            });
+            for (let i = 0; i < uniqueVals.length; i++) {
+                const val = uniqueVals[i];
+                counts[activeKey][val] = countMap[String(val)] || 0;
+            }
         });
 
         return counts;
-    }, [data, filters, keyword, searchScope, uniqueValues]);
+    }, [searchResultData, filters, uniqueValues]);
 
     // キーワード、フィルター、ソート条件をすべて適用した最終結果
     const filteredData = useMemo(() => {
-        let result = data;
+        let result = searchResultData;
 
-        // 1. キーワード検索の適用 (Fuzzy)
-        if (keyword) {
-            const keys = searchScope === 'all'
-                ? ['タイトル', '商品名', '受注№', '商品コード', '材質名称', '直送先名称', '形状', 'JANコード']
-                : searchScope === 'title'
-                ? ['タイトル', '商品名']
-                : ['受注№', '商品コード', 'JANコード'];
-
-            const fuse = new Fuse(data, {
-                keys: keys,
-                threshold: 0.3,
-                ignoreLocation: true,
-                useExtendedSearch: true
-            });
-            const searchResults = fuse.search(keyword);
-            result = searchResults.map(res => res.item);
-        }
-
-        // 2. 複数選択フィルターの適用
+        // 複数選択フィルターの適用
         result = result.filter(item => {
             return Object.keys(filters).every(key => {
                 const selectedValues = filters[key];
@@ -196,7 +193,7 @@ export const useProductFilters = (data) => {
             });
         });
 
-        // 3. 並び替えの適用
+        // 並び替えの適用
         const parsePrice = (val) => parseFloat(String(val || 0).replace(/,/g, '')) || 0;
         if (sortBy === 'price-asc') {
             result = [...result].sort((a, b) => parsePrice(a['単価']) - parsePrice(b['単価']));
@@ -211,7 +208,7 @@ export const useProductFilters = (data) => {
         }
 
         return result;
-    }, [data, filters, keyword, sortBy, searchScope]);
+    }, [searchResultData, filters, sortBy]);
 
     // データ（顧客データ）、フィルター、キーワード、ソート条件の変更時にページ番号を1にリセットする
     useEffect(() => {

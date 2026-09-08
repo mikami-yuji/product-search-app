@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { createProductExcelWorkbook } from './utils/excelExporter';
-import { createProductHtmlString } from './utils/htmlExporter';
 import { Upload, Search, FileSpreadsheet, FileCode, FilterX, FolderOpen, LayoutGrid, List, ChevronLeft, ChevronRight, ShoppingCart, Clock, ChevronDown, ChevronUp, Tag, Scale, Layers, Palette, Check, X, Users, MapPin, ImageIcon } from './icons';
 import './index.css';
 
@@ -212,6 +210,7 @@ function App() {
     showToast(includeImages ? '画像付きExcelファイルを生成中...' : 'Excelファイルを生成中...', 'info');
 
     try {
+      const { createProductExcelWorkbook } = await import('./utils/excelExporter');
       const wb = await createProductExcelWorkbook(filteredData, fileName, { includeImages, dirHandle });
 
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
@@ -253,6 +252,7 @@ function App() {
     showToast('HTMLファイルを生成中...画像点数により時間がかかる場合があります', 'info');
 
     try {
+      const { createProductHtmlString } = await import('./utils/htmlExporter');
       const htmlString = await createProductHtmlString(filteredData, fileName, dirHandle);
 
       const cleanCompanyName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "商品一覧";
@@ -1126,7 +1126,17 @@ function App() {
 
       {/* Modals */}
       <ImageModal imageUrl={modalImage} onClose={() => setModalImage(null)} />
-      <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} dirHandle={dirHandle} onNext={handleNextProduct} onPrev={handlePrevProduct} hasNext={hasNext} hasPrev={hasPrev} />
+      <ProductDetailsModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        dirHandle={dirHandle}
+        imageFilesMap={imageFilesMap}
+        customerFileName={fileName}
+        onNext={handleNextProduct}
+        onPrev={handlePrevProduct}
+        hasNext={hasNext}
+        hasPrev={hasPrev}
+      />
       {showCart && (
         <CartModal cart={cart} onClose={() => setShowCart(false)} onUpdateQuantity={updateCartQuantity} onRemove={removeFromCart} onClear={clearCart} total={cartTotal} fileName={fileName} />
       )}

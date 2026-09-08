@@ -16,6 +16,22 @@ const blobToBase64 = (blob) => {
 };
 
 /**
+ * HTML特殊文字をエスケープしてXSSを防止する。
+ * 
+ * @param {any} str
+ * @returns {string}
+ */
+export const escapeHtml = (str) => {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+/**
  * 得意先にそのまま提出できる高品質な商品一覧HTMLドキュメント文字列を生成する。
  * 単価、印刷代は除外されます。
  * 
@@ -30,9 +46,10 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
   }
 
   // 顧客名のクリーンアップ
-  const companyName = fileName
+  const rawCompanyName = fileName
     ? fileName.replace(/\.[^/.]+$/, "").replace(/[(（]株[)）]/g, "株式会社")
     : "顧客";
+  const companyName = escapeHtml(rawCompanyName);
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
@@ -41,11 +58,12 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
   let tableRows = '';
   for (let i = 0; i < products.length; i++) {
     const item = products[i];
-    const displayName = item['種別'] === '既製品' ? item['商品名'] : item['タイトル'];
+    const rawDisplayName = item['種別'] === '既製品' ? item['商品名'] : item['タイトル'];
+    const displayName = escapeHtml(rawDisplayName);
     
     // 日付フォーマット
     const rawDate = item['最新受注日'] || '';
-    const formattedDate = rawDate ? String(rawDate).trim().replace(/-/g, '/') : '';
+    const formattedDate = escapeHtml(rawDate ? String(rawDate).trim().replace(/-/g, '/') : '');
 
     // 画像のロードとBase64変換
     let imageSrc = '';
@@ -70,14 +88,14 @@ export const createProductHtmlString = async (products, fileName, dirHandle) => 
       <tr>
         <td class="text-center">${i + 1}</td>
         <td class="text-center image-cell">${imageTag}</td>
-        <td class="text-center font-mono">${item['受注№'] || '-'}</td>
-        <td class="text-center font-mono">${item['商品コード'] || '-'}</td>
+        <td class="text-center font-mono">${escapeHtml(item['受注№']) || '-'}</td>
+        <td class="text-center font-mono">${escapeHtml(item['商品コード']) || '-'}</td>
         <td class="text-center">${displayName || '-'}</td>
-        <td class="text-center">${item['種別'] || '-'}</td>
-        <td class="text-center">${item['形状'] || '-'}</td>
-        <td>${item['材質名称'] || '-'}</td>
-        <td class="text-center">${item['重量'] || '-'}</td>
-        <td class="text-center font-mono">${item['JANコード'] || '-'}</td>
+        <td class="text-center">${escapeHtml(item['種別']) || '-'}</td>
+        <td class="text-center">${escapeHtml(item['形状']) || '-'}</td>
+        <td>${escapeHtml(item['材質名称']) || '-'}</td>
+        <td class="text-center">${escapeHtml(item['重量']) || '-'}</td>
+        <td class="text-center font-mono">${escapeHtml(item['JANコード']) || '-'}</td>
         <td class="text-center">${formattedDate || '-'}</td>
       </tr>
     `;

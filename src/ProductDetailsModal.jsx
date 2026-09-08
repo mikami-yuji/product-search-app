@@ -16,7 +16,7 @@ import './product-details-modal.css';
  * @param {boolean} props.hasPrev - 前の商品があるかどうか
  * @returns {React.JSX.Element | null} モーダルのJSX要素
  */
-const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasNext, hasPrev }) => {
+const ProductDetailsModal = ({ product, onClose, dirHandle, imageFilesMap, customerFileName, onNext, onPrev, hasNext, hasPrev }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [availableImages, setAvailableImages] = useState([]);
     const [isSwitching, setIsSwitching] = useState(false);
@@ -56,7 +56,7 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
         const createdUrls = [];
 
         /**
-         * 対象商品の画像が存在するかどうかをローカルフォルダから非同期にチェックします。
+         * 対象商品の画像が存在するかどうかをローカルフォルダまたはスマホメモリマップから非同期にチェックします。
          * 
          * @returns {Promise<void>}
          */
@@ -66,10 +66,55 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
             /** @type {Array<{url: string, suffix: string, source: string}>} */
             const images = [];
             const suffixes = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-            const extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'];
+            const extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG', '.webp', '.WEBP'];
 
-            if (dirHandle) {
-                // Check local images
+            // 1. スマホ環境（メモリマップ）からの高速探索
+            if (imageFilesMap && imageFilesMap.size > 0) {
+                const customerPrefix = customerFileName ? customerFileName.replace(/\.[^/.]+$/, '').trim().toLowerCase() : '';
+                const codeMatch = customerPrefix.match(/^([0-9a-z]+)/i);
+                const customerCode = codeMatch ? codeMatch[1].toLowerCase() : '';
+
+                const prefixOptions = Array.from(new Set([
+                    customerPrefix ? `${customerPrefix}/` : '',
+                    customerCode ? `${customerCode}/` : '',
+                    customerCode ? `${customerCode}_` : '',
+                    customerPrefix ? `${customerPrefix}_` : '',
+                    ''
+                ])).filter(Boolean);
+                if (!prefixOptions.includes('')) prefixOptions.push('');
+
+                const orderNo = String(product['受注№'] || '').trim();
+
+                for (const suffix of suffixes) {
+                    if (isCancelled) break;
+                    const baseCand = `${orderNo}${suffix}`;
+                    const lowerCand = baseCand.toLowerCase();
+                    const candidates = Array.from(new Set([baseCand, lowerCand]));
+
+                    let foundFile = null;
+                    for (const prefix of prefixOptions) {
+                        for (const cand of candidates) {
+                            for (const ext of extensions) {
+                                const targetKey = `${prefix}${cand}${ext}`;
+                                const file = imageFilesMap.get(targetKey);
+                                if (file) {
+                                    foundFile = file;
+                                    break;
+                                }
+                            }
+                            if (foundFile) break;
+                        }
+                        if (foundFile) break;
+                    }
+
+                    if (foundFile) {
+                        const url = URL.createObjectURL(foundFile);
+                        createdUrls.push(url);
+                        images.push({ url, suffix: suffix || 'メイン', source: 'memory' });
+                    }
+                }
+            } else if (dirHandle) {
+                // 2. PC環境（File System Access API）からの探索
                 for (const suffix of suffixes) {
                     for (const ext of extensions) {
                         if (isCancelled) break;
@@ -88,26 +133,24 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
                                     break;
                                 }
                                 createdUrls.push(url);
-                                images.push({ url, suffix, source: 'local' });
-                                break; // Found this suffix, move to next
+                                images.push({ url, suffix: suffix || 'メイン', source: 'local' });
+                                break; // このsuffixが見つかったので次のsuffixへ
                             }
                         } catch {
-                            // File doesn't exist, continue
+                            // ファイルが存在しない場合は継続
                         }
                     }
                 }
             }
 
             if (isCancelled) {
-                // キャンセルされている場合は、この非同期実行中に新しく作成されたURLをすべて即座に解放する
                 createdUrls.forEach(url => URL.revokeObjectURL(url));
                 return;
             }
 
             setAvailableImages((prevImages) => {
-                // 古い画像のURLをすべてクリーンアップする
                 prevImages.forEach((img) => {
-                    if (img.source === 'local') {
+                    if (img.url && img.url.startsWith('blob:')) {
                         URL.revokeObjectURL(img.url);
                     }
                 });
@@ -120,17 +163,16 @@ const ProductDetailsModal = ({ product, onClose, dirHandle, onNext, onPrev, hasN
 
         return () => {
             isCancelled = true;
-            // 同期的に、このサイクル内で作成されたURLをすべて解放する
             createdUrls.forEach(url => URL.revokeObjectURL(url));
         };
-    }, [product, dirHandle]);
+    }, [product, dirHandle, imageFilesMap, customerFileName]);
 
     // モーダル全体がアンマウントされた際のクリーンアップ
     useEffect(() => {
         return () => {
             setAvailableImages((prevImages) => {
                 prevImages.forEach((img) => {
-                    if (img.source === 'local') {
+                    if (img.url && img.url.startsWith('blob:')) {
                         URL.revokeObjectURL(img.url);
                     }
                 });

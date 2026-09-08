@@ -1,8 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const CART_STORAGE_KEY = 'product_search_cart';
+
+const parsePrice = (val) => {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/,/g, '')) || 0;
+};
 
 export const useCart = (showToast) => {
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(CART_STORAGE_KEY);
+            return saved ? JSON.parse(saved) : [];
+        } catch (err) {
+            console.error('Failed to load cart from localStorage:', err);
+            return [];
+        }
+    });
     const [showCart, setShowCart] = useState(false);
+
+    // Persist cart to localStorage whenever it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        } catch (err) {
+            console.error('Failed to save cart to localStorage:', err);
+        }
+    }, [cart]);
 
     const addToCart = (product, quantity = 1) => {
         const qtyToAdd = quantity === 1 && product['受注数'] ? Number(product['受注数']) : quantity;
@@ -47,8 +72,8 @@ export const useCart = (showToast) => {
     };
 
     const cartTotal = cart.reduce((sum, item) => {
-        const price = parseFloat(item['単価']) || 0;
-        const printingCost = parseFloat(item['印刷代']) || 0;
+        const price = parsePrice(item['単価']);
+        const printingCost = parsePrice(item['印刷代']);
         return sum + (price * item.quantity) + printingCost;
     }, 0);
 
